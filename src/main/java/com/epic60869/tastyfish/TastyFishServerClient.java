@@ -38,6 +38,7 @@ public final class TastyFishServerClient {
         body.addProperty("profit", snapshot.profit());
         body.addProperty("activeMillis", snapshot.activeMillis());
         body.addProperty("actions", snapshot.actions());
+        body.addProperty("crop", detectCrop(snapshot));
         body.add("items", GSON.toJsonTree(snapshot.items()));
         body.add("pests", GSON.toJsonTree(snapshot.pests()));
 
@@ -82,6 +83,19 @@ public final class TastyFishServerClient {
                     throw new RuntimeException(label + " HTTP " + response.statusCode() + ": " + response.body());
                 return response.body();
             });
+    }
+
+    private static String detectCrop(SkysoftSessionReader.Snapshot snapshot) {
+        if (snapshot == null || snapshot.items() == null || snapshot.items().isEmpty()) return "";
+        String best = "";
+        long count = -1;
+        for (var entry : snapshot.items().entrySet()) {
+            if (entry.getValue() != null && entry.getValue() > count) {
+                count = entry.getValue();
+                best = entry.getKey();
+            }
+        }
+        return best;
     }
 
     private static String rootMessage(Throwable error) {
