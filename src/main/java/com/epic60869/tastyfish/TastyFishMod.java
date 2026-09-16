@@ -19,6 +19,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private long lastUploadMillis = 0L;
     private long lastActiveMillis = -1L;
     private long lastSnapshotWallMillis = 0L;
+    private long lastOneHourPbAlertActiveMillis = -1L;
     private boolean wasConnected = false;
     private SkysoftSessionReader.Snapshot lastSnapshot;
 
@@ -113,6 +114,7 @@ public final class TastyFishMod implements ClientModInitializer {
             sessionId = TastyFishServerClient.newSessionId();
             lastActiveMillis = -1L;
             lastSnapshot = null;
+            lastOneHourPbAlertActiveMillis = -1L;
         }
         lastActiveMillis = snapshot.activeMillis();
         lastSnapshot = snapshot;
@@ -136,7 +138,10 @@ public final class TastyFishMod implements ClientModInitializer {
                 formatDuration(update.completedFiveMinuteIntervals() * 5L * 60L * 1000L)));
         }
 
-        if (update.newOneHourPb() && config.farmingPersonalBestEnabled) {
+        boolean pbAlertReady = lastOneHourPbAlertActiveMillis < 0L ||
+            snapshot.activeMillis() - lastOneHourPbAlertActiveMillis >= 60L * 60L * 1000L;
+        if (update.newOneHourPb() && pbAlertReady && config.farmingPersonalBestEnabled) {
+            lastOneHourPbAlertActiveMillis = snapshot.activeMillis();
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
             if (config.discordForumEnabled && config.discordSendPersonalBests)
@@ -171,6 +176,7 @@ public final class TastyFishMod implements ClientModInitializer {
         lastSnapshot = null;
         lastSnapshotWallMillis = 0L;
         lastActiveMillis = -1L;
+        lastOneHourPbAlertActiveMillis = -1L;
         sessionId = TastyFishServerClient.newSessionId();
     }
 
