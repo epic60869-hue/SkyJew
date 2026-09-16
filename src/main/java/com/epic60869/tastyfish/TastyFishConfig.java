@@ -9,22 +9,21 @@ import java.nio.file.Path;
 
 public final class TastyFishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final String FARMING_SERVER = "https://tastyfish.org/api/farming";
+    private static final String DISCORD_DESTINATION_ID = "1538133706294829106";
 
-    // Farming is served through the public Tasty Fish website and proxied internally.
     public boolean farmingServerEnabled = true;
-    public String farmingServerEndpoint = "https://tastyfish.org/api/farming";
+    public String farmingServerEndpoint = FARMING_SERVER;
     public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
 
-    // One Discord destination is used for farming reports. The server detects whether
-    // the ID belongs to a normal text channel or a Discord forum channel.
-    public String discordDestinationId = "";
+    // Owner-only Discord destination. This is intentionally not configurable.
+    public String discordDestinationId = DISCORD_DESTINATION_ID;
 
-    // Legacy fields retained only so older config files continue to load.
-    @Deprecated public String endpoint = "https://tastyfish.org/api/farming";
+    @Deprecated public String endpoint = FARMING_SERVER;
     @Deprecated public String discordChannelId = "";
     @Deprecated public String discordForumId = "";
-    @Deprecated public String discordReportEndpoint = "https://tastyfish.org/api/farming/v1/report";
+    @Deprecated public String discordReportEndpoint = FARMING_SERVER + "/v1/report";
     @Deprecated public String discordReportSecret = "";
 
     public boolean enabled = true;
@@ -46,7 +45,6 @@ public final class TastyFishConfig {
     public boolean discordSendStreaks = true;
     public boolean discordSendAchievements = true;
 
-    // Public Tasty Fish website is intentionally fixed; it is not user-editable.
     public boolean guildLeaderboardHudEnabled = true;
     public String guildLeaderboardWebsite = "https://tastyfish.org";
     public int guildLeaderboardRefreshSeconds = 30;
@@ -67,14 +65,11 @@ public final class TastyFishConfig {
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
             if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
             c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
-            if (c.farmingServerEndpoint == null || c.farmingServerEndpoint.isBlank()) c.farmingServerEndpoint = "https://tastyfish.org/api/farming";
+            c.farmingServerEndpoint = FARMING_SERVER;
             c.guildLeaderboardWebsite = "https://tastyfish.org";
-            if (c.endpoint == null || c.endpoint.isBlank()) c.endpoint = c.farmingServerEndpoint;
-            if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) c.discordReportEndpoint = c.farmingServerEndpoint + "/v1/report";
-            if (c.discordDestinationId == null || c.discordDestinationId.isBlank()) {
-                if (c.discordChannelId != null && !c.discordChannelId.isBlank()) c.discordDestinationId = c.discordChannelId.trim();
-                else if (c.discordForumId != null && !c.discordForumId.isBlank()) c.discordDestinationId = c.discordForumId.trim();
-            }
+            c.endpoint = FARMING_SERVER;
+            c.discordReportEndpoint = FARMING_SERVER + "/v1/report";
+            c.discordDestinationId = DISCORD_DESTINATION_ID;
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
