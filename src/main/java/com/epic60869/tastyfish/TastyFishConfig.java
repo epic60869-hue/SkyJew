@@ -11,6 +11,8 @@ public final class TastyFishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FARMING_SERVER = "https://tastyfish.org/api/farming";
     private static final String DISCORD_DESTINATION_ID = "1538133706294829106";
+    private static final String FARMING_API_KEY_ENV = "TASTYFISH_FARMING_API_KEY";
+    private static final String FARMING_API_KEY_PROPERTY = "tastyfish.farming.apiKey";
 
     public boolean farmingServerEnabled = true;
     public String farmingServerEndpoint = FARMING_SERVER;
@@ -46,6 +48,15 @@ public final class TastyFishConfig {
     public int guildLeaderboardHudX = 8;
     public int guildLeaderboardHudY = 8;
     public float guildLeaderboardHudScale = 1.0f;
+
+    /** Resolve the API key without ever writing environment/property secrets to disk. */
+    public String getFarmingServerApiKey() {
+        String property = System.getProperty(FARMING_API_KEY_PROPERTY, "").trim();
+        if (!property.isBlank()) return property;
+        String environment = System.getenv(FARMING_API_KEY_ENV);
+        if (environment != null && !environment.isBlank()) return environment.trim();
+        return farmingServerApiKey == null ? "" : farmingServerApiKey.trim();
+    }
 
     public static TastyFishConfig load(Path path) {
         try {
