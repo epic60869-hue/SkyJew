@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class TastyFishServerClient {
     private static final Gson GSON = new Gson();
     private static final String MOD_VERSION = "1.0.8";
-    private static final String FARMING_SERVER = "https://farming.tastyfish.org";
+    private static final String DEFAULT_FARMING_SERVER = "https://farming.tastyfish.org";
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final AtomicBoolean uploadInProgress = new AtomicBoolean(false);
     private final AtomicBoolean reportInProgress = new AtomicBoolean(false);
@@ -65,8 +65,12 @@ public final class TastyFishServerClient {
     }
 
     private java.util.concurrent.CompletableFuture<String> post(TastyFishConfig config, String path, JsonObject body, String label) {
+        String endpoint = config.farmingServerEndpoint == null ? "" : config.farmingServerEndpoint.trim();
+        if (endpoint.isBlank()) endpoint = DEFAULT_FARMING_SERVER;
+        while (endpoint.endsWith("/")) endpoint = endpoint.substring(0, endpoint.length() - 1);
+
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(FARMING_SERVER + path))
+            .uri(URI.create(endpoint + path))
             .timeout(Duration.ofSeconds(15))
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
