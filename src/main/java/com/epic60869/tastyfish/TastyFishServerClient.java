@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Client for the standalone TastyFish farming server. */
 public final class TastyFishServerClient {
     private static final Gson GSON = new Gson();
-    private static final String MOD_VERSION = "1.0.8";
+    private static final String MOD_VERSION = "1.0.9";
     private static final String DEFAULT_FARMING_SERVER = "https://tastyfish.org/api/farming";
     private static final String DISCORD_DESTINATION_ID = "1538133706294829106";
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
@@ -43,6 +43,7 @@ public final class TastyFishServerClient {
         body.addProperty("actions", snapshot.actions());
         body.addProperty("crop", detectCrop(snapshot));
         body.add("items", GSON.toJsonTree(snapshot.items()));
+        body.add("itemUnitValues", GSON.toJsonTree(snapshot.itemUnitValues()));
         body.add("pests", GSON.toJsonTree(snapshot.pests()));
 
         post(config, apiKey, "/v1/ingest", body, "farming update")
