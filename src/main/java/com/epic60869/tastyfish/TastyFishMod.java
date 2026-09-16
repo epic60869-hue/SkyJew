@@ -67,13 +67,13 @@ public final class TastyFishMod implements ClientModInitializer {
         mc.showDebugChat(net.minecraft.network.chat.Component.literal(
             "§6TastyFish §7| 1h PB: §e" + formatCoins(d.bestOneHourProfit) +
             " §7| Best streak: §e" + formatDuration(d.bestStreakMs) +
-            " §7| Sessions: §e" + d.sessions.size()), false);
+            " §7| Sessions: §e" + d.sessions.size()));
     }
 
     private void printDiscordHelp() {
         Minecraft mc = Minecraft.getInstance();
         mc.showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Configure your Discord forum webhook in §e/tf §7→ Discord."), false);
+            "§6TastyFish §7| Configure your Discord forum webhook in §e/tf §7→ Discord."));
     }
 
     private void tick(Minecraft minecraft) {
@@ -120,7 +120,7 @@ public final class TastyFishMod implements ClientModInitializer {
         String username = minecraft.getUser().getName();
         if (update.newOneHourPb() && config.farmingPersonalBestEnabled) {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
-                "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"), false);
+                "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
             if (config.discordForumEnabled && config.discordSendPersonalBests)
                 discord.personalBest(config.discordForumWebhook, username, update.oneHourProfit());
         }
@@ -132,7 +132,7 @@ public final class TastyFishMod implements ClientModInitializer {
             List<String> unlocked = history.newlyUnlockedAchievements();
             for (String id : unlocked) {
                 String name = achievementName(id);
-                minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name), false);
+                minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name));
                 if (config.discordForumEnabled && config.discordSendAchievements)
                     discord.achievement(config.discordForumWebhook, username, name);
             }
