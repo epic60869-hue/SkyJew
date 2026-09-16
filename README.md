@@ -6,7 +6,7 @@ Fabric 26.2 companion mod for the Tasty Fish farming leaderboard.
 
 ## Farming analytics
 
-The mod reads **SkySoft's live FARMING session tracker** and now also keeps a local farming history:
+The mod reads **SkySoft's live FARMING session tracker** and keeps a local farming history:
 
 - Farming session recorder
 - Up to 100 recent saved sessions
@@ -17,11 +17,35 @@ The mod reads **SkySoft's live FARMING session tracker** and now also keeps a lo
 
 The local analytics file is `config/tastyfish-farming.json`.
 
-## Discord forum reporting
+## Guild collection HUD
 
-Open `/tf` and select **Discord**. Paste a webhook created for the Discord **Forum Channel** you want to use and enable reporting.
+TastyFish now includes a compact SkyHanni-style guild collection display backed by the public TastyFish website leaderboard API.
 
-The mod can create a separate forum post for:
+When a farming collection leaderboard is enabled on `tastyfish.org`, the HUD automatically matches the current SkySoft farming crop and only displays the guild gap:
+
+```text
+Carrot Collection: 81,837,732 [#21]
+7,155,361 behind BigLando [#19]
+```
+
+The data is matched by Minecraft UUID first and username second. Only rows returned by the TastyFish guild leaderboard are used; it does not display unrelated global players.
+
+Use `/tf gui` to position the Guild HUD and `/tf guildhud` to toggle it. Website/refresh settings are also available under `/tf` → **Guild HUD**.
+
+## Discord reports
+
+Discord reporting no longer uses a webhook URL in the client.
+
+Open `/tf` → **Discord** and configure:
+
+- Discord **channel ID** for normal channel reports
+- Discord **forum channel ID** for forum posts
+- TastyFish website relay endpoint
+- Optional relay secret in `config/tastyfish-mod.json`
+
+The website-side Discord bot is responsible for posting the report. The Minecraft mod never stores a Discord bot token or webhook URL.
+
+The mod can report:
 
 - Completed farming sessions
 - New one-hour personal bests
@@ -30,11 +54,9 @@ The mod can create a separate forum post for:
 
 Session reports include duration, profit, actions, pest kills, tracked items and the session ID.
 
-The webhook is stored locally in `config/tastyfish-mod.json`. Keep it private; anyone with the webhook URL can post to that Discord channel.
-
 ## SkySoft integration
 
-Every 30 seconds it sends the current session snapshot to the Tasty Fish backend:
+The mod reads the current SkySoft FARMING session locally and sends the configured farming snapshot to the Tasty Fish backend on the normal upload interval:
 
 - Minecraft username and UUID
 - SkyBlock profile
@@ -45,4 +67,4 @@ Every 30 seconds it sends the current session snapshot to the Tasty Fish backend
 - pest kills
 - a unique session ID
 
-The server is responsible for accumulating the leaderboard. If Minecraft is restarted, the new session gets a new ID and the player's existing leaderboard total is preserved.
+The server is responsible for accumulating leaderboard totals. If Minecraft is restarted, the new session gets a new ID and the player's existing leaderboard total is preserved.
