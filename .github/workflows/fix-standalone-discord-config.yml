@@ -1,0 +1,53 @@
+name: Fix Standalone Farming Discord Config
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Update GUI/config references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/main/java/com/epic60869/tastyfish/TastyFishScreen.java')
+          s = p.read_text()
+          s = s.replace('config.discordReportEndpoint', 'config.farmingServerEndpoint')
+          s = s.replace('config.endpoint', 'config.farmingServerEndpoint')
+          s = s.replace('"https://tastyfish.org/api/farming/discord-report"', '"https://farming.tastyfish.org/v1/report"')
+          s = s.replace('"https://tastyfish.org"', '"https://farming.tastyfish.org"')
+          s = s.replace('        g.text(font, "The mod sends the report to tastyfish.org", rx, 140, MUTED, false);\n        g.text(font, "with the target Discord channel/forum IDs.", rx, 160, MUTED, false);\n        g.text(font, "The website-side Discord bot posts it.", rx, 192, GREEN, false);', '        g.text(font, "The mod sends the report to the standalone farming server.", rx, 140, MUTED, false);\n        g.text(font, "The farming server owns the Discord client and posts it.", rx, 160, MUTED, false);\n        g.text(font, "No Discord bot token or webhook is stored in the mod.", rx, 192, GREEN, false);')
+          s = s.replace('        g.text(font, "The optional relay secret stays in the local config.", rx, 300, 0xFFFFB85A, false);\n', '')
+          s = s.replace('        g.text(font, "Discord relay secret", left + 24, 345, MUTED, false);\n        g.text(font, config.discordReportSecret.isBlank() ? "Not configured" : "Configured", left + 24, 365,\n            config.discordReportSecret.isBlank() ? MUTED : GREEN, false);\n        g.text(font, "Edit it in config/tastyfish-mod.json; it is never sent to Discord.", left + 24, 400, MUTED, false);\n', '        g.text(font, "Discord transport", left + 24, 345, MUTED, false);\n        g.text(font, "Channel/forum IDs are stored locally; the bot token stays on the farming server.", left + 24, 365, MUTED, false);\n')
+          p.write_text(s)
+
+          p = Path('src/main/java/com/epic60869/tastyfish/TastyFishConfig.java')
+          s = p.read_text()
+          marker = '    public boolean discordForumEnabled = true;\n'
+          insert = '    public String discordChannelId = "";\n    public String discordForumId = "";\n'
+          if insert not in s:
+              s = s.replace(marker, marker + insert)
+          p.write_text(s)
+          PY
+      - name: Remove obsolete Discord relay class
+        run: rm -f src/main/java/com/epic60869/tastyfish/DiscordForumReporter.java
+      - name: Build
+        run: ./gradlew build --no-daemon
+      - name: Commit and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/fix-standalone-discord-config.yml
+          git add -A
+          git commit -m "Move mod Discord config to standalone farming server"
+          git push
