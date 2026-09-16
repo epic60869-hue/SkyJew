@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Client for the standalone TastyFish farming server. */
@@ -19,6 +20,7 @@ public final class TastyFishServerClient {
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final AtomicBoolean uploadInProgress = new AtomicBoolean(false);
     private final AtomicBoolean reportInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean sessionRequestInProgress = new AtomicBoolean(false);
 
     public void upload(TastyFishConfig config, String username, UUID uuid, String profile, String sessionId,
                        SkysoftSessionReader.Snapshot snapshot) {
@@ -47,6 +49,44 @@ public final class TastyFishServerClient {
             });
     }
 
+    public void startSession(TastyFishConfig config, String username, String sessionId,
+                             long activeMillis, long profit, long pests) {
+        sessionRequest(config, "/v1/session/start", username, sessionId, activeMillis, profit, pests);
+    }
+
+    public void updateSession(TastyFishConfig config, String username, String sessionId,
+                              long activeMillis, long profit, long pests) {
+        sessionRequest(config, "/v1/session/update", username, sessionId, activeMillis, profit, pests);
+    }
+
+    public void endSession(TastyFishConfig config, String username, String sessionId,
+                           long activeMillis, long profit, long pests) {
+        sessionRequest(config, "/v1/session/end", username, sessionId, activeMillis, profit, pests);
+    }
+
+    private void sessionRequest(TastyFishConfig config, String path, String username, String sessionId,
+                                long activeMillis, long profit, long pests) {
+        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
+            || !config.discordSendSessions || config.discordDestinationId == null
+            || config.discordDestinationId.isBlank() || username == null || username.isBlank()
+            || sessionId == null || sessionId.isBlank()) return;
+        if (!sessionRequestInProgress.compareAndSet(false, true)) return;
+
+        JsonObject body = new JsonObject();
+        body.addProperty("username", username);
+        body.addProperty("sessionId", sessionId);
+        body.addProperty("destinationId", config.discordDestinationId.trim());
+        body.addProperty("activeMillis", Math.max(0L, activeMillis));
+        body.addProperty("profit", Math.max(0L, profit));
+        body.addProperty("pests", Math.max(0L, pests));
+
+        post(config, path, body, "Discord farming session")
+            .whenComplete((ignored, error) -> {
+                sessionRequestInProgress.set(false);
+                if (error != null) System.err.println("[TastyFish] Farming Discord session update failed: " + rootMessage(error));
+            });
+    }
+
     public void report(TastyFishConfig config, String username, String type, String message) {
         if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
             || username == null || username.isBlank() || message == null || message.isBlank()) return;
@@ -65,7 +105,7 @@ public final class TastyFishServerClient {
             });
     }
 
-    private java.util.concurrent.CompletableFuture<String> post(TastyFishConfig config, String path, JsonObject body, String label) {
+    private CompletableFuture<String> post(TastyFishConfig config, String path, JsonObject body, String label) {
         String endpoint = config.farmingServerEndpoint == null ? "" : config.farmingServerEndpoint.trim();
         if (endpoint.isBlank()) endpoint = DEFAULT_FARMING_SERVER;
         while (endpoint.endsWith("/")) endpoint = endpoint.substring(0, endpoint.length() - 1);
