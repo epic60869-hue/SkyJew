@@ -26,7 +26,8 @@ public final class TastyFishServerClient {
 
     public void upload(TastyFishConfig config, String username, UUID uuid, String profile, String sessionId,
                        SkysoftSessionReader.Snapshot snapshot) {
-        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
+        String apiKey = apiKey(config);
+        if (config == null || !config.farmingServerEnabled || apiKey.isBlank()
             || snapshot == null || !snapshot.valid()) return;
         if (username == null || username.isBlank() || uuid == null || sessionId == null || sessionId.isBlank()) return;
         if (!uploadInProgress.compareAndSet(false, true)) return;
@@ -44,7 +45,7 @@ public final class TastyFishServerClient {
         body.add("items", GSON.toJsonTree(snapshot.items()));
         body.add("pests", GSON.toJsonTree(snapshot.pests()));
 
-        post(config, "/v1/ingest", body, "farming update")
+        post(config, apiKey, "/v1/ingest", body, "farming update")
             .whenComplete((ignored, error) -> {
                 uploadInProgress.set(false);
                 if (error != null) System.err.println("[TastyFish] Farming server update failed: " + rootMessage(error));
@@ -76,8 +77,9 @@ public final class TastyFishServerClient {
             System.err.println("[TastyFish] Discord session skipped: farming server is disabled");
             return;
         }
-        if (config.farmingServerApiKey == null || config.farmingServerApiKey.isBlank()) {
-            System.err.println("[TastyFish] Discord session skipped: farmingServerApiKey is EMPTY. Add the farming server API key to config/tastyfish-mod.json.");
+        String apiKey = apiKey(config);
+        if (apiKey.isBlank()) {
+            System.err.println("[TastyFish] Discord session skipped: farming API key is empty. Set TASTYFISH_FARMING_API_KEY, -Dtastyfish.farming.apiKey=..., or farmingServerApiKey in config/tastyfish-mod.json.");
             return;
         }
         if (username == null || username.isBlank() || sessionId == null || sessionId.isBlank()) {
@@ -100,7 +102,7 @@ public final class TastyFishServerClient {
         System.out.println("[TastyFish] Discord session request: " + path
             + " destination=" + DISCORD_DESTINATION_ID + " username=" + username);
 
-        post(config, path, body, "Discord farming session")
+        post(config, apiKey, path, body, "Discord farming session")
             .whenComplete((response, error) -> {
                 sessionRequestInProgress.set(false);
                 if (error != null) {
@@ -112,7 +114,8 @@ public final class TastyFishServerClient {
     }
 
     public void report(TastyFishConfig config, String username, String type, String message) {
-        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
+        String apiKey = apiKey(config);
+        if (config == null || !config.farmingServerEnabled || apiKey.isBlank()
             || username == null || username.isBlank() || message == null || message.isBlank()) return;
         if (!reportInProgress.compareAndSet(false, true)) return;
 
@@ -122,14 +125,14 @@ public final class TastyFishServerClient {
         body.addProperty("message", message);
         body.addProperty("destinationId", DISCORD_DESTINATION_ID);
 
-        post(config, "/v1/report", body, "Discord report")
+        post(config, apiKey, "/v1/report", body, "Discord report")
             .whenComplete((ignored, error) -> {
                 reportInProgress.set(false);
                 if (error != null) System.err.println("[TastyFish] Farming server Discord report failed: " + rootMessage(error));
             });
     }
 
-    private CompletableFuture<String> post(TastyFishConfig config, String path, JsonObject body, String label) {
+    private CompletableFuture<String> post(TastyFishConfig config, String apiKey, String path, JsonObject body, String label) {
         String endpoint = config.farmingServerEndpoint == null ? "" : config.farmingServerEndpoint.trim();
         if (endpoint.isBlank()) endpoint = DEFAULT_FARMING_SERVER;
         while (endpoint.endsWith("/")) endpoint = endpoint.substring(0, endpoint.length() - 1);
@@ -139,7 +142,7 @@ public final class TastyFishServerClient {
             .timeout(Duration.ofSeconds(15))
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
-            .header("X-TastyFish-Mod-Key", config.farmingServerApiKey.trim())
+            .header("X-TastyFish-Mod-Key", apiKey)
             .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body)))
             .build();
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
@@ -148,6 +151,10 @@ public final class TastyFishServerClient {
                     throw new RuntimeException(label + " HTTP " + response.statusCode() + ": " + response.body());
                 return response.body();
             });
+    }
+
+    private static String apiKey(TastyFishConfig config) {
+        return config == null ? "" : config.getFarmingServerApiKey();
     }
 
     private static String detectCrop(SkysoftSessionReader.Snapshot snapshot) {
