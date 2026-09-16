@@ -17,6 +17,31 @@ The mod reads **SkySoft's live FARMING session tracker** and keeps a local farmi
 
 The local analytics file is `config/tastyfish-farming.json`.
 
+## Farming server API key
+
+The farming API key is **not included in the source code or repository**.
+
+The mod supports three ways to provide the key, in this order of priority:
+
+1. **JVM system property** — add this to the Minecraft JVM arguments:
+   ```text
+   -Dtastyfish.farming.apiKey=YOUR_KEY_HERE
+   ```
+2. **Environment variable** available to the Minecraft process:
+   ```text
+   TASTYFISH_FARMING_API_KEY=YOUR_KEY_HERE
+   ```
+3. **Local config file** at `config/tastyfish-mod.json`:
+   ```json
+   "farmingServerApiKey": "YOUR_KEY_HERE"
+   ```
+
+The JVM property and environment variable override the JSON value. Runtime values are never written back to the config file.
+
+If using the local JSON method, replace `YOUR_KEY_HERE` with the current key and keep `config/tastyfish-mod.json` private. Do not commit that file or the key to GitHub.
+
+The farming server endpoint is fixed to `https://tastyfish.org/api/farming` in this build. The Discord destination is fixed to the Tasty Fish farming destination used by the backend. The Minecraft mod never stores a Discord bot token or webhook URL.
+
 ## Guild collection HUD
 
 TastyFish now includes a compact SkyHanni-style guild collection display backed by the public TastyFish website leaderboard API.
@@ -36,13 +61,6 @@ Use `/tf gui` to position the Guild HUD and `/tf guildhud` to toggle it. Website
 
 Discord reporting no longer uses a webhook URL in the client.
 
-Open `/tf` → **Discord** and configure:
-
-- Discord **channel ID** for normal channel reports
-- Discord **forum channel ID** for forum posts
-- TastyFish website relay endpoint
-- Optional relay secret in `config/tastyfish-mod.json`
-
 The website-side Discord bot is responsible for posting the report. The Minecraft mod never stores a Discord bot token or webhook URL.
 
 The mod can report:
@@ -51,8 +69,6 @@ The mod can report:
 - New one-hour personal bests
 - Streak milestones
 - Achievement unlocks
-
-Session reports include duration, profit, actions, pest kills, tracked items and the session ID.
 
 ## SkySoft integration
 
