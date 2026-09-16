@@ -3,6 +3,7 @@ package com.epic60869.tastyfish;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 
@@ -20,6 +21,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private long lastActiveMillis = -1L;
     private long lastSnapshotWallMillis = 0L;
     private long lastOneHourPbAlertActiveMillis = -1L;
+    private long lastDiscordSessionReportActiveMillis = -1L;
     private boolean wasConnected = false;
     private SkysoftSessionReader.Snapshot lastSnapshot;
 
@@ -33,6 +35,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishRngHud.register(config);
         TastyFishGuildLeaderboardHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> finishSession("game closed"));
         registerCommands();
         System.out.println("[TastyFish] SkySoft integration, local analytics, guild HUD and standalone farming server loaded.");
     }
@@ -73,7 +76,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private void printDiscordHelp() {
         Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Discord reports are sent by the standalone farming server using its configured channel/forum IDs."));
+            "§6TastyFish §7| Session reports use the Discord destination ID configured in the mod."));
     }
 
     private void tick(Minecraft minecraft) {
@@ -89,6 +92,7 @@ public final class TastyFishMod implements ClientModInitializer {
         if (!wasConnected) {
             lastUploadMillis = 0L;
             wasConnected = true;
+            lastDiscordSessionReportActiveMillis = -1L;
             TastyFishVersionChecker.check(minecraft);
         }
 
@@ -106,6 +110,7 @@ public final class TastyFishMod implements ClientModInitializer {
             lastActiveMillis = -1L;
             lastSnapshot = null;
             lastOneHourPbAlertActiveMillis = -1L;
+            lastDiscordSessionReportActiveMillis = -1L;
         }
         lastActiveMillis = snapshot.activeMillis();
         lastSnapshot = snapshot;
@@ -116,6 +121,18 @@ public final class TastyFishMod implements ClientModInitializer {
         String username = minecraft.getUser().getName();
         UUID uuid = minecraft.getUser().getProfileId();
         farmingServer.upload(config, username, uuid, currentSkysoftProfile(), sessionId, snapshot);
+
+        if (config.discordForumEnabled && config.discordSendSessions && hasDiscordDestination()
+            && snapshot.activeMillis() >= 60L * 60L * 1000L
+            && (lastDiscordSessionReportActiveMillis < 0L
+                || snapshot.activeMillis() - lastDiscordSessionReportActiveMillis >= 60L * 60L * 1000L)) {
+            lastDiscordSessionReportActiveMillis = snapshot.activeMillis();
+            farmingServer.report(config, username, "session",
+                "Hourly farming update\nCrop: " + detectCrop(snapshot) +
+                "\nDuration: " + formatDuration(snapshot.activeMillis()) +
+                "\nProfit: " + formatCoins((long) snapshot.profit()) + " coins\nActions: " + snapshot.actions() +
+                "\nPests: " + sum(snapshot.pests()) + "\nSession: " + sessionId);
+        }
     }
 
     private void processAnalytics(Minecraft minecraft, SkysoftSessionReader.Snapshot snapshot) {
@@ -160,7 +177,8 @@ public final class TastyFishMod implements ClientModInitializer {
             String username = Minecraft.getInstance().getUser().getName();
             FarmingHistory.Session s = update.session();
             farmingServer.report(config, username, "session",
-                "Crop: " + s.crop() + "\nDuration: " + formatDuration(s.activeMillis()) +
+                "Session ended: " + reason +
+                "\nCrop: " + s.crop() + "\nDuration: " + formatDuration(s.activeMillis()) +
                 "\nProfit: " + formatCoins((long) s.profit()) + " coins\nActions: " + s.actions() +
                 "\nPests: " + s.pests() + "\nSession: " + s.sessionId());
         }
@@ -168,7 +186,32 @@ public final class TastyFishMod implements ClientModInitializer {
         lastSnapshotWallMillis = 0L;
         lastActiveMillis = -1L;
         lastOneHourPbAlertActiveMillis = -1L;
+        lastDiscordSessionReportActiveMillis = -1L;
         sessionId = TastyFishServerClient.newSessionId();
+    }
+
+    private boolean hasDiscordDestination() {
+        return config.discordDestinationId != null && !config.discordDestinationId.isBlank();
+    }
+
+    private static String detectCrop(SkysoftSessionReader.Snapshot snapshot) {
+        if (snapshot == null || snapshot.items() == null || snapshot.items().isEmpty()) return "Unknown";
+        String best = "Unknown";
+        long count = -1L;
+        for (var entry : snapshot.items().entrySet()) {
+            if (entry.getValue() != null && entry.getValue() > count) {
+                count = entry.getValue();
+                best = entry.getKey();
+            }
+        }
+        return best;
+    }
+
+    private static long sum(java.util.Map<String, Long> map) {
+        long total = 0L;
+        if (map == null) return total;
+        for (Long value : map.values()) if (value != null) total += value;
+        return total;
     }
 
     private static boolean isStreakMilestone(long millis) {
