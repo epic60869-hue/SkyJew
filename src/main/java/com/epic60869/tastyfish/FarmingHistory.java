@@ -20,7 +20,8 @@ public final class FarmingHistory {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type DATA_TYPE = new TypeToken<Data>() {}.getType();
     private static final long HOUR_MS = 60L * 60L * 1000L;
-    private static final long STREAK_GAP_MS = 5L * 60L * 1000L;
+    private static final long FIVE_MINUTES_MS = 5L * 60L * 1000L;
+    private static final long STREAK_GAP_MS = FIVE_MINUTES_MS;
 
     private final Path path;
     private Data data;
@@ -97,15 +98,26 @@ public final class FarmingHistory {
         }
 
         long oneHourProfit = rollingOneHourProfit(snapshot);
+        long fiveMinuteProfit = rollingFiveMinuteProfit(snapshot);
+        long sessionProfit = Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - samples.get(0).profit())));
+        int completedFiveMinuteIntervals = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
+        boolean fiveMinuteReport = completedFiveMinuteIntervals > 0 &&
+            completedFiveMinuteIntervals > lastReportedFiveMinuteInterval;
+        if (fiveMinuteReport) lastReportedFiveMinuteInterval = completedFiveMinuteIntervals;
+
         if (oneHourProfit > data.bestOneHourProfit) {
             data.bestOneHourProfit = oneHourProfit;
             data.bestOneHourAt = now;
             data.bestOneHourCrop = bestCrop(snapshot.items());
             save();
-            return new Update(false, true, newStreak, oneHourProfit, streakMs, null);
+            return new Update(false, true, newStreak, oneHourProfit, streakMs, null,
+                fiveMinuteReport, fiveMinuteProfit, sessionProfit, completedFiveMinuteIntervals);
         }
-        return new Update(false, false, newStreak, oneHourProfit, streakMs, null);
+        return new Update(false, false, newStreak, oneHourProfit, streakMs, null,
+            fiveMinuteReport, fiveMinuteProfit, sessionProfit, completedFiveMinuteIntervals);
     }
+
+    private int lastReportedFiveMinuteInterval = 0;
 
     public synchronized Update finish(String reason, SkysoftSessionReader.Snapshot snapshot) {
         if (sessionEnded || snapshot == null || !snapshot.valid()) return Update.none();
@@ -122,7 +134,8 @@ public final class FarmingHistory {
         while (data.sessions.size() > 100) data.sessions.remove(0);
         save();
         sessionEnded = true;
-        return new Update(true, false, false, rollingOneHourProfit(snapshot), streak, session);
+        return new Update(true, false, false, rollingOneHourProfit(snapshot), streak, session,
+            false, rollingFiveMinuteProfit(snapshot), sessionProfit(snapshot), lastReportedFiveMinuteInterval);
     }
 
     private static void addDeltas(Map<String, Long> totals, Map<String, Long> previous, Map<String, Long> current) {
@@ -143,8 +156,24 @@ public final class FarmingHistory {
         return Math.max(0L, Math.round(Math.max(0.0, currentProfit - oldestProfit)));
     }
 
+    private long rollingFiveMinuteProfit(SkysoftSessionReader.Snapshot snapshot) {
+        long currentActive = snapshot.activeMillis();
+        double currentProfit = snapshot.profit();
+        double oldestProfit = samples.isEmpty() ? currentProfit : samples.get(0).profit();
+        for (Sample sample : samples) {
+            if (currentActive - sample.activeMillis >= FIVE_MINUTES_MS) oldestProfit = sample.profit();
+            else break;
+        }
+        return Math.max(0L, Math.round(Math.max(0.0, currentProfit - oldestProfit)));
+    }
+
+    private long sessionProfit(SkysoftSessionReader.Snapshot snapshot) {
+        if (samples.isEmpty()) return 0L;
+        return Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - samples.get(0).profit())));
+    }
+
     private void pruneSamples(long currentActive) {
-        samples.removeIf(sample -> currentActive - sample.activeMillis > HOUR_MS + 5L * 60L * 1000L);
+        samples.removeIf(sample -> currentActive - sample.activeMillis > HOUR_MS + FIVE_MINUTES_MS);
     }
 
     private static String bestCrop(Map<String, Long> items) {
@@ -193,8 +222,9 @@ public final class FarmingHistory {
         catch (IOException e) { System.err.println("[TastyFish] Failed to save farming history: " + e.getMessage()); }
     }
 
-    public record Update(boolean sessionEnded, boolean newOneHourPb, boolean newStreak, long oneHourProfit, long streakMs, Session session) {
-        static Update none() { return new Update(false, false, false, 0L, 0L, null); }
+    public record Update(boolean sessionEnded, boolean newOneHourPb, boolean newStreak, long oneHourProfit, long streakMs, Session session,
+                         boolean fiveMinuteReport, long fiveMinuteProfit, long sessionProfit, int completedFiveMinuteIntervals) {
+        static Update none() { return new Update(false, false, false, 0L, 0L, null, false, 0L, 0L, 0); }
     }
 
     public static final class Data {
