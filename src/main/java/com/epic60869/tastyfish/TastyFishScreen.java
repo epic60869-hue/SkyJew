@@ -3,6 +3,7 @@ package com.epic60869.tastyfish;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -10,24 +11,44 @@ import net.minecraft.network.chat.Component;
 public final class TastyFishScreen extends Screen {
     private final TastyFishConfig config;
     private boolean farmingPage;
+    private boolean discordPage;
     private float toggleProgress;
     private long lastFrame;
+    private EditBox webhookBox;
 
     public TastyFishScreen(TastyFishConfig config) {
         super(Component.literal("TastyFish Settings"));
         this.config = config;
         this.farmingPage = true;
+        this.discordPage = false;
         this.toggleProgress = config.farmingRngEnabled ? 1f : 0f;
     }
 
     @Override protected void init() {
         clearWidgets();
-        addRenderableWidget(Button.builder(Component.literal("Farming"), b -> { farmingPage = true; rebuild(); })
+        addRenderableWidget(Button.builder(Component.literal("Farming"), b -> { farmingPage = true; discordPage = false; rebuild(); })
             .bounds(12, 48, 96, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("GUI"), b -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)))
+        addRenderableWidget(Button.builder(Component.literal("Discord"), b -> { farmingPage = false; discordPage = true; rebuild(); })
             .bounds(12, 76, 96, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("GUI"), b -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)))
+            .bounds(12, 104, 96, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
             .bounds(width - 92, height - 32, 80, 20).build());
+
+        if (discordPage) {
+            webhookBox = new EditBox(font, 145, 80, Math.min(430, width - 165), 20, Component.literal("Discord webhook URL"));
+            webhookBox.setValue(config.discordForumWebhook == null ? "" : config.discordForumWebhook);
+            webhookBox.setHint(Component.literal("https://discord.com/api/webhooks/..."));
+            addRenderableWidget(webhookBox);
+            addRenderableWidget(Button.builder(Component.literal(config.discordForumEnabled ? "Enabled" : "Disabled"), b -> {
+                config.discordForumEnabled = !config.discordForumEnabled;
+                save(); rebuild();
+            }).bounds(width - 110, 80, 92, 20).build());
+            addRenderableWidget(Button.builder(Component.literal("Save Webhook"), b -> {
+                config.discordForumWebhook = webhookBox.getValue().trim();
+                save();
+            }).bounds(145, 112, 120, 20).build());
+        }
     }
 
     private void rebuild() { clearWidgets(); init(); }
@@ -46,6 +67,7 @@ public final class TastyFishScreen extends Screen {
         graphics.text(font, "Settings", 14, 30, 0xFF888890, false);
         graphics.fill(112, 0, 113, height, 0xFF29292F);
         if (farmingPage) renderFarming(graphics);
+        if (discordPage) renderDiscord(graphics);
     }
 
     private void renderFarming(GuiGraphicsExtractor graphics) {
@@ -60,8 +82,19 @@ public final class TastyFishScreen extends Screen {
         graphics.fill(tx, 96, tx + 44, 118, 0xFF303038);
         if (config.farmingRngBackground) graphics.fill(tx + 22, 96, tx + 44, 118, 0xFF6E6E78);
         graphics.fill(tx + (config.farmingRngBackground ? 24 : 2), 98, tx + (config.farmingRngBackground ? 42 : 20), 116, 0xFFE8E8EA);
-        graphics.text(font, "Preview", left, 154, 0xFF777780, false);
-        TastyFishRngHud.renderPreview(graphics, left, 172);
+        graphics.text(font, "Session recorder, 1-hour PB, streaks and achievements are enabled in the background.", left, 145, 0xFFAAAAB2, false);
+        graphics.text(font, "Use /tf stats to view your saved farming statistics.", left, 160, 0xFF777780, false);
+        graphics.text(font, "Preview", left, 190, 0xFF777780, false);
+        TastyFishRngHud.renderPreview(graphics, left, 208);
+    }
+
+    private void renderDiscord(GuiGraphicsExtractor graphics) {
+        int left = 145;
+        graphics.text(font, "Discord Forum", left, 28, 0xFFFFFFFF, true);
+        graphics.text(font, "Paste a Discord webhook belonging to the forum channel where reports should be posted.", left, 48, 0xFF9999A2, false);
+        graphics.text(font, "The webhook creates a new forum post for each report.", left, 62, 0xFF9999A2, false);
+        graphics.text(font, "Session reports, 1-hour PBs, streak milestones and achievements can be sent.", left, 145, 0xFF777780, false);
+        graphics.text(font, "Keep the webhook private. It is stored locally in tastyfish-mod.json.", left, 160, 0xFFFFAA55, false);
     }
 
     private void drawToggle(GuiGraphicsExtractor graphics, int x, int y, float progress) {
@@ -86,6 +119,12 @@ public final class TastyFishScreen extends Screen {
             }
         }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override public void onClose() {
+        if (webhookBox != null) config.discordForumWebhook = webhookBox.getValue().trim();
+        save();
+        super.onClose();
     }
 
     private void save() {
