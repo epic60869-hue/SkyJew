@@ -45,6 +45,7 @@ public final class SkysoftSessionReader {
             double coins = doubleField(stats, "coins");
 
             Set<String> trackedItemIds = invokeTrackedItemIds(trackerClass, tracker, target);
+            Map<String, Long> itemUnitValues = new LinkedHashMap<>();
             double itemValue = 0.0;
             long valuedItems = 0L;
             long pricedItemTypes = 0L;
@@ -65,6 +66,7 @@ public final class SkysoftSessionReader {
                 }
 
                 if (unitValue != null && Double.isFinite(unitValue) && unitValue > 0.0) {
+                    itemUnitValues.put(itemId, Math.max(1L, Math.round(unitValue)));
                     itemValue += unitValue * count;
                     valuedItems += count;
                     pricedItemTypes++;
@@ -79,7 +81,7 @@ public final class SkysoftSessionReader {
             double profit = itemValue + coins - coinCosts;
             if (!Double.isFinite(profit)) return Snapshot.invalid();
 
-            return new Snapshot(items, pests, activeMillis, actions, coins, profit, valuedItems, true);
+            return new Snapshot(items, itemUnitValues, pests, activeMillis, actions, coins, profit, valuedItems, true);
         } catch (Throwable error) {
             System.err.println("[TastyFish] Failed to read Skysoft farming session: " + rootMessage(error));
             return Snapshot.invalid();
@@ -331,6 +333,7 @@ public final class SkysoftSessionReader {
 
     public record Snapshot(
         Map<String, Long> items,
+        Map<String, Long> itemUnitValues,
         Map<String, Long> pests,
         long activeMillis,
         long actions,
@@ -340,11 +343,11 @@ public final class SkysoftSessionReader {
         boolean valid
     ) {
         public static Snapshot empty() {
-            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, true);
+            return new Snapshot(Map.of(), Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, true);
         }
 
         public static Snapshot invalid() {
-            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, false);
+            return new Snapshot(Map.of(), Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, false);
         }
     }
 }
