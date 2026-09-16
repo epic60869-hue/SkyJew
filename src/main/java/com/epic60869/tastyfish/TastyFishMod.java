@@ -13,8 +13,8 @@ import java.util.UUID;
 
 public final class TastyFishMod implements ClientModInitializer {
     private TastyFishConfig config;
-    private FarmingUploader uploader = new FarmingUploader();
-    private DiscordForumReporter discord = new DiscordForumReporter();
+    private final FarmingUploader uploader = new FarmingUploader();
+    private final DiscordForumReporter discord = new DiscordForumReporter();
     private FarmingHistory history;
     private String sessionId = FarmingUploader.newSessionId();
     private long lastUploadMillis = 0L;
@@ -31,9 +31,10 @@ public final class TastyFishMod implements ClientModInitializer {
         history = new FarmingHistory(configDir.resolve("tastyfish-farming.json"));
         FarmingRngTracker.get().register();
         TastyFishRngHud.register(config);
+        TastyFishGuildLeaderboardHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         registerCommands();
-        System.out.println("[TastyFish] SkySoft integration, farming analytics and Discord reporting loaded.");
+        System.out.println("[TastyFish] SkySoft integration, farming analytics, guild HUD and Discord reporting loaded.");
     }
 
     private void registerCommands() {
@@ -42,12 +43,14 @@ public final class TastyFishMod implements ClientModInitializer {
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
+                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; }))
+                .then(ClientCommands.literal("guildhud").executes(context -> { toggleGuildHud(); return 1; })));
             dispatcher.register(ClientCommands.literal("tastyfish")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
+                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; }))
+                .then(ClientCommands.literal("guildhud").executes(context -> { toggleGuildHud(); return 1; })));
         });
     }
 
@@ -59,6 +62,13 @@ public final class TastyFishMod implements ClientModInitializer {
     private int openGuiEditor() {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)));
         return 1;
+    }
+
+    private void toggleGuildHud() {
+        config.guildLeaderboardHudEnabled = !config.guildLeaderboardHudEnabled;
+        config.save(Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json"));
+        Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
+            "§6TastyFish §7| Guild collection HUD: " + (config.guildLeaderboardHudEnabled ? "§aON" : "§cOFF")));
     }
 
     private void printStats() {
@@ -73,7 +83,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private void printDiscordHelp() {
         Minecraft mc = Minecraft.getInstance();
         mc.showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Configure your Discord forum webhook in §e/tf §7→ Discord."));
+            "§6TastyFish §7| Configure Discord channel/forum IDs in §e/tf §7→ Discord."));
     }
 
     private void tick(Minecraft minecraft) {
@@ -83,6 +93,9 @@ public final class TastyFishMod implements ClientModInitializer {
             wasConnected = false;
             return;
         }
+
+        TastyFishGuildLeaderboardHud.tick();
+
         if (!wasConnected) {
             lastUploadMillis = 0L;
             wasConnected = true;
@@ -95,6 +108,7 @@ public final class TastyFishMod implements ClientModInitializer {
         }
         if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) return;
         lastUploadMillis = now;
+
         SkysoftSessionReader.Snapshot snapshot = SkysoftSessionReader.read();
         if (!snapshot.valid()) return;
 
@@ -122,11 +136,11 @@ public final class TastyFishMod implements ClientModInitializer {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
             if (config.discordForumEnabled && config.discordSendPersonalBests)
-                discord.personalBest(config.discordForumWebhook, username, update.oneHourProfit());
+                discord.personalBest(config, username, update.oneHourProfit());
         }
         if (update.newStreak() && config.farmingStreakEnabled && isStreakMilestone(update.streakMs())) {
             if (config.discordForumEnabled && config.discordSendStreaks)
-                discord.streak(config.discordForumWebhook, username, update.streakMs());
+                discord.streak(config, username, update.streakMs());
         }
         if (config.farmingAchievementsEnabled) {
             List<String> unlocked = history.newlyUnlockedAchievements();
@@ -134,7 +148,7 @@ public final class TastyFishMod implements ClientModInitializer {
                 String name = achievementName(id);
                 minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name));
                 if (config.discordForumEnabled && config.discordSendAchievements)
-                    discord.achievement(config.discordForumWebhook, username, name);
+                    discord.achievement(config, username, name);
             }
         }
     }
@@ -144,7 +158,7 @@ public final class TastyFishMod implements ClientModInitializer {
         FarmingHistory.Update update = history.finish(reason, lastSnapshot);
         if (update.sessionEnded() && config.discordForumEnabled && config.discordSendSessions && update.session() != null) {
             String username = Minecraft.getInstance().getUser().getName();
-            discord.session(config.discordForumWebhook, username, update.session());
+            discord.session(config, username, update.session());
         }
         lastSnapshot = null;
         lastSnapshotWallMillis = 0L;
