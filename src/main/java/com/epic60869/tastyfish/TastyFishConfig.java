@@ -19,6 +19,19 @@ public final class TastyFishConfig {
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
 
+    // Farming analytics
+    public boolean farmingAnalyticsEnabled = true;
+    public boolean farmingSessionRecorderEnabled = true;
+    public boolean farmingPersonalBestEnabled = true;
+    public boolean farmingStreakEnabled = true;
+    public boolean farmingAchievementsEnabled = true;
+    public String discordForumWebhook = "";
+    public boolean discordForumEnabled = false;
+    public boolean discordSendSessions = true;
+    public boolean discordSendPersonalBests = true;
+    public boolean discordSendStreaks = true;
+    public boolean discordSendAchievements = true;
+
     public static TastyFishConfig load(Path path) {
         try {
             if (Files.notExists(path)) { TastyFishConfig c = new TastyFishConfig(); c.save(path); return c; }
