@@ -30,6 +30,7 @@ public final class FarmingHistory {
     private long lastWall = 0L;
     private long lastActive = -1L;
     private double lastProfit = 0.0;
+    private double sessionStartProfit = 0.0;
     private long lastActions = 0L;
     private final Map<String, Long> lastItems = new HashMap<>();
     private final Map<String, Long> lastPests = new HashMap<>();
@@ -37,6 +38,7 @@ public final class FarmingHistory {
     private long streakStartWall = 0L;
     private long bestStreakMs = 0L;
     private boolean sessionEnded = true;
+    private int lastReportedFiveMinuteInterval = 0;
 
     public FarmingHistory(Path path) {
         this.path = path;
@@ -54,11 +56,13 @@ public final class FarmingHistory {
             lastWall = now;
             lastActive = snapshot.activeMillis();
             lastProfit = snapshot.profit();
+            sessionStartProfit = 0.0;
             lastActions = snapshot.actions();
             lastItems.clear(); lastItems.putAll(snapshot.items());
             lastPests.clear(); lastPests.putAll(snapshot.pests());
             samples.clear();
             samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
+            lastReportedFiveMinuteInterval = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
             streakStartWall = now;
             sessionEnded = false;
             return Update.none();
@@ -99,10 +103,9 @@ public final class FarmingHistory {
 
         long oneHourProfit = rollingOneHourProfit(snapshot);
         long fiveMinuteProfit = rollingFiveMinuteProfit(snapshot);
-        long sessionProfit = Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - samples.get(0).profit())));
+        long sessionProfit = Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - sessionStartProfit)));
         int completedFiveMinuteIntervals = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
-        boolean fiveMinuteReport = completedFiveMinuteIntervals > 0 &&
-            completedFiveMinuteIntervals > lastReportedFiveMinuteInterval;
+        boolean fiveMinuteReport = completedFiveMinuteIntervals > 0 && completedFiveMinuteIntervals > lastReportedFiveMinuteInterval;
         if (fiveMinuteReport) lastReportedFiveMinuteInterval = completedFiveMinuteIntervals;
 
         if (oneHourProfit > data.bestOneHourProfit) {
@@ -116,8 +119,6 @@ public final class FarmingHistory {
         return new Update(false, false, newStreak, oneHourProfit, streakMs, null,
             fiveMinuteReport, fiveMinuteProfit, sessionProfit, completedFiveMinuteIntervals);
     }
-
-    private int lastReportedFiveMinuteInterval = 0;
 
     public synchronized Update finish(String reason, SkysoftSessionReader.Snapshot snapshot) {
         if (sessionEnded || snapshot == null || !snapshot.valid()) return Update.none();
@@ -150,9 +151,7 @@ public final class FarmingHistory {
         long currentActive = snapshot.activeMillis();
         double currentProfit = snapshot.profit();
         double oldestProfit = 0.0;
-        for (Sample sample : samples) {
-            if (currentActive - sample.activeMillis >= HOUR_MS) oldestProfit = sample.profit();
-        }
+        for (Sample sample : samples) if (currentActive - sample.activeMillis >= HOUR_MS) oldestProfit = sample.profit();
         return Math.max(0L, Math.round(Math.max(0.0, currentProfit - oldestProfit)));
     }
 
@@ -168,8 +167,7 @@ public final class FarmingHistory {
     }
 
     private long sessionProfit(SkysoftSessionReader.Snapshot snapshot) {
-        if (samples.isEmpty()) return 0L;
-        return Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - samples.get(0).profit())));
+        return Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - sessionStartProfit)));
     }
 
     private void pruneSamples(long currentActive) {
@@ -178,9 +176,7 @@ public final class FarmingHistory {
 
     private static String bestCrop(Map<String, Long> items) {
         String best = "Unknown"; long value = 0L;
-        for (Map.Entry<String, Long> e : items.entrySet()) {
-            if (e.getValue() != null && e.getValue() > value) { value = e.getValue(); best = e.getKey(); }
-        }
+        for (Map.Entry<String, Long> e : items.entrySet()) if (e.getValue() != null && e.getValue() > value) { value = e.getValue(); best = e.getKey(); }
         return best;
     }
 
@@ -205,9 +201,7 @@ public final class FarmingHistory {
         return unlocked;
     }
 
-    private void check(List<String> out, String id, boolean condition) {
-        if (condition && !data.unlockedAchievements.contains(id)) out.add(id);
-    }
+    private void check(List<String> out, String id, boolean condition) { if (condition && !data.unlockedAchievements.contains(id)) out.add(id); }
 
     private Data load() {
         try {
