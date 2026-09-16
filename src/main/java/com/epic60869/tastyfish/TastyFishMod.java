@@ -13,10 +13,9 @@ import java.util.UUID;
 
 public final class TastyFishMod implements ClientModInitializer {
     private TastyFishConfig config;
-    private final FarmingUploader uploader = new FarmingUploader();
-    private final DiscordForumReporter discord = new DiscordForumReporter();
+    private final TastyFishServerClient farmingServer = new TastyFishServerClient();
     private FarmingHistory history;
-    private String sessionId = FarmingUploader.newSessionId();
+    private String sessionId = TastyFishServerClient.newSessionId();
     private long lastUploadMillis = 0L;
     private long lastActiveMillis = -1L;
     private long lastSnapshotWallMillis = 0L;
@@ -34,7 +33,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishGuildLeaderboardHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         registerCommands();
-        System.out.println("[TastyFish] SkySoft integration, farming analytics, guild HUD and Discord reporting loaded.");
+        System.out.println("[TastyFish] SkySoft integration, local analytics, guild HUD and standalone farming server loaded.");
     }
 
     private void registerCommands() {
@@ -66,7 +65,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private void toggleGuildHud() {
         config.guildLeaderboardHudEnabled = !config.guildLeaderboardHudEnabled;
-        config.save(Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json"));
+        saveConfig();
         Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
             "§6TastyFish §7| Guild collection HUD: " + (config.guildLeaderboardHudEnabled ? "§aON" : "§cOFF")));
     }
@@ -81,9 +80,8 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void printDiscordHelp() {
-        Minecraft mc = Minecraft.getInstance();
-        mc.showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Configure Discord channel/forum IDs in §e/tf §7→ Discord."));
+        Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
+            "§6TastyFish §7| Discord reports are sent by the standalone farming server using its configured channel/forum IDs."));
     }
 
     private void tick(Minecraft minecraft) {
@@ -103,9 +101,7 @@ public final class TastyFishMod implements ClientModInitializer {
         }
 
         long now = System.currentTimeMillis();
-        if (lastSnapshot != null && now - lastSnapshotWallMillis >= 2L * 60L * 1000L) {
-            finishSession("inactive");
-        }
+        if (lastSnapshot != null && now - lastSnapshotWallMillis >= 2L * 60L * 1000L) finishSession("inactive");
         if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) return;
         lastUploadMillis = now;
 
@@ -114,7 +110,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
         if (lastActiveMillis >= 0L && snapshot.activeMillis() < lastActiveMillis) {
             finishSession("skysoft session reset");
-            sessionId = FarmingUploader.newSessionId();
+            sessionId = TastyFishServerClient.newSessionId();
             lastActiveMillis = -1L;
             lastSnapshot = null;
         }
@@ -126,7 +122,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
         String username = minecraft.getUser().getName();
         UUID uuid = minecraft.getUser().getProfileId();
-        uploader.upload(config, username, uuid == null ? "" : uuid.toString(), currentSkysoftProfile(), sessionId, snapshot);
+        farmingServer.upload(config, username, uuid, currentSkysoftProfile(), sessionId, snapshot);
     }
 
     private void processAnalytics(Minecraft minecraft, SkysoftSessionReader.Snapshot snapshot) {
@@ -136,11 +132,11 @@ public final class TastyFishMod implements ClientModInitializer {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
             if (config.discordForumEnabled && config.discordSendPersonalBests)
-                discord.personalBest(config, username, update.oneHourProfit());
+                farmingServer.report(config, username, "personalBest", "1-hour PB: " + formatCoins(update.oneHourProfit()) + " coins");
         }
         if (update.newStreak() && config.farmingStreakEnabled && isStreakMilestone(update.streakMs())) {
             if (config.discordForumEnabled && config.discordSendStreaks)
-                discord.streak(config, username, update.streakMs());
+                farmingServer.report(config, username, "streak", "Reached a " + formatDuration(update.streakMs()) + " farming streak.");
         }
         if (config.farmingAchievementsEnabled) {
             List<String> unlocked = history.newlyUnlockedAchievements();
@@ -148,7 +144,7 @@ public final class TastyFishMod implements ClientModInitializer {
                 String name = achievementName(id);
                 minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name));
                 if (config.discordForumEnabled && config.discordSendAchievements)
-                    discord.achievement(config, username, name);
+                    farmingServer.report(config, username, "achievement", name + " unlocked.");
             }
         }
     }
@@ -158,12 +154,21 @@ public final class TastyFishMod implements ClientModInitializer {
         FarmingHistory.Update update = history.finish(reason, lastSnapshot);
         if (update.sessionEnded() && config.discordForumEnabled && config.discordSendSessions && update.session() != null) {
             String username = Minecraft.getInstance().getUser().getName();
-            discord.session(config, username, update.session());
+            FarmingHistory.Session s = update.session();
+            farmingServer.report(config, username, "session",
+                "Crop: " + s.crop() + "\nDuration: " + formatDuration(s.activeMillis()) +
+                "\nProfit: " + formatCoins((long) s.profit()) + " coins\nActions: " + s.actions() +
+                "\nPests: " + s.pests() + "\nSession: " + s.sessionId());
         }
         lastSnapshot = null;
         lastSnapshotWallMillis = 0L;
         lastActiveMillis = -1L;
-        sessionId = FarmingUploader.newSessionId();
+        sessionId = TastyFishServerClient.newSessionId();
+    }
+
+    private void saveConfig() {
+        Minecraft mc = Minecraft.getInstance();
+        config.save(mc.gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json"));
     }
 
     private static boolean isStreakMilestone(long millis) {
