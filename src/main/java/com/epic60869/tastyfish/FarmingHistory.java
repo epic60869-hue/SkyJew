@@ -29,6 +29,9 @@ public final class FarmingHistory {
     private long lastWall = 0L;
     private long lastActive = -1L;
     private double lastProfit = 0.0;
+    private long lastActions = 0L;
+    private final Map<String, Long> lastItems = new HashMap<>();
+    private final Map<String, Long> lastPests = new HashMap<>();
     private final List<Sample> samples = new ArrayList<>();
     private long streakStartWall = 0L;
     private long bestStreakMs = 0L;
@@ -50,6 +53,9 @@ public final class FarmingHistory {
             lastWall = now;
             lastActive = snapshot.activeMillis();
             lastProfit = snapshot.profit();
+            lastActions = snapshot.actions();
+            lastItems.clear(); lastItems.putAll(snapshot.items());
+            lastPests.clear(); lastPests.putAll(snapshot.pests());
             samples.clear();
             samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
             streakStartWall = now;
@@ -64,21 +70,21 @@ public final class FarmingHistory {
                 data.bestStreakMs = bestStreakMs;
                 streakStartWall = now;
             }
-            samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
-            pruneSamples(snapshot.activeMillis());
-            lastWall = now;
+
+            addDeltas(data.totalItems, lastItems, snapshot.items());
+            addDeltas(data.totalPests, lastPests, snapshot.pests());
+            data.totalActiveMillis += Math.max(0L, snapshot.activeMillis() - lastActive);
+            data.totalProfit += Math.max(0.0, snapshot.profit() - lastProfit);
+            data.totalActions += Math.max(0L, snapshot.actions() - lastActions);
+
+            lastItems.clear(); lastItems.putAll(snapshot.items());
+            lastPests.clear(); lastPests.putAll(snapshot.pests());
+            lastActions = snapshot.actions();
             lastActive = snapshot.activeMillis();
             lastProfit = snapshot.profit();
-            data.totalActiveMillis += Math.max(0L, snapshot.activeMillis() - data.lastRecordedActiveMillis);
-            data.lastRecordedActiveMillis = snapshot.activeMillis();
-            data.totalProfit = Math.max(data.totalProfit, snapshot.profit());
-            data.totalActions = Math.max(data.totalActions, snapshot.actions());
-            for (Map.Entry<String, Long> e : snapshot.items().entrySet()) {
-                data.totalItems.merge(e.getKey(), e.getValue(), Math::max);
-            }
-            for (Map.Entry<String, Long> e : snapshot.pests().entrySet()) {
-                data.totalPests.merge(e.getKey(), e.getValue(), Math::max);
-            }
+            lastWall = now;
+            samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
+            pruneSamples(snapshot.activeMillis());
             save();
         }
 
@@ -109,23 +115,22 @@ public final class FarmingHistory {
         bestStreakMs = Math.max(bestStreakMs, streak);
         data.bestStreakMs = bestStreakMs;
 
-        Session session = new Session(
-            currentSessionId,
-            Instant.ofEpochMilli(currentStartWall).toString(),
-            Instant.ofEpochMilli(now).toString(),
-            reason == null ? "ended" : reason,
-            duration,
-            snapshot.profit(),
-            snapshot.actions(),
-            snapshot.items(),
-            snapshot.pests(),
-            bestCrop(snapshot.items())
-        );
+        Session session = new Session(currentSessionId, Instant.ofEpochMilli(currentStartWall).toString(),
+            Instant.ofEpochMilli(now).toString(), reason == null ? "ended" : reason, duration,
+            snapshot.profit(), snapshot.actions(), snapshot.items(), snapshot.pests(), bestCrop(snapshot.items()));
         data.sessions.add(session);
         while (data.sessions.size() > 100) data.sessions.remove(0);
         save();
         sessionEnded = true;
         return new Update(true, false, false, rollingOneHourProfit(snapshot), streak, session);
+    }
+
+    private static void addDeltas(Map<String, Long> totals, Map<String, Long> previous, Map<String, Long> current) {
+        for (Map.Entry<String, Long> entry : current.entrySet()) {
+            long before = previous.getOrDefault(entry.getKey(), 0L);
+            long after = entry.getValue() == null ? 0L : entry.getValue();
+            if (after > before) totals.merge(entry.getKey(), after - before, Long::sum);
+        }
     }
 
     private long rollingOneHourProfit(SkysoftSessionReader.Snapshot snapshot) {
@@ -143,13 +148,9 @@ public final class FarmingHistory {
     }
 
     private static String bestCrop(Map<String, Long> items) {
-        String best = "Unknown";
-        long value = 0L;
+        String best = "Unknown"; long value = 0L;
         for (Map.Entry<String, Long> e : items.entrySet()) {
-            if (e.getValue() != null && e.getValue() > value) {
-                value = e.getValue();
-                best = e.getKey();
-            }
+            if (e.getValue() != null && e.getValue() > value) { value = e.getValue(); best = e.getKey(); }
         }
         return best;
     }
@@ -184,19 +185,12 @@ public final class FarmingHistory {
             if (Files.notExists(path)) return new Data();
             Data loaded = GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), DATA_TYPE);
             return loaded == null ? new Data() : loaded;
-        } catch (Exception e) {
-            System.err.println("[TastyFish] Failed to load farming history: " + e.getMessage());
-            return new Data();
-        }
+        } catch (Exception e) { System.err.println("[TastyFish] Failed to load farming history: " + e.getMessage()); return new Data(); }
     }
 
     private void save() {
-        try {
-            Files.createDirectories(path.getParent());
-            Files.writeString(path, GSON.toJson(data), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            System.err.println("[TastyFish] Failed to save farming history: " + e.getMessage());
-        }
+        try { Files.createDirectories(path.getParent()); Files.writeString(path, GSON.toJson(data), StandardCharsets.UTF_8); }
+        catch (IOException e) { System.err.println("[TastyFish] Failed to save farming history: " + e.getMessage()); }
     }
 
     public record Update(boolean sessionEnded, boolean newOneHourPb, boolean newStreak, long oneHourProfit, long streakMs, Session session) {
@@ -205,7 +199,6 @@ public final class FarmingHistory {
 
     public static final class Data {
         long totalActiveMillis;
-        long lastRecordedActiveMillis;
         double totalProfit;
         long totalActions;
         long bestOneHourProfit;
