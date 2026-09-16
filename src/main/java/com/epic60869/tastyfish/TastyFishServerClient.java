@@ -18,6 +18,7 @@ public final class TastyFishServerClient {
     private static final Gson GSON = new Gson();
     private static final String MOD_VERSION = "1.0.8";
     private static final String DEFAULT_FARMING_SERVER = "https://tastyfish.org/api/farming";
+    private static final String DISCORD_DESTINATION_ID = "1538133706294829106";
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final AtomicBoolean uploadInProgress = new AtomicBoolean(false);
     private final AtomicBoolean reportInProgress = new AtomicBoolean(false);
@@ -67,24 +68,46 @@ public final class TastyFishServerClient {
 
     private void sessionRequest(TastyFishConfig config, String path, String username, String sessionId,
                                 long activeMillis, long profit, long pests) {
-        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
-            || !config.discordSendSessions || config.discordDestinationId == null
-            || config.discordDestinationId.isBlank() || username == null || username.isBlank()
-            || sessionId == null || sessionId.isBlank()) return;
-        if (!sessionRequestInProgress.compareAndSet(false, true)) return;
+        if (config == null) {
+            System.err.println("[TastyFish] Discord session skipped: config is null");
+            return;
+        }
+        if (!config.farmingServerEnabled) {
+            System.err.println("[TastyFish] Discord session skipped: farming server is disabled");
+            return;
+        }
+        if (config.farmingServerApiKey == null || config.farmingServerApiKey.isBlank()) {
+            System.err.println("[TastyFish] Discord session skipped: farmingServerApiKey is EMPTY. Add the farming server API key to config/tastyfish-mod.json.");
+            return;
+        }
+        if (username == null || username.isBlank() || sessionId == null || sessionId.isBlank()) {
+            System.err.println("[TastyFish] Discord session skipped: missing username or session ID");
+            return;
+        }
+        if (!sessionRequestInProgress.compareAndSet(false, true)) {
+            System.err.println("[TastyFish] Discord session request skipped: another session request is still running");
+            return;
+        }
 
         JsonObject body = new JsonObject();
         body.addProperty("username", username);
         body.addProperty("sessionId", sessionId);
-        body.addProperty("destinationId", config.discordDestinationId.trim());
+        body.addProperty("destinationId", DISCORD_DESTINATION_ID);
         body.addProperty("activeMillis", Math.max(0L, activeMillis));
         body.addProperty("profit", Math.max(0L, profit));
         body.addProperty("pests", Math.max(0L, pests));
 
+        System.out.println("[TastyFish] Discord session request: " + path
+            + " destination=" + DISCORD_DESTINATION_ID + " username=" + username);
+
         post(config, path, body, "Discord farming session")
-            .whenComplete((ignored, error) -> {
+            .whenComplete((response, error) -> {
                 sessionRequestInProgress.set(false);
-                if (error != null) System.err.println("[TastyFish] Farming Discord session update failed: " + rootMessage(error));
+                if (error != null) {
+                    System.err.println("[TastyFish] Farming Discord session request FAILED: " + rootMessage(error));
+                } else {
+                    System.out.println("[TastyFish] Farming Discord session request OK: " + response);
+                }
             });
     }
 
@@ -97,7 +120,7 @@ public final class TastyFishServerClient {
         body.addProperty("username", username);
         body.addProperty("type", type);
         body.addProperty("message", message);
-        body.addProperty("destinationId", config.discordDestinationId == null ? "" : config.discordDestinationId.trim());
+        body.addProperty("destinationId", DISCORD_DESTINATION_ID);
 
         post(config, "/v1/report", body, "Discord report")
             .whenComplete((ignored, error) -> {
