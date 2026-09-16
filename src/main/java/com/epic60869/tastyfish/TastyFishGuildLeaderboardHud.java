@@ -40,17 +40,20 @@ public final class TastyFishGuildLeaderboardHud {
         render(graphics, data, config.guildLeaderboardHudX, config.guildLeaderboardHudY);
     }
 
-    public static int width() {
-        return Math.max(1, Math.round(WIDTH * scale()));
+    public static ResultView result() {
+        TastyFishWebsiteClient.Result data = WEBSITE.result();
+        return new ResultView(data.available(), data.boardName(), data.value(), data.position(),
+            data.aheadName(), data.behind(), data.aheadPosition());
     }
 
-    public static int height() {
-        return Math.max(1, Math.round(HEIGHT * scale()));
+    public record ResultView(boolean available, String boardName, long value, int position,
+                             String aheadName, long behind, int aheadPosition) {
+        public boolean hasAhead() { return available && aheadPosition > 0 && !aheadName.isBlank() && behind > 0; }
     }
 
-    public static float scale() {
-        return config == null ? 1.0f : config.guildLeaderboardHudScale;
-    }
+    public static int width() { return Math.max(1, Math.round(WIDTH * scale())); }
+    public static int height() { return Math.max(1, Math.round(HEIGHT * scale())); }
+    public static float scale() { return config == null ? 1.0f : config.guildLeaderboardHudScale; }
 
     public static void setPosition(int x, int y) {
         if (config == null) return;
@@ -66,13 +69,8 @@ public final class TastyFishGuildLeaderboardHud {
         save();
     }
 
-    public static void changeScale(float amount) {
-        setScale(scale() + amount);
-    }
-
-    public static String scaleText() {
-        return String.format(Locale.ROOT, "%.1fx", scale());
-    }
+    public static void changeScale(float amount) { setScale(scale() + amount); }
+    public static String scaleText() { return String.format(Locale.ROOT, "%.1fx", scale()); }
 
     public static void renderPreview(GuiGraphicsExtractor graphics, int x, int y) {
         render(graphics, new TastyFishWebsiteClient.Result(
@@ -81,7 +79,6 @@ public final class TastyFishGuildLeaderboardHud {
     }
 
     private static void render(GuiGraphicsExtractor graphics, TastyFishWebsiteClient.Result data, int x, int y) {
-        Minecraft mc = Minecraft.getInstance();
         float scale = scale();
         graphics.pose().pushMatrix();
         graphics.pose().translate((float) x, (float) y);
@@ -89,8 +86,8 @@ public final class TastyFishGuildLeaderboardHud {
 
         String collection = data.boardName().isBlank() ? "Collection" : data.boardName();
         String current = format(data.value());
-        String position = "[" + data.position() + "]";
-        String gap = format(data.behind()) + " behind " + data.aheadName() + " [" + data.aheadPosition() + "]";
+        String position = "[#" + data.position() + "]";
+        String gap = format(data.behind()) + " behind " + data.aheadName() + " [#" + data.aheadPosition() + "]";
 
         drawShadowed(graphics, collection + ": " + current + " " + position, 0, 0, 0xFFFFD84D, true);
         drawShadowed(graphics, gap, 0, 15, 0xFFF0F3FF, false);
@@ -103,9 +100,7 @@ public final class TastyFishGuildLeaderboardHud {
         graphics.text(font, text, x, y, color, bold);
     }
 
-    private static String format(long value) {
-        return String.format(Locale.ROOT, "%,d", Math.max(0L, value));
-    }
+    private static String format(long value) { return String.format(Locale.ROOT, "%,d", Math.max(0L, value)); }
 
     private static void save() {
         Minecraft mc = Minecraft.getInstance();
