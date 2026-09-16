@@ -25,26 +25,59 @@ public final class TastyFishConfig {
     public boolean farmingPersonalBestEnabled = true;
     public boolean farmingStreakEnabled = true;
     public boolean farmingAchievementsEnabled = true;
-    public String discordForumWebhook = "";
+
+    // Discord reports are relayed through the TastyFish website/bot.
+    // No Discord webhook or bot token is stored in the client mod.
+    public String discordReportEndpoint = "https://tastyfish.org/api/farming/discord-report";
+    public String discordReportSecret = "";
+    public String discordChannelId = "";
+    public String discordForumId = "";
     public boolean discordForumEnabled = false;
     public boolean discordSendSessions = true;
     public boolean discordSendPersonalBests = true;
     public boolean discordSendStreaks = true;
     public boolean discordSendAchievements = true;
 
+    // TastyFish website guild collection HUD
+    public boolean guildLeaderboardHudEnabled = true;
+    public String guildLeaderboardWebsite = "https://tastyfish.org";
+    public int guildLeaderboardRefreshSeconds = 30;
+    public int guildLeaderboardHudX = 8;
+    public int guildLeaderboardHudY = 8;
+    public float guildLeaderboardHudScale = 1.0f;
+
     public static TastyFishConfig load(Path path) {
         try {
-            if (Files.notExists(path)) { TastyFishConfig c = new TastyFishConfig(); c.save(path); return c; }
+            if (Files.notExists(path)) {
+                TastyFishConfig c = new TastyFishConfig();
+                c.save(path);
+                return c;
+            }
             TastyFishConfig c = GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), TastyFishConfig.class);
             if (c == null) c = new TastyFishConfig();
             if (c.uploadIntervalSeconds < 10) c.uploadIntervalSeconds = 10;
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
+            if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
+            c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
+            if (c.guildLeaderboardWebsite == null || c.guildLeaderboardWebsite.isBlank()) {
+                c.guildLeaderboardWebsite = "https://tastyfish.org";
+            }
+            if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) {
+                c.discordReportEndpoint = "https://tastyfish.org/api/farming/discord-report";
+            }
             return c;
-        } catch (Exception e) { System.err.println("[TastyFish] Failed to load config: " + e.getMessage()); return new TastyFishConfig(); }
+        } catch (Exception e) {
+            System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
+            return new TastyFishConfig();
+        }
     }
 
     public void save(Path path) {
-        try { Files.createDirectories(path.getParent()); Files.writeString(path, GSON.toJson(this), StandardCharsets.UTF_8); }
-        catch (IOException e) { System.err.println("[TastyFish] Failed to save config: " + e.getMessage()); }
+        try {
+            Files.createDirectories(path.getParent());
+            Files.writeString(path, GSON.toJson(this), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("[TastyFish] Failed to save config: " + e.getMessage());
+        }
     }
 }
