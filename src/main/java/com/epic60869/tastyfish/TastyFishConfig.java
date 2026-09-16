@@ -16,8 +16,6 @@ public final class TastyFishConfig {
     public String farmingServerEndpoint = FARMING_SERVER;
     public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
-
-    // Owner-only Discord destination. This is intentionally not configurable.
     public String discordDestinationId = DISCORD_DESTINATION_ID;
 
     @Deprecated public String endpoint = FARMING_SERVER;
@@ -32,19 +30,16 @@ public final class TastyFishConfig {
     public int farmingRngX = 8;
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
-
     public boolean farmingAnalyticsEnabled = true;
     public boolean farmingSessionRecorderEnabled = true;
     public boolean farmingPersonalBestEnabled = true;
     public boolean farmingStreakEnabled = true;
     public boolean farmingAchievementsEnabled = true;
-
     public boolean discordForumEnabled = true;
     public boolean discordSendSessions = true;
     public boolean discordSendPersonalBests = true;
     public boolean discordSendStreaks = true;
     public boolean discordSendAchievements = true;
-
     public boolean guildLeaderboardHudEnabled = true;
     public String guildLeaderboardWebsite = "https://tastyfish.org";
     public int guildLeaderboardRefreshSeconds = 30;
@@ -65,11 +60,13 @@ public final class TastyFishConfig {
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
             if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
             c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
+            c.farmingServerEnabled = true;
             c.farmingServerEndpoint = FARMING_SERVER;
             c.guildLeaderboardWebsite = "https://tastyfish.org";
             c.endpoint = FARMING_SERVER;
             c.discordReportEndpoint = FARMING_SERVER + "/v1/report";
             c.discordDestinationId = DISCORD_DESTINATION_ID;
+            c.discordSendSessions = true;
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
