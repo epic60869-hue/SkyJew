@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.UUID;
 
 public final class TastyFishMod implements ClientModInitializer {
+    private static final long DISCORD_SESSION_UPDATE_INTERVAL_MS = 60_000L;
+
     private TastyFishConfig config;
     private final TastyFishServerClient farmingServer = new TastyFishServerClient();
     private FarmingHistory history;
@@ -21,7 +23,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private long lastActiveMillis = -1L;
     private long lastSnapshotWallMillis = 0L;
     private long lastOneHourPbAlertActiveMillis = -1L;
-    private long lastDiscordSessionReportActiveMillis = -1L;
+    private long lastDiscordSessionUpdateWallMillis = 0L;
     private boolean wasConnected = false;
     private SkysoftSessionReader.Snapshot lastSnapshot;
 
@@ -76,7 +78,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private void printDiscordHelp() {
         Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Session reports use the Discord destination ID configured in the mod."));
+            "§6TastyFish §7| Farming sessions use the Discord destination ID configured in the mod."));
     }
 
     private void tick(Minecraft minecraft) {
@@ -92,17 +94,28 @@ public final class TastyFishMod implements ClientModInitializer {
         if (!wasConnected) {
             lastUploadMillis = 0L;
             wasConnected = true;
-            lastDiscordSessionReportActiveMillis = -1L;
+            lastDiscordSessionUpdateWallMillis = 0L;
+            sessionId = TastyFishServerClient.newSessionId();
             TastyFishVersionChecker.check(minecraft);
+
+            if (config.discordSendSessions && hasDiscordDestination()) {
+                farmingServer.startSession(config, minecraft.getUser().getName(), sessionId, 0L, 0L, 0L);
+            }
         }
 
         long now = System.currentTimeMillis();
         if (lastSnapshot != null && now - lastSnapshotWallMillis >= 2L * 60L * 1000L) finishSession("inactive");
-        if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) return;
+        if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) {
+            sendDiscordSessionUpdateIfDue(minecraft, now);
+            return;
+        }
         lastUploadMillis = now;
 
         SkysoftSessionReader.Snapshot snapshot = SkysoftSessionReader.read();
-        if (!snapshot.valid()) return;
+        if (!snapshot.valid()) {
+            sendDiscordSessionUpdateIfDue(minecraft, now);
+            return;
+        }
 
         if (lastActiveMillis >= 0L && snapshot.activeMillis() < lastActiveMillis) {
             finishSession("skysoft session reset");
@@ -110,7 +123,10 @@ public final class TastyFishMod implements ClientModInitializer {
             lastActiveMillis = -1L;
             lastSnapshot = null;
             lastOneHourPbAlertActiveMillis = -1L;
-            lastDiscordSessionReportActiveMillis = -1L;
+            lastDiscordSessionUpdateWallMillis = 0L;
+            if (config.discordSendSessions && hasDiscordDestination()) {
+                farmingServer.startSession(config, minecraft.getUser().getName(), sessionId, 0L, 0L, 0L);
+            }
         }
         lastActiveMillis = snapshot.activeMillis();
         lastSnapshot = snapshot;
@@ -121,18 +137,23 @@ public final class TastyFishMod implements ClientModInitializer {
         String username = minecraft.getUser().getName();
         UUID uuid = minecraft.getUser().getProfileId();
         farmingServer.upload(config, username, uuid, currentSkysoftProfile(), sessionId, snapshot);
+        sendDiscordSessionUpdateIfDue(minecraft, now);
+    }
 
-        if (config.discordForumEnabled && config.discordSendSessions && hasDiscordDestination()
-            && snapshot.activeMillis() >= 60L * 60L * 1000L
-            && (lastDiscordSessionReportActiveMillis < 0L
-                || snapshot.activeMillis() - lastDiscordSessionReportActiveMillis >= 60L * 60L * 1000L)) {
-            lastDiscordSessionReportActiveMillis = snapshot.activeMillis();
-            farmingServer.report(config, username, "session",
-                "Hourly farming update\nCrop: " + detectCrop(snapshot) +
-                "\nDuration: " + formatDuration(snapshot.activeMillis()) +
-                "\nProfit: " + formatCoins((long) snapshot.profit()) + " coins\nActions: " + snapshot.actions() +
-                "\nPests: " + sum(snapshot.pests()) + "\nSession: " + sessionId);
-        }
+    private void sendDiscordSessionUpdateIfDue(Minecraft minecraft, long now) {
+        if (!config.discordSendSessions || !hasDiscordDestination() || lastSnapshot == null) return;
+        if (lastDiscordSessionUpdateWallMillis != 0L
+            && now - lastDiscordSessionUpdateWallMillis < DISCORD_SESSION_UPDATE_INTERVAL_MS) return;
+
+        lastDiscordSessionUpdateWallMillis = now;
+        farmingServer.updateSession(
+            config,
+            minecraft.getUser().getName(),
+            sessionId,
+            lastSnapshot.activeMillis(),
+            (long) Math.max(0L, lastSnapshot.profit()),
+            sum(lastSnapshot.pests())
+        );
     }
 
     private void processAnalytics(Minecraft minecraft, SkysoftSessionReader.Snapshot snapshot) {
@@ -171,40 +192,36 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void finishSession(String reason) {
-        if (history == null || lastSnapshot == null) return;
-        FarmingHistory.Update update = history.finish(reason, lastSnapshot);
-        if (update.sessionEnded() && config.discordForumEnabled && config.discordSendSessions && update.session() != null) {
-            String username = Minecraft.getInstance().getUser().getName();
-            FarmingHistory.Session s = update.session();
-            farmingServer.report(config, username, "session",
-                "Session ended: " + reason +
-                "\nCrop: " + s.crop() + "\nDuration: " + formatDuration(s.activeMillis()) +
-                "\nProfit: " + formatCoins((long) s.profit()) + " coins\nActions: " + s.actions() +
-                "\nPests: " + s.pests() + "\nSession: " + s.sessionId());
+        if (history == null) return;
+
+        SkysoftSessionReader.Snapshot snapshot = lastSnapshot;
+        if (snapshot != null) {
+            FarmingHistory.Update update = history.finish(reason, snapshot);
+            if (update.sessionEnded() && config.discordSendSessions && hasDiscordDestination() && update.session() != null) {
+                Minecraft minecraft = Minecraft.getInstance();
+                String username = minecraft.getUser().getName();
+                FarmingHistory.Session s = update.session();
+                farmingServer.endSession(
+                    config,
+                    username,
+                    sessionId,
+                    s.activeMillis(),
+                    (long) Math.max(0L, s.profit()),
+                    s.pests()
+                );
+            }
         }
+
         lastSnapshot = null;
         lastSnapshotWallMillis = 0L;
         lastActiveMillis = -1L;
         lastOneHourPbAlertActiveMillis = -1L;
-        lastDiscordSessionReportActiveMillis = -1L;
+        lastDiscordSessionUpdateWallMillis = 0L;
         sessionId = TastyFishServerClient.newSessionId();
     }
 
     private boolean hasDiscordDestination() {
         return config.discordDestinationId != null && !config.discordDestinationId.isBlank();
-    }
-
-    private static String detectCrop(SkysoftSessionReader.Snapshot snapshot) {
-        if (snapshot == null || snapshot.items() == null || snapshot.items().isEmpty()) return "Unknown";
-        String best = "Unknown";
-        long count = -1L;
-        for (var entry : snapshot.items().entrySet()) {
-            if (entry.getValue() != null && entry.getValue() > count) {
-                count = entry.getValue();
-                best = entry.getKey();
-            }
-        }
-        return best;
     }
 
     private static long sum(java.util.Map<String, Long> map) {
