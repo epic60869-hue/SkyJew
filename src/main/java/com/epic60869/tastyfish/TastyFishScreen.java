@@ -44,8 +44,6 @@ public final class TastyFishScreen extends Screen {
 
     private EditBox discordChannelBox;
     private EditBox discordForumBox;
-    private EditBox discordEndpointBox;
-    private EditBox guildWebsiteBox;
 
     public TastyFishScreen(TastyFishConfig config) {
         super(Component.literal("TastyFish"));
@@ -59,20 +57,12 @@ public final class TastyFishScreen extends Screen {
         clearWidgets();
         discordChannelBox = null;
         discordForumBox = null;
-        discordEndpointBox = null;
-        guildWebsiteBox = null;
 
         if (page == DISCORD) {
             int left = contentLeft() + 30;
-            int boxWidth = Math.min(520, Math.max(260, contentWidth() - 80));
+            int boxWidth = 180;
             discordChannelBox = field(left, 150, boxWidth, config.discordChannelId, "Discord channel ID");
             discordForumBox = field(left, 215, boxWidth, config.discordForumId, "Discord forum channel ID");
-            discordEndpointBox = field(left, 300, boxWidth, config.discordReportEndpoint, "https://tastyfish.org/api/farming/discord-report");
-        }
-        if (page == HUD) {
-            int left = contentLeft() + 30;
-            guildWebsiteBox = field(left, 160, Math.min(520, Math.max(260, contentWidth() - 80)),
-                config.guildLeaderboardWebsite, "https://tastyfish.org");
         }
         refreshSkysoft(true);
     }
@@ -98,11 +88,21 @@ public final class TastyFishScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         refreshSkysoft(false);
+        resizeDiscordFields();
         drawBackground(graphics);
         drawSidebar(graphics, mouseX, mouseY);
         drawHeader(graphics);
         drawPage(graphics, mouseX, mouseY);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+
+    private void resizeDiscordFields() {
+        if (page != DISCORD) return;
+        int collapsed = 180;
+        int expanded = Math.min(520, Math.max(260, contentWidth() - 80));
+        if (discordChannelBox != null) discordChannelBox.setWidth(discordChannelBox.isFocused() ? expanded : collapsed);
+        if (discordForumBox != null) discordForumBox.setWidth(discordForumBox.isFocused() ? expanded : collapsed);
     }
 
     private void drawBackground(GuiGraphicsExtractor g) {
@@ -372,7 +372,8 @@ public final class TastyFishScreen extends Screen {
             "Relay reports through the TastyFish website/bot", 30);
         g.text(font, "Channel ID", left + 24, 133, MUTED, false);
         g.text(font, "Forum ID", left + 24, 198, MUTED, false);
-        g.text(font, "Relay endpoint", left + 24, 283, MUTED, false);
+        g.text(font, "Website (fixed)", left + 24, 283, MUTED, false);
+        g.text(font, "https://tastyfish.org", left + 24, 301, TEXT, false);
         g.text(font, "Report Types", left + 24, 360, MUTED, false);
         checkbox(g, left + 24, 386, "Sessions", config.discordSendSessions);
         checkbox(g, left + 140, 386, "PBs", config.discordSendPersonalBests);
@@ -384,10 +385,10 @@ public final class TastyFishScreen extends Screen {
         g.text(font, "No webhook is stored in the mod.", rx, 108, TEXT, true);
         g.text(font, "The mod sends the report to tastyfish.org", rx, 140, MUTED, false);
         g.text(font, "with the target Discord channel/forum IDs.", rx, 160, MUTED, false);
-        g.text(font, "The website-side Discord bot posts it.", rx, 192, GREEN, false);
+        g.text(font, "The main TastyFish Discord bot posts it.", rx, 192, GREEN, false);
         g.text(font, "Channel ID = normal text channel", rx, 235, TEXT, false);
         g.text(font, "Forum ID = forum channel for new posts", rx, 255, TEXT, false);
-        g.text(font, "The optional relay secret stays in the local config.", rx, 300, 0xFFFFB85A, false);
+        g.text(font, "Channel/forum IDs are local settings; the bot token stays on the server.", rx, 300, 0xFFFFB85A, false);
     }
 
     private void renderSettings(GuiGraphicsExtractor g) {
@@ -401,7 +402,7 @@ public final class TastyFishScreen extends Screen {
         g.text(font, "Local analytics", left + 24, 225, MUTED, false);
         g.text(font, "config/tastyfish-farming.json", left + 24, 245, CYAN, false);
         g.text(font, "Guild HUD commands", left + 24, 285, MUTED, false);
-        g.text(font, "/tf guildhud  •  /tf stats  •  /tf discord", left + 24, 305, TEXT, false);
+        g.text(font, "/tf stats  •  /tf discord", left + 24, 305, TEXT, false);
         g.text(font, "Discord relay secret", left + 24, 345, MUTED, false);
         g.text(font, config.discordReportSecret.isBlank() ? "Not configured" : "Configured", left + 24, 365,
             config.discordReportSecret.isBlank() ? MUTED : GREEN, false);
@@ -554,8 +555,6 @@ public final class TastyFishScreen extends Screen {
     private void saveFields() {
         if (discordChannelBox != null) config.discordChannelId = discordChannelBox.getValue().trim();
         if (discordForumBox != null) config.discordForumId = discordForumBox.getValue().trim();
-        if (discordEndpointBox != null) config.discordReportEndpoint = discordEndpointBox.getValue().trim();
-        if (guildWebsiteBox != null) config.guildLeaderboardWebsite = guildWebsiteBox.getValue().trim();
     }
 
     private void save() {
