@@ -16,7 +16,11 @@ public final class TastyFishConfig {
     public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
 
-    // Legacy fields are retained for config compatibility only.
+    // One Discord destination is used for farming reports. The server detects whether
+    // the ID belongs to a normal text channel or a Discord forum channel.
+    public String discordDestinationId = "";
+
+    // Legacy fields retained only so older config files continue to load.
     @Deprecated public String endpoint = "https://tastyfish.org/api/farming";
     @Deprecated public String discordChannelId = "";
     @Deprecated public String discordForumId = "";
@@ -67,6 +71,10 @@ public final class TastyFishConfig {
             c.guildLeaderboardWebsite = "https://tastyfish.org";
             if (c.endpoint == null || c.endpoint.isBlank()) c.endpoint = c.farmingServerEndpoint;
             if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) c.discordReportEndpoint = c.farmingServerEndpoint + "/v1/report";
+            if (c.discordDestinationId == null || c.discordDestinationId.isBlank()) {
+                if (c.discordChannelId != null && !c.discordChannelId.isBlank()) c.discordDestinationId = c.discordChannelId.trim();
+                else if (c.discordForumId != null && !c.discordForumId.isBlank()) c.discordDestinationId = c.discordForumId.trim();
+            }
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
