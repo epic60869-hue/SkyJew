@@ -87,7 +87,7 @@ public final class TastyFishGuildLeaderboardHud {
         String collection = data.boardName().isBlank() ? "Collection" : data.boardName();
         String current = format(data.value());
         String position = "[#" + data.position() + "]";
-        String gap = data.hasAhead()
+        String gap = data.hasAheadPlayer()
             ? format(data.behind()) + " behind " + data.aheadName() + " [#" + data.aheadPosition() + "]"
             : "Top of leaderboard";
 
