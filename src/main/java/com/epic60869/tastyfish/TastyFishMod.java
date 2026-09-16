@@ -128,6 +128,14 @@ public final class TastyFishMod implements ClientModInitializer {
     private void processAnalytics(Minecraft minecraft, SkysoftSessionReader.Snapshot snapshot) {
         FarmingHistory.Update update = history.update(sessionId, snapshot);
         String username = minecraft.getUser().getName();
+
+        if (update.fiveMinuteReport() && config.farmingAnalyticsEnabled) {
+            minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
+                "§6§l5 Minute Profit: §e" + formatCoins(update.fiveMinuteProfit()) +
+                " §7| §e" + formatCoins(update.sessionProfit()) + " §7" +
+                formatDuration(update.completedFiveMinuteIntervals() * 5L * 60L * 1000L)));
+        }
+
         if (update.newOneHourPb() && config.farmingPersonalBestEnabled) {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
