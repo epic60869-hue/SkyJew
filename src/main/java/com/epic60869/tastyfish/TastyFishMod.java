@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 
 import java.lang.reflect.Field;
@@ -25,6 +26,8 @@ public final class TastyFishMod implements ClientModInitializer {
     private long lastSnapshotWallMillis = 0L;
     private long lastOneHourPbAlertActiveMillis = -1L;
     private long lastDiscordSessionUpdateWallMillis = 0L;
+    private long discordSessionActiveOffsetMillis = 0L;
+    private double discordSessionProfitOffset = 0.0;
     private boolean wasConnected = false;
     private SkysoftSessionReader.Snapshot lastSnapshot;
 
@@ -39,6 +42,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishRngHud.register(config);
         TastyFishGuildLeaderboardHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> finishSession("disconnect"));
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> finishSession("game closed"));
         registerCommands();
         System.out.println("[TastyFish] SkySoft integration, local analytics, guild HUD and standalone farming server loaded.");
@@ -97,6 +101,8 @@ public final class TastyFishMod implements ClientModInitializer {
             lastUploadMillis = 0L;
             wasConnected = true;
             lastDiscordSessionUpdateWallMillis = 0L;
+            discordSessionActiveOffsetMillis = 0L;
+            discordSessionProfitOffset = 0.0;
             sessionId = TastyFishServerClient.newSessionId();
             TastyFishVersionChecker.check(minecraft);
 
@@ -119,17 +125,19 @@ public final class TastyFishMod implements ClientModInitializer {
             return;
         }
 
+        // SkySoft can reset its FARMING tracker when Hypixel changes worlds.
+        // Keep the TastyFish/Discord session alive and re-baseline local analytics
+        // instead of ending the Minecraft session.
         if (lastActiveMillis >= 0L && snapshot.activeMillis() < lastActiveMillis) {
-            finishSession("skysoft session reset");
-            sessionId = TastyFishServerClient.newSessionId();
+            discordSessionActiveOffsetMillis += Math.max(0L, lastActiveMillis);
+            if (lastSnapshot != null) discordSessionProfitOffset += Math.max(0.0, lastSnapshot.profit());
+            history.rebaseline(sessionId, snapshot);
             lastActiveMillis = -1L;
             lastSnapshot = null;
             lastOneHourPbAlertActiveMillis = -1L;
             lastDiscordSessionUpdateWallMillis = 0L;
-            if (config.discordSendSessions) {
-                farmingServer.startSession(config, minecraft.getUser().getName(), sessionId, 0L, 0L, 0L);
-            }
         }
+
         lastActiveMillis = snapshot.activeMillis();
         lastSnapshot = snapshot;
         lastSnapshotWallMillis = now;
@@ -142,6 +150,14 @@ public final class TastyFishMod implements ClientModInitializer {
         sendDiscordSessionUpdateIfDue(minecraft, now);
     }
 
+    private long discordActiveMillis(SkysoftSessionReader.Snapshot snapshot) {
+        return discordSessionActiveOffsetMillis + Math.max(0L, snapshot == null ? 0L : snapshot.activeMillis());
+    }
+
+    private long discordProfit(SkysoftSessionReader.Snapshot snapshot) {
+        return Math.max(0L, Math.round(discordSessionProfitOffset + Math.max(0.0, snapshot == null ? 0.0 : snapshot.profit())));
+    }
+
     private void sendDiscordSessionUpdateIfDue(Minecraft minecraft, long now) {
         if (!config.discordSendSessions || lastSnapshot == null) return;
         if (lastDiscordSessionUpdateWallMillis != 0L
@@ -152,8 +168,8 @@ public final class TastyFishMod implements ClientModInitializer {
             config,
             minecraft.getUser().getName(),
             sessionId,
-            lastSnapshot.activeMillis(),
-            (long) Math.max(0L, lastSnapshot.profit()),
+            discordActiveMillis(lastSnapshot),
+            discordProfit(lastSnapshot),
             sum(lastSnapshot.pests())
         );
     }
@@ -194,7 +210,7 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void finishSession(String reason) {
-        if (history == null) return;
+        if (history == null || !wasConnected) return;
 
         SkysoftSessionReader.Snapshot snapshot = lastSnapshot;
         if (snapshot != null) {
@@ -208,8 +224,8 @@ public final class TastyFishMod implements ClientModInitializer {
                         config,
                         username,
                         sessionId,
-                        s.activeMillis(),
-                        (long) Math.max(0L, s.profit()),
+                        discordActiveMillis(snapshot),
+                        discordProfit(snapshot),
                         s.pests()
                     );
                 }
@@ -221,6 +237,8 @@ public final class TastyFishMod implements ClientModInitializer {
         lastActiveMillis = -1L;
         lastOneHourPbAlertActiveMillis = -1L;
         lastDiscordSessionUpdateWallMillis = 0L;
+        discordSessionActiveOffsetMillis = 0L;
+        discordSessionProfitOffset = 0.0;
         sessionId = TastyFishServerClient.newSessionId();
     }
 
