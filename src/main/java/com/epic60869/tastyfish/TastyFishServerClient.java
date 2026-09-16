@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class TastyFishServerClient {
     private static final Gson GSON = new Gson();
     private static final String MOD_VERSION = "1.0.8";
-    private static final String DEFAULT_FARMING_SERVER = "https://farming.tastyfish.org";
+    private static final String DEFAULT_FARMING_SERVER = "https://tastyfish.org/api/farming";
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final AtomicBoolean uploadInProgress = new AtomicBoolean(false);
     private final AtomicBoolean reportInProgress = new AtomicBoolean(false);
@@ -56,6 +56,7 @@ public final class TastyFishServerClient {
         body.addProperty("username", username);
         body.addProperty("type", type);
         body.addProperty("message", message);
+        body.addProperty("destinationId", config.discordDestinationId == null ? "" : config.discordDestinationId.trim());
 
         post(config, "/v1/report", body, "Discord report")
             .whenComplete((ignored, error) -> {
