@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -60,8 +61,8 @@ public final class TastyFishServerClient {
     }
 
     public void endSession(TastyFishConfig config, String username, String sessionId,
-                           long activeMillis, long profit, long pests) {
-        sessionRequest(config, "/v1/session/end", username, sessionId, activeMillis, profit, pests);
+                           long activeMillis, long profit, Map<String, Long> pests) {
+        sessionRequest(config, "/v1/session/end", username, sessionId, activeMillis, profit, sum(pests));
     }
 
     private void sessionRequest(TastyFishConfig config, String path, String username, String sessionId,
@@ -137,6 +138,13 @@ public final class TastyFishServerClient {
             }
         }
         return best;
+    }
+
+    private static long sum(Map<String, Long> map) {
+        long total = 0L;
+        if (map == null) return total;
+        for (Long value : map.values()) if (value != null) total += value;
+        return total;
     }
 
     private static String rootMessage(Throwable error) {
