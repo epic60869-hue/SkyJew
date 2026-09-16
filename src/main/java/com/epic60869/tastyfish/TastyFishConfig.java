@@ -17,6 +17,15 @@ public final class TastyFishConfig {
     public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
 
+    // Legacy config fields retained only so existing config files/classes can
+    // be loaded while users transition to the standalone farming server.
+    // New farming/Discord code should use farmingServerEndpoint/API key.
+    @Deprecated public String endpoint = "https://farming.tastyfish.org";
+    @Deprecated public String discordChannelId = "";
+    @Deprecated public String discordForumId = "";
+    @Deprecated public String discordReportEndpoint = "https://farming.tastyfish.org/v1/report";
+    @Deprecated public String discordReportSecret = "";
+
     public boolean enabled = true;
     public boolean farmingRngEnabled = true;
     public boolean farmingRngBackground = false;
@@ -63,6 +72,8 @@ public final class TastyFishConfig {
             c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
             if (c.farmingServerEndpoint == null || c.farmingServerEndpoint.isBlank()) c.farmingServerEndpoint = "https://farming.tastyfish.org";
             if (c.guildLeaderboardWebsite == null || c.guildLeaderboardWebsite.isBlank()) c.guildLeaderboardWebsite = c.farmingServerEndpoint;
+            if (c.endpoint == null || c.endpoint.isBlank()) c.endpoint = c.farmingServerEndpoint;
+            if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) c.discordReportEndpoint = c.farmingServerEndpoint + "/v1/report";
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
