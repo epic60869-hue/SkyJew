@@ -36,7 +36,7 @@ public final class TastyFishGuildLeaderboardHud {
     private static void extract(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker deltaTracker) {
         if (config == null || !config.guildLeaderboardHudEnabled || Minecraft.getInstance().player == null) return;
         TastyFishWebsiteClient.Result data = WEBSITE.result();
-        if (!data.available() || !data.hasAheadPlayer()) return;
+        if (!data.available()) return;
         render(graphics, data, config.guildLeaderboardHudX, config.guildLeaderboardHudY);
     }
 
@@ -87,7 +87,9 @@ public final class TastyFishGuildLeaderboardHud {
         String collection = data.boardName().isBlank() ? "Collection" : data.boardName();
         String current = format(data.value());
         String position = "[#" + data.position() + "]";
-        String gap = format(data.behind()) + " behind " + data.aheadName() + " [#" + data.aheadPosition() + "]";
+        String gap = data.hasAhead()
+            ? format(data.behind()) + " behind " + data.aheadName() + " [#" + data.aheadPosition() + "]"
+            : "Top of leaderboard";
 
         drawShadowed(graphics, collection + ": " + current + " " + position, 0, 0, 0xFFFFD84D, true);
         drawShadowed(graphics, gap, 0, 15, 0xFFF0F3FF, false);
