@@ -39,6 +39,7 @@ jobs:
           s = s.replace('        g.text(font, "The website-side Discord bot posts it.", rx, 192, GREEN, false);', '        g.text(font, "The main TastyFish Discord bot posts it.", rx, 192, GREEN, false);')
           s = s.replace('        g.text(font, "The optional relay secret stays in the local config.", rx, 300, 0xFFFFB85A, false);', '        g.text(font, "Channel/forum IDs are local settings; the bot token stays on the server.", rx, 300, 0xFFFFB85A, false);')
           s = s.replace('        g.text(font, "Target a Discord channel or forum by ID",', '        g.text(font, "Discord report settings",')
+          s = re.sub(r'        g.text\(font, "/tf guildhud[^\n]*\n', '        g.text(font, "/tf stats  •  /tf discord", left + 24, 305, TEXT, false);\n', s)
           s = s.replace('        if (discordEndpointBox != null) config.discordReportEndpoint = discordEndpointBox.getValue().trim();\n', '')
           s = s.replace('        if (guildWebsiteBox != null) config.guildLeaderboardWebsite = guildWebsiteBox.getValue().trim();\n', '')
           marker = '        refreshSkysoft(false);\n        drawBackground(graphics);'
