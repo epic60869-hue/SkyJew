@@ -11,6 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Reads Skysoft's live Farming Profit Tracker session.
+ *
+ * Skysoft changed the location of its session map in recent releases: the
+ * map is now owned by ProfitTrackerStatistics and ProfitTracker itself keeps
+ * the statistics object private. We intentionally use reflection here so
+ * TastyFish does not have to bundle Skysoft or hard-link against its internals.
+ */
 public final class SkysoftSessionReader {
     private static final String FARMING = "FARMING";
     private static final String PROFIT_TRACKER_CLASS = "com.skysoft.features.profit.ProfitTracker";
@@ -18,25 +26,15 @@ public final class SkysoftSessionReader {
     private static final String PRESET_CLASS = "com.skysoft.features.profit.ProfitTrackerPreset";
     private static final String ITEM_CUSTOMIZATIONS_CLASS = "com.skysoft.features.profit.ProfitTrackerItemCustomizations";
 
-    private static boolean methodDebugPrinted = false;
-
     private SkysoftSessionReader() {}
 
     public static Snapshot read() {
         try {
             Class<?> trackerClass = Class.forName(PROFIT_TRACKER_CLASS);
             Object tracker = getKotlinObjectInstance(trackerClass);
+            Object target = createFarmingTarget();
+            Object stats = readLiveSessionStats(trackerClass, tracker, target);
 
-            Field sessionStatsField = findField(trackerClass, "sessionStats");
-            sessionStatsField.setAccessible(true);
-            Object rawStatsMap = sessionStatsField.get(tracker);
-
-            if (!(rawStatsMap instanceof Map<?, ?> source)) {
-                System.err.println("[TastyFish] Skysoft ProfitTracker sessionStats is not a Map.");
-                return Snapshot.invalid();
-            }
-
-            Object stats = source.get(FARMING);
             if (stats == null) return Snapshot.empty();
 
             Map<String, Long> items = longMap(stats, "itemCounts");
@@ -46,12 +44,7 @@ public final class SkysoftSessionReader {
             long actions = longField(stats, "actions");
             double coins = doubleField(stats, "coins");
 
-            Object target = createFarmingTarget();
-            Set<String> trackedItemIds = skysoftTrackedItemIds(trackerClass, tracker, target);
-
-            // Skysoft's HUD calculates Total Profit from the same sessionStats,
-            // but only includes items that are currently tracked and not excluded.
-            // Reproduce that exact selection before applying ProfitTracker.unitValue.
+            Set<String> trackedItemIds = invokeTrackedItemIds(trackerClass, tracker, target);
             double itemValue = 0.0;
             long valuedItems = 0L;
             long pricedItemTypes = 0L;
@@ -60,17 +53,15 @@ public final class SkysoftSessionReader {
             for (Map.Entry<String, Long> entry : items.entrySet()) {
                 String itemId = entry.getKey();
                 long count = entry.getValue();
-                if (count <= 0) continue;
-                if (!trackedItemIds.contains(itemId)) continue;
-                if (skysoftIsExcluded(target, itemId)) continue;
+                if (count <= 0L || !trackedItemIds.contains(itemId)) continue;
+                if (isExcluded(target, itemId)) continue;
 
                 hadTrackedItems = true;
                 Double unitValue = null;
                 try {
-                    unitValue = skysoftUnitValue(trackerClass, tracker, target, itemId);
+                    unitValue = invokeUnitValue(trackerClass, tracker, target, itemId);
                 } catch (Throwable ignored) {
-                    // Match Skysoft HUD: an unpriceable item has a null display
-                    // value and is not included in the Total Profit sum.
+                    // Skysoft can temporarily have no price for an item.
                 }
 
                 if (unitValue != null && Double.isFinite(unitValue) && unitValue > 0.0) {
@@ -80,34 +71,71 @@ public final class SkysoftSessionReader {
                 }
             }
 
-            // If Skysoft has tracked items but none can currently be priced,
-            // do not upload a fabricated zero.
-            if (hadTrackedItems && pricedItemTypes == 0L) {
-                return Snapshot.invalid();
-            }
+            // Do not turn a temporary price/API failure into a false zero-profit
+            // upload when Skysoft is clearly tracking items.
+            if (hadTrackedItems && pricedItemTypes == 0L) return Snapshot.invalid();
 
-            // This is the same formula used by Skysoft's ProfitTracker HUD:
-            // revenue = tracked item values + stats.coins
-            // profit  = revenue - tracked coin costs
             double coinCosts = costs.getOrDefault("Coins", 0L).doubleValue();
             double profit = itemValue + coins - coinCosts;
-
             if (!Double.isFinite(profit)) return Snapshot.invalid();
 
-            return new Snapshot(
-                items,
-                pests,
-                activeMillis,
-                actions,
-                coins,
-                profit,
-                valuedItems,
-                true
-            );
+            return new Snapshot(items, pests, activeMillis, actions, coins, profit, valuedItems, true);
         } catch (Throwable error) {
             System.err.println("[TastyFish] Failed to read Skysoft farming session: " + rootMessage(error));
             return Snapshot.invalid();
         }
+    }
+
+    /**
+     * Skysoft 0.1.8 and older exposed sessionStats directly on ProfitTracker.
+     * Newer Skysoft keeps it in ProfitTrackerStatistics, referenced by the
+     * private ProfitTracker.statistics field. Prefer the new layout and retain
+     * the old path as a compatibility fallback.
+     */
+    private static Object readLiveSessionStats(Class<?> trackerClass, Object tracker, Object target)
+        throws ReflectiveOperationException {
+        try {
+            Field statisticsField = findField(trackerClass, "statistics");
+            statisticsField.setAccessible(true);
+            Object statistics = statisticsField.get(tracker);
+            Field sessionStatsField = findField(statistics.getClass(), "sessionStats");
+            sessionStatsField.setAccessible(true);
+            Object raw = sessionStatsField.get(statistics);
+            if (raw instanceof Map<?, ?> map) {
+                return map.get(FARMING);
+            }
+        } catch (Throwable ignored) {
+            // Fall through to the older layout.
+        }
+
+        try {
+            Field sessionStatsField = findField(trackerClass, "sessionStats");
+            sessionStatsField.setAccessible(true);
+            Object raw = sessionStatsField.get(tracker);
+            if (raw instanceof Map<?, ?> map) return map.get(FARMING);
+        } catch (Throwable ignored) {
+            // The current API is handled above; report the failure below.
+        }
+
+        // Last compatibility path: ask Skysoft for stats only when it is
+        // configured to display the Farming session. This avoids fabricating
+        // data if the user has selected Today/Total in Skysoft.
+        Method statsMethod = findStatsMethod(trackerClass, target.getClass());
+        Object value = statsMethod.invoke(tracker, target);
+        return value;
+    }
+
+    private static Method findStatsMethod(Class<?> trackerClass, Class<?> targetClass)
+        throws NoSuchMethodException {
+        for (Method method : allMethods(trackerClass)) {
+            if (!method.getName().equals("stats") || method.getParameterCount() != 1) continue;
+            Class<?> parameter = method.getParameterTypes()[0];
+            if (parameter.isAssignableFrom(targetClass) || targetClass.isAssignableFrom(parameter)) {
+                method.setAccessible(true);
+                return method;
+            }
+        }
+        throw new NoSuchMethodException("No compatible Skysoft ProfitTracker.stats method found");
     }
 
     private static Object getKotlinObjectInstance(Class<?> type) throws ReflectiveOperationException {
@@ -127,8 +155,7 @@ public final class SkysoftSessionReader {
         Class<?> presetClass = Class.forName(PRESET_CLASS);
         @SuppressWarnings("unchecked")
         Object farmingPreset = Enum.valueOf(
-            (Class<? extends Enum>) presetClass.asSubclass(Enum.class),
-            FARMING
+            (Class<? extends Enum>) presetClass.asSubclass(Enum.class), FARMING
         );
 
         try {
@@ -137,12 +164,13 @@ public final class SkysoftSessionReader {
             Object companion = companionField.get(null);
             for (Method method : allMethods(companion.getClass())) {
                 if (!method.getName().equals("preset") || method.getParameterCount() != 1) continue;
-                if (!method.getParameterTypes()[0].isAssignableFrom(presetClass)) continue;
+                Class<?> parameter = method.getParameterTypes()[0];
+                if (!parameter.isAssignableFrom(presetClass) && !presetClass.isAssignableFrom(parameter)) continue;
                 method.setAccessible(true);
                 return method.invoke(companion, farmingPreset);
             }
         } catch (Throwable ignored) {
-            // Fall through to constructor-based Kotlin fallback.
+            // Fall through to constructor compatibility.
         }
 
         for (Constructor<?> constructor : targetClass.getDeclaredConstructors()) {
@@ -157,36 +185,23 @@ public final class SkysoftSessionReader {
                 return constructor.newInstance(farmingPreset);
             }
         }
-
         throw new NoSuchMethodException("Could not construct Skysoft ProfitTrackerTarget.FARMING");
     }
 
-    private static Set<String> skysoftTrackedItemIds(
-        Class<?> trackerClass,
-        Object tracker,
-        Object target
-    ) throws ReflectiveOperationException {
-        List<Method> candidates = new ArrayList<>();
+    private static Set<String> invokeTrackedItemIds(Class<?> trackerClass, Object tracker, Object target)
+        throws ReflectiveOperationException {
+        Throwable lastFailure = null;
         for (Method method : allMethods(trackerClass)) {
-            String name = method.getName();
-            if (!(name.equals("trackedItemIds") || name.startsWith("trackedItemIds"))) continue;
-            if (method.getParameterCount() != 1) continue;
+            if (!method.getName().startsWith("trackedItemIds") || method.getParameterCount() != 1) continue;
             Class<?> parameter = method.getParameterTypes()[0];
             if (!parameter.isAssignableFrom(target.getClass()) && !target.getClass().isAssignableFrom(parameter)) continue;
-            candidates.add(method);
-        }
-
-        Throwable lastFailure = null;
-        for (Method method : candidates) {
             try {
                 method.setAccessible(true);
                 Object receiver = Modifier.isStatic(method.getModifiers()) ? null : tracker;
                 Object result = method.invoke(receiver, target);
                 if (result instanceof Set<?> raw) {
                     java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
-                    for (Object value : raw) {
-                        if (value instanceof String id) ids.add(id);
-                    }
+                    for (Object value : raw) if (value instanceof String id) ids.add(id);
                     return ids;
                 }
             } catch (InvocationTargetException invocation) {
@@ -195,85 +210,40 @@ public final class SkysoftSessionReader {
                 lastFailure = failure;
             }
         }
-
-        if (lastFailure != null) {
-            throw new ReflectiveOperationException("Skysoft trackedItemIds invocation failed", lastFailure);
-        }
-        throw new NoSuchMethodException("No compatible ProfitTracker.trackedItemIds method found");
+        if (lastFailure != null) throw new ReflectiveOperationException("Skysoft trackedItemIds failed", lastFailure);
+        throw new NoSuchMethodException("No compatible Skysoft trackedItemIds method found");
     }
 
-    private static boolean skysoftIsExcluded(Object target, String itemId) throws ReflectiveOperationException {
+    private static boolean isExcluded(Object target, String itemId) throws ReflectiveOperationException {
         Class<?> customizationClass = Class.forName(ITEM_CUSTOMIZATIONS_CLASS);
         Object customization = getKotlinObjectInstance(customizationClass);
-
         for (Method method : allMethods(customizationClass)) {
-            String name = method.getName();
-            if (!(name.equals("isExcluded") || name.startsWith("isExcluded"))) continue;
-            if (method.getParameterCount() != 2) continue;
+            if (!method.getName().startsWith("isExcluded") || method.getParameterCount() != 2) continue;
             Class<?>[] parameters = method.getParameterTypes();
             boolean targetCompatible = parameters[0].isAssignableFrom(target.getClass())
                 || target.getClass().isAssignableFrom(parameters[0]);
             boolean stringCompatible = parameters[1].isAssignableFrom(String.class) || parameters[1] == Object.class;
             if (!targetCompatible || !stringCompatible) continue;
-
             method.setAccessible(true);
             Object receiver = Modifier.isStatic(method.getModifiers()) ? null : customization;
             Object result = method.invoke(receiver, target, itemId);
             return result instanceof Boolean && (Boolean) result;
         }
-
-        throw new NoSuchMethodException("No compatible ProfitTrackerItemCustomizations.isExcluded method found");
+        throw new NoSuchMethodException("No compatible Skysoft isExcluded method found");
     }
 
-    private static Double skysoftUnitValue(
-        Class<?> trackerClass,
-        Object tracker,
-        Object target,
-        String itemId
+    private static Double invokeUnitValue(
+        Class<?> trackerClass, Object tracker, Object target, String itemId
     ) throws ReflectiveOperationException {
-        List<Method> candidates = new ArrayList<>();
-
+        Throwable lastFailure = null;
         for (Method method : allMethods(trackerClass)) {
             String name = method.getName();
-            if (!(name.equals("unitValue") || name.startsWith("unitValue") || name.contains("unitValue"))) continue;
-            if (method.getParameterCount() != 2) continue;
-
+            if (!(name.equals("unitValue") || name.startsWith("unitValue")) || method.getParameterCount() != 2) continue;
             Class<?>[] parameters = method.getParameterTypes();
             boolean targetCompatible = parameters[0].isAssignableFrom(target.getClass())
                 || target.getClass().isAssignableFrom(parameters[0]);
-            boolean stringCompatible = parameters[1].isAssignableFrom(String.class)
-                || parameters[1] == Object.class;
-
-            if (targetCompatible && stringCompatible) candidates.add(method);
-        }
-
-        for (Method method : trackerClass.getMethods()) {
-            if (!containsSameMethod(candidates, method)) {
-                String name = method.getName();
-                if (!(name.equals("unitValue") || name.startsWith("unitValue") || name.contains("unitValue"))) continue;
-                if (method.getParameterCount() != 2) continue;
-                Class<?>[] parameters = method.getParameterTypes();
-                boolean targetCompatible = parameters[0].isAssignableFrom(target.getClass())
-                    || target.getClass().isAssignableFrom(parameters[0]);
-                boolean stringCompatible = parameters[1].isAssignableFrom(String.class)
-                    || parameters[1] == Object.class;
-                if (targetCompatible && stringCompatible) candidates.add(method);
-            }
-        }
-
-        if (!methodDebugPrinted) {
-            methodDebugPrinted = true;
-            List<String> discovered = new ArrayList<>();
-            for (Method method : allMethods(trackerClass)) {
-                if (method.getName().toLowerCase().contains("unitvalue")) {
-                    discovered.add(method.toGenericString());
-                }
-            }
-            System.out.println("[TastyFish] Skysoft unitValue methods: " + discovered);
-        }
-
-        Throwable lastFailure = null;
-        for (Method method : candidates) {
+            boolean stringCompatible = parameters[1].isAssignableFrom(String.class) || parameters[1] == Object.class;
+            if (!targetCompatible || !stringCompatible) continue;
             try {
                 method.setAccessible(true);
                 Object receiver = Modifier.isStatic(method.getModifiers()) ? null : tracker;
@@ -286,11 +256,8 @@ public final class SkysoftSessionReader {
                 lastFailure = failure;
             }
         }
-
-        if (lastFailure != null) {
-            throw new ReflectiveOperationException("Skysoft unitValue invocation failed", lastFailure);
-        }
-        throw new NoSuchMethodException("No compatible ProfitTracker.unitValue method found");
+        if (lastFailure != null) throw new ReflectiveOperationException("Skysoft unitValue failed", lastFailure);
+        throw new NoSuchMethodException("No compatible Skysoft unitValue method found");
     }
 
     private static List<Method> allMethods(Class<?> type) {
@@ -313,9 +280,7 @@ public final class SkysoftSessionReader {
     private static boolean containsSameMethod(List<Method> methods, Method candidate) {
         for (Method method : methods) {
             if (method.getName().equals(candidate.getName())
-                && java.util.Arrays.equals(method.getParameterTypes(), candidate.getParameterTypes())) {
-                return true;
-            }
+                && java.util.Arrays.equals(method.getParameterTypes(), candidate.getParameterTypes())) return true;
         }
         return false;
     }
@@ -324,14 +289,10 @@ public final class SkysoftSessionReader {
         Field field = findField(object.getClass(), fieldName);
         field.setAccessible(true);
         Object raw = field.get(object);
-        if (!(raw instanceof Map<?, ?> source)) {
-            throw new IllegalStateException("Skysoft field " + fieldName + " is not a Map");
-        }
+        if (!(raw instanceof Map<?, ?> source)) throw new IllegalStateException("Skysoft field " + fieldName + " is not a Map");
         Map<String, Long> result = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : source.entrySet()) {
-            if (entry.getKey() instanceof String key && entry.getValue() instanceof Number value) {
-                result.put(key, value.longValue());
-            }
+            if (entry.getKey() instanceof String key && entry.getValue() instanceof Number value) result.put(key, value.longValue());
         }
         return result;
     }
@@ -340,9 +301,7 @@ public final class SkysoftSessionReader {
         Field field = findField(object.getClass(), fieldName);
         field.setAccessible(true);
         Object value = field.get(object);
-        if (!(value instanceof Number number)) {
-            throw new IllegalStateException("Skysoft field " + fieldName + " is not numeric");
-        }
+        if (!(value instanceof Number number)) throw new IllegalStateException("Skysoft field " + fieldName + " is not numeric");
         return number.longValue();
     }
 
@@ -350,20 +309,15 @@ public final class SkysoftSessionReader {
         Field field = findField(object.getClass(), fieldName);
         field.setAccessible(true);
         Object value = field.get(object);
-        if (!(value instanceof Number number)) {
-            throw new IllegalStateException("Skysoft field " + fieldName + " is not numeric");
-        }
+        if (!(value instanceof Number number)) throw new IllegalStateException("Skysoft field " + fieldName + " is not numeric");
         return number.doubleValue();
     }
 
     private static Field findField(Class<?> type, String name) throws NoSuchFieldException {
         Class<?> current = type;
         while (current != null) {
-            try {
-                return current.getDeclaredField(name);
-            } catch (NoSuchFieldException ignored) {
-                current = current.getSuperclass();
-            }
+            try { return current.getDeclaredField(name); }
+            catch (NoSuchFieldException ignored) { current = current.getSuperclass(); }
         }
         throw new NoSuchFieldException(type.getName() + "." + name);
     }
@@ -386,11 +340,11 @@ public final class SkysoftSessionReader {
         boolean valid
     ) {
         public static Snapshot empty() {
-            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0L, 0L, true);
+            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, true);
         }
 
         public static Snapshot invalid() {
-            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0L, 0L, false);
+            return new Snapshot(Map.of(), Map.of(), 0L, 0L, 0.0, 0.0, 0L, false);
         }
     }
 }
