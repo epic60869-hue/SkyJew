@@ -11,21 +11,19 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Client for the standalone TastyFish farming server.
- * The Minecraft mod no longer talks to the main bot/web application for farming.
- */
+/** Client for the standalone TastyFish farming server. */
 public final class TastyFishServerClient {
     private static final Gson GSON = new Gson();
     private static final String MOD_VERSION = "1.0.8";
+    private static final String FARMING_SERVER = "https://farming.tastyfish.org";
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final AtomicBoolean uploadInProgress = new AtomicBoolean(false);
     private final AtomicBoolean reportInProgress = new AtomicBoolean(false);
 
     public void upload(TastyFishConfig config, String username, UUID uuid, String profile, String sessionId,
                        SkysoftSessionReader.Snapshot snapshot) {
-        if (config == null || !config.farmingServerEnabled || config.farmingServerEndpoint.isBlank()
-            || config.farmingServerApiKey.isBlank() || snapshot == null || !snapshot.valid()) return;
+        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
+            || snapshot == null || !snapshot.valid()) return;
         if (username == null || username.isBlank() || uuid == null || sessionId == null || sessionId.isBlank()) return;
         if (!uploadInProgress.compareAndSet(false, true)) return;
 
@@ -50,8 +48,8 @@ public final class TastyFishServerClient {
     }
 
     public void report(TastyFishConfig config, String username, String type, String message) {
-        if (config == null || !config.farmingServerEnabled || config.farmingServerEndpoint.isBlank()
-            || config.farmingServerApiKey.isBlank() || username == null || username.isBlank() || message == null || message.isBlank()) return;
+        if (config == null || !config.farmingServerEnabled || config.farmingServerApiKey.isBlank()
+            || username == null || username.isBlank() || message == null || message.isBlank()) return;
         if (!reportInProgress.compareAndSet(false, true)) return;
 
         JsonObject body = new JsonObject();
@@ -67,10 +65,8 @@ public final class TastyFishServerClient {
     }
 
     private java.util.concurrent.CompletableFuture<String> post(TastyFishConfig config, String path, JsonObject body, String label) {
-        String base = config.farmingServerEndpoint.trim();
-        while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(base + path))
+            .uri(URI.create(FARMING_SERVER + path))
             .timeout(Duration.ofSeconds(15))
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
@@ -104,7 +100,5 @@ public final class TastyFishServerClient {
         return current.getMessage() == null ? current.toString() : current.getMessage();
     }
 
-    public static String newSessionId() {
-        return UUID.randomUUID().toString();
-    }
+    public static String newSessionId() { return UUID.randomUUID().toString(); }
 }
