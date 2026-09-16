@@ -22,6 +22,7 @@ public final class FarmingHistory {
     private static final long HOUR_MS = 60L * 60L * 1000L;
     private static final long FIVE_MINUTES_MS = 5L * 60L * 1000L;
     private static final long STREAK_GAP_MS = FIVE_MINUTES_MS;
+    private static final int FIVE_MINUTE_PERIODS_PER_HOUR = 12;
 
     private final Path path;
     private Data data;
@@ -29,12 +30,14 @@ public final class FarmingHistory {
     private long currentStartWall = 0L;
     private long lastWall = 0L;
     private long lastActive = -1L;
+    private long sessionStartActive = 0L;
     private double lastProfit = 0.0;
     private double sessionStartProfit = 0.0;
     private long lastActions = 0L;
     private final Map<String, Long> lastItems = new HashMap<>();
     private final Map<String, Long> lastPests = new HashMap<>();
     private final List<Sample> samples = new ArrayList<>();
+    private final List<Long> completedFiveMinuteProfits = new ArrayList<>();
     private long streakStartWall = 0L;
     private long bestStreakMs = 0L;
     private boolean sessionEnded = true;
@@ -55,14 +58,16 @@ public final class FarmingHistory {
             currentStartWall = now;
             lastWall = now;
             lastActive = snapshot.activeMillis();
+            sessionStartActive = snapshot.activeMillis();
             lastProfit = snapshot.profit();
-            sessionStartProfit = 0.0;
+            sessionStartProfit = snapshot.profit();
             lastActions = snapshot.actions();
             lastItems.clear(); lastItems.putAll(snapshot.items());
             lastPests.clear(); lastPests.putAll(snapshot.pests());
             samples.clear();
             samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
-            lastReportedFiveMinuteInterval = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
+            completedFiveMinuteProfits.clear();
+            lastReportedFiveMinuteInterval = 0;
             streakStartWall = now;
             sessionEnded = false;
             return Update.none();
@@ -101,14 +106,28 @@ public final class FarmingHistory {
             save();
         }
 
-        long oneHourProfit = rollingOneHourProfit(snapshot);
         long fiveMinuteProfit = rollingFiveMinuteProfit(snapshot);
-        long sessionProfit = Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - sessionStartProfit)));
-        int completedFiveMinuteIntervals = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
-        boolean fiveMinuteReport = completedFiveMinuteIntervals > 0 && completedFiveMinuteIntervals > lastReportedFiveMinuteInterval;
-        if (fiveMinuteReport) lastReportedFiveMinuteInterval = completedFiveMinuteIntervals;
+        long sessionActive = Math.max(0L, snapshot.activeMillis() - sessionStartActive);
+        int completedFiveMinuteIntervals = (int) (sessionActive / FIVE_MINUTES_MS);
+        boolean fiveMinuteReport = completedFiveMinuteIntervals > lastReportedFiveMinuteInterval;
+        if (fiveMinuteReport) {
+            long reportProfit = fiveMinuteProfit;
+            completedFiveMinuteProfits.add(reportProfit);
+            while (completedFiveMinuteProfits.size() > FIVE_MINUTE_PERIODS_PER_HOUR) {
+                completedFiveMinuteProfits.remove(0);
+            }
+            lastReportedFiveMinuteInterval = completedFiveMinuteIntervals;
+        }
 
-        if (oneHourProfit > data.bestOneHourProfit) {
+        // A 1-hour value does not exist until twelve completed, non-overlapping
+        // 5-minute periods have been recorded during this TastyFish session.
+        long oneHourProfit = completedFiveMinuteProfits.size() == FIVE_MINUTE_PERIODS_PER_HOUR
+            ? completedFiveMinuteProfits.stream().mapToLong(Long::longValue).sum()
+            : 0L;
+
+        long sessionProfit = Math.max(0L, Math.round(Math.max(0.0, snapshot.profit() - sessionStartProfit)));
+
+        if (oneHourProfit > 0L && oneHourProfit > data.bestOneHourProfit) {
             data.bestOneHourProfit = oneHourProfit;
             data.bestOneHourAt = now;
             data.bestOneHourCrop = bestCrop(snapshot.items());
@@ -133,7 +152,9 @@ public final class FarmingHistory {
         lastPests.clear(); lastPests.putAll(snapshot.pests());
         samples.clear();
         samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
-        lastReportedFiveMinuteInterval = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
+        sessionStartActive = snapshot.activeMillis();
+        completedFiveMinuteProfits.clear();
+        lastReportedFiveMinuteInterval = 0;
         streakStartWall = now;
         sessionEnded = false;
     }
@@ -141,19 +162,22 @@ public final class FarmingHistory {
     public synchronized Update finish(String reason, SkysoftSessionReader.Snapshot snapshot) {
         if (sessionEnded || snapshot == null || !snapshot.valid()) return Update.none();
         long now = System.currentTimeMillis();
-        long duration = Math.max(0L, snapshot.activeMillis());
+        long duration = Math.max(0L, snapshot.activeMillis() - sessionStartActive);
         long streak = Math.max(0L, lastWall - streakStartWall);
         bestStreakMs = Math.max(bestStreakMs, streak);
         data.bestStreakMs = bestStreakMs;
 
         Session session = new Session(currentSessionId, Instant.ofEpochMilli(currentStartWall).toString(),
             Instant.ofEpochMilli(now).toString(), reason == null ? "ended" : reason, duration,
-            snapshot.profit(), snapshot.actions(), snapshot.items(), snapshot.pests(), bestCrop(snapshot.items()));
+            Math.max(0.0, snapshot.profit() - sessionStartProfit), snapshot.actions(), snapshot.items(), snapshot.pests(), bestCrop(snapshot.items()));
         data.sessions.add(session);
         while (data.sessions.size() > 100) data.sessions.remove(0);
         save();
         sessionEnded = true;
-        return new Update(true, false, false, rollingOneHourProfit(snapshot), streak, session,
+        long oneHourProfit = completedFiveMinuteProfits.size() == FIVE_MINUTE_PERIODS_PER_HOUR
+            ? completedFiveMinuteProfits.stream().mapToLong(Long::longValue).sum()
+            : 0L;
+        return new Update(true, false, false, oneHourProfit, streak, session,
             false, rollingFiveMinuteProfit(snapshot), sessionProfit(snapshot), lastReportedFiveMinuteInterval);
     }
 
@@ -166,11 +190,10 @@ public final class FarmingHistory {
     }
 
     private long rollingOneHourProfit(SkysoftSessionReader.Snapshot snapshot) {
-        long currentActive = snapshot.activeMillis();
-        double currentProfit = snapshot.profit();
-        double oldestProfit = 0.0;
-        for (Sample sample : samples) if (currentActive - sample.activeMillis >= HOUR_MS) oldestProfit = sample.profit();
-        return Math.max(0L, Math.round(Math.max(0.0, currentProfit - oldestProfit)));
+        // Kept for compatibility with existing callers. Before twelve completed
+        // 5-minute reports, there is deliberately no 1-hour value.
+        if (completedFiveMinuteProfits.size() < FIVE_MINUTE_PERIODS_PER_HOUR) return 0L;
+        return completedFiveMinuteProfits.stream().mapToLong(Long::longValue).sum();
     }
 
     private long rollingFiveMinuteProfit(SkysoftSessionReader.Snapshot snapshot) {
