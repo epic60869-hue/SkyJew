@@ -64,7 +64,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private void printStats() {
         Minecraft mc = Minecraft.getInstance();
         FarmingHistory.Data d = history.data();
-        mc.player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+        mc.showDebugChat(net.minecraft.network.chat.Component.literal(
             "§6TastyFish §7| 1h PB: §e" + formatCoins(d.bestOneHourProfit) +
             " §7| Best streak: §e" + formatDuration(d.bestStreakMs) +
             " §7| Sessions: §e" + d.sessions.size()), false);
@@ -72,7 +72,7 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private void printDiscordHelp() {
         Minecraft mc = Minecraft.getInstance();
-        mc.player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+        mc.showDebugChat(net.minecraft.network.chat.Component.literal(
             "§6TastyFish §7| Configure your Discord forum webhook in §e/tf §7→ Discord."), false);
     }
 
@@ -119,7 +119,7 @@ public final class TastyFishMod implements ClientModInitializer {
         FarmingHistory.Update update = history.update(sessionId, snapshot);
         String username = minecraft.getUser().getName();
         if (update.newOneHourPb() && config.farmingPersonalBestEnabled) {
-            minecraft.player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+            minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"), false);
             if (config.discordForumEnabled && config.discordSendPersonalBests)
                 discord.personalBest(config.discordForumWebhook, username, update.oneHourProfit());
@@ -132,7 +132,7 @@ public final class TastyFishMod implements ClientModInitializer {
             List<String> unlocked = history.newlyUnlockedAchievements();
             for (String id : unlocked) {
                 String name = achievementName(id);
-                minecraft.player.displayClientMessage(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name), false);
+                minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name), false);
                 if (config.discordForumEnabled && config.discordSendAchievements)
                     discord.achievement(config.discordForumWebhook, username, name);
             }

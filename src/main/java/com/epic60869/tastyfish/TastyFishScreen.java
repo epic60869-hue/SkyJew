@@ -538,7 +538,7 @@ public final class TastyFishScreen extends Screen {
     }
 
     private static String number(long value) { return String.format(Locale.ROOT, "%,d", value); }
-    private static String coins(long value) { return number(value) + " coins"; }
+    private static String coins(double value) { return String.format(Locale.ROOT, "%,.0f coins", value); }
     private static String coinsDouble(double value) { return String.format(Locale.ROOT, "%,.0f coins", value); }
 
     private static String duration(long millis) {
