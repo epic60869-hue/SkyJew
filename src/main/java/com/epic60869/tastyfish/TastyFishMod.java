@@ -43,14 +43,12 @@ public final class TastyFishMod implements ClientModInitializer {
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; }))
-                .then(ClientCommands.literal("guildhud").executes(context -> { toggleGuildHud(); return 1; })));
+                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
             dispatcher.register(ClientCommands.literal("tastyfish")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; }))
-                .then(ClientCommands.literal("guildhud").executes(context -> { toggleGuildHud(); return 1; })));
+                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
         });
     }
 
@@ -62,13 +60,6 @@ public final class TastyFishMod implements ClientModInitializer {
     private int openGuiEditor() {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)));
         return 1;
-    }
-
-    private void toggleGuildHud() {
-        config.guildLeaderboardHudEnabled = !config.guildLeaderboardHudEnabled;
-        saveConfig();
-        Minecraft.getInstance().showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| Guild collection HUD: " + (config.guildLeaderboardHudEnabled ? "§aON" : "§cOFF")));
     }
 
     private void printStats() {
@@ -135,7 +126,7 @@ public final class TastyFishMod implements ClientModInitializer {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§l5 Minute Profit: §e" + formatCoins(update.fiveMinuteProfit()) +
                 " §7| §e" + formatCoins(update.sessionProfit()) + " §7" +
-                formatDuration(update.completedFiveMinuteIntervals() * 5L * 60L * 1000L)));
+                formatCompactDuration(update.completedFiveMinuteIntervals() * 5L * 60L * 1000L)));
         }
 
         boolean pbAlertReady = lastOneHourPbAlertActiveMillis < 0L ||
@@ -180,11 +171,6 @@ public final class TastyFishMod implements ClientModInitializer {
         sessionId = TastyFishServerClient.newSessionId();
     }
 
-    private void saveConfig() {
-        Minecraft mc = Minecraft.getInstance();
-        config.save(mc.gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json"));
-    }
-
     private static boolean isStreakMilestone(long millis) {
         long[] milestones = {30L * 60_000L, 60L * 60_000L, 2L * 60L * 60_000L, 5L * 60L * 60_000L, 10L * 60L * 60_000L};
         for (long milestone : milestones) if (millis >= milestone && millis < milestone + 35_000L) return true;
@@ -206,9 +192,18 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private static String formatCoins(long coins) { return String.format("%,d", coins); }
+
     private static String formatDuration(long millis) {
         long seconds = Math.max(0L, millis / 1000L);
         return String.format("%dh %02dm", seconds / 3600L, (seconds % 3600L) / 60L);
+    }
+
+    private static String formatCompactDuration(long millis) {
+        long minutes = Math.max(0L, millis / 60_000L);
+        long hours = minutes / 60L;
+        long remainder = minutes % 60L;
+        if (hours > 0) return hours + "h " + remainder + "m";
+        return minutes + "m";
     }
 
     private String currentSkysoftProfile() {
