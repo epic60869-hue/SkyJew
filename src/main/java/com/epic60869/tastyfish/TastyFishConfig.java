@@ -10,17 +10,17 @@ import java.nio.file.Path;
 public final class TastyFishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    // Farming is served by the standalone TastyFish farming server.
+    // Farming is served through the public Tasty Fish website and proxied internally.
     public boolean farmingServerEnabled = true;
-    public String farmingServerEndpoint = "https://farming.tastyfish.org";
+    public String farmingServerEndpoint = "https://tastyfish.org/api/farming";
     public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
 
     // Legacy fields are retained for config compatibility only.
-    @Deprecated public String endpoint = "https://farming.tastyfish.org";
+    @Deprecated public String endpoint = "https://tastyfish.org/api/farming";
     @Deprecated public String discordChannelId = "";
     @Deprecated public String discordForumId = "";
-    @Deprecated public String discordReportEndpoint = "https://farming.tastyfish.org/v1/report";
+    @Deprecated public String discordReportEndpoint = "https://tastyfish.org/api/farming/v1/report";
     @Deprecated public String discordReportSecret = "";
 
     public boolean enabled = true;
@@ -63,7 +63,7 @@ public final class TastyFishConfig {
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
             if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
             c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
-            if (c.farmingServerEndpoint == null || c.farmingServerEndpoint.isBlank()) c.farmingServerEndpoint = "https://farming.tastyfish.org";
+            if (c.farmingServerEndpoint == null || c.farmingServerEndpoint.isBlank()) c.farmingServerEndpoint = "https://tastyfish.org/api/farming";
             c.guildLeaderboardWebsite = "https://tastyfish.org";
             if (c.endpoint == null || c.endpoint.isBlank()) c.endpoint = c.farmingServerEndpoint;
             if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) c.discordReportEndpoint = c.farmingServerEndpoint + "/v1/report";
