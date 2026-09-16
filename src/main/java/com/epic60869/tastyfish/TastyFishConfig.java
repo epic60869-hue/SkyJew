@@ -9,9 +9,14 @@ import java.nio.file.Path;
 
 public final class TastyFishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    public String endpoint = "https://shadowisabot.com/api/farming/update";
-    public String apiKey = "PUT_YOUR_FARMING_API_KEY_HERE";
+
+    // Farming is served by the standalone TastyFish farming server. It is not
+    // part of the main bot/web application.
+    public boolean farmingServerEnabled = true;
+    public String farmingServerEndpoint = "https://farming.tastyfish.org";
+    public String farmingServerApiKey = "";
     public int uploadIntervalSeconds = 30;
+
     public boolean enabled = true;
     public boolean farmingRngEnabled = true;
     public boolean farmingRngBackground = false;
@@ -19,28 +24,25 @@ public final class TastyFishConfig {
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
 
-    // Farming analytics
+    // Local farming analytics. These are not the server leaderboard.
     public boolean farmingAnalyticsEnabled = true;
     public boolean farmingSessionRecorderEnabled = true;
     public boolean farmingPersonalBestEnabled = true;
     public boolean farmingStreakEnabled = true;
     public boolean farmingAchievementsEnabled = true;
 
-    // Discord reports are relayed through the TastyFish website/bot.
-    // No Discord webhook or bot token is stored in the client mod.
-    public String discordReportEndpoint = "https://tastyfish.org/api/farming/discord-report";
-    public String discordReportSecret = "";
-    public String discordChannelId = "";
-    public String discordForumId = "";
-    public boolean discordForumEnabled = false;
+    // Discord reports are handled by the standalone farming server. Discord
+    // channel/forum IDs and the bot token live on that server, never in the mod.
+    public boolean discordForumEnabled = true;
     public boolean discordSendSessions = true;
     public boolean discordSendPersonalBests = true;
     public boolean discordSendStreaks = true;
     public boolean discordSendAchievements = true;
 
-    // TastyFish website guild collection HUD
+    // Read-only guild collection HUD. This now reads the standalone farming
+    // server instead of the main website/bot API.
     public boolean guildLeaderboardHudEnabled = true;
-    public String guildLeaderboardWebsite = "https://tastyfish.org";
+    public String guildLeaderboardWebsite = "https://farming.tastyfish.org";
     public int guildLeaderboardRefreshSeconds = 30;
     public int guildLeaderboardHudX = 8;
     public int guildLeaderboardHudY = 8;
@@ -59,12 +61,8 @@ public final class TastyFishConfig {
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
             if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
             c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
-            if (c.guildLeaderboardWebsite == null || c.guildLeaderboardWebsite.isBlank()) {
-                c.guildLeaderboardWebsite = "https://tastyfish.org";
-            }
-            if (c.discordReportEndpoint == null || c.discordReportEndpoint.isBlank()) {
-                c.discordReportEndpoint = "https://tastyfish.org/api/farming/discord-report";
-            }
+            if (c.farmingServerEndpoint == null || c.farmingServerEndpoint.isBlank()) c.farmingServerEndpoint = "https://farming.tastyfish.org";
+            if (c.guildLeaderboardWebsite == null || c.guildLeaderboardWebsite.isBlank()) c.guildLeaderboardWebsite = c.farmingServerEndpoint;
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
