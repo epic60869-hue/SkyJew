@@ -1,0 +1,63 @@
+name: Fix Discord GUI fields
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[auto-fix-discord-gui]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Discord GUI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('src/main/java/com/epic60869/tastyfish/TastyFishScreen.java')
+          s = p.read_text()
+          s = s.replace('    private EditBox discordEndpointBox;\n', '')
+          s = s.replace('    private EditBox guildWebsiteBox;\n', '')
+          s = s.replace('        discordEndpointBox = null;\n', '')
+          s = s.replace('        guildWebsiteBox = null;\n', '')
+          s = s.replace('            discordEndpointBox = field(left, 300, boxWidth, config.discordReportEndpoint, "https://tastyfish.org/api/farming/discord-report");\n', '')
+          s = re.sub(r'        if \(page == HUD\) \{.*?        \}\n        refreshSkysoft\(true\);', '        refreshSkysoft(true);', s, count=1, flags=re.S)
+          s = s.replace('            int boxWidth = Math.min(520, Math.max(260, contentWidth() - 80));', '            int boxWidth = 180;')
+          s = s.replace('        g.text(font, "Relay endpoint", left + 24, 283, MUTED, false);', '        g.text(font, "Website (fixed)", left + 24, 283, MUTED, false);\n        g.text(font, "https://tastyfish.org", left + 24, 301, TEXT, false);')
+          s = s.replace('        g.text(font, "The website-side Discord bot posts it.", rx, 192, GREEN, false);', '        g.text(font, "The main TastyFish Discord bot posts it.", rx, 192, GREEN, false);')
+          s = s.replace('        g.text(font, "The optional relay secret stays in the local config.", rx, 300, 0xFFFFB85A, false);', '        g.text(font, "Channel/forum IDs are local settings; the bot token stays on the server.", rx, 300, 0xFFFFB85A, false);')
+          s = s.replace('        g.text(font, "Target a Discord channel or forum by ID",', '        g.text(font, "Discord report settings",')
+          s = s.replace('        if (discordEndpointBox != null) config.discordReportEndpoint = discordEndpointBox.getValue().trim();\n', '')
+          s = s.replace('        if (guildWebsiteBox != null) config.guildLeaderboardWebsite = guildWebsiteBox.getValue().trim();\n', '')
+          marker = '        refreshSkysoft(false);\n        drawBackground(graphics);'
+          if 'resizeDiscordFields();' not in s:
+              s = s.replace(marker, '        refreshSkysoft(false);\n        resizeDiscordFields();\n        drawBackground(graphics);', 1)
+          if 'private void resizeDiscordFields()' not in s:
+              helper = '''\n    private void resizeDiscordFields() {\n        if (page != DISCORD) return;\n        int collapsed = 180;\n        int expanded = Math.min(520, Math.max(260, contentWidth() - 80));\n        if (discordChannelBox != null) discordChannelBox.setWidth(discordChannelBox.isFocused() ? expanded : collapsed);\n        if (discordForumBox != null) discordForumBox.setWidth(discordForumBox.isFocused() ? expanded : collapsed);\n    }\n'''
+              s = s.replace('    private void drawBackground(GuiGraphicsExtractor g) {', helper + '\n    private void drawBackground(GuiGraphicsExtractor g) {', 1)
+          p.write_text(s)
+          PY
+
+      - name: Validate source
+        run: |
+          ! grep -R 'discordEndpointBox\|guildWebsiteBox\|/tf guildhud' -n src/main/java || true
+          ! test -f src/main/java/com/epic60869/tastyfish/DiscordForumReporter.java
+
+      - name: Build
+        run: gradle build --no-daemon
+
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/fix-discord-gui.yml
+          git add src/main/java/com/epic60869/tastyfish/TastyFishScreen.java .github/workflows/fix-discord-gui.yml
+          git commit -m "Fix Discord GUI and hard-set website [auto-fix-discord-gui]" || exit 0
+          git push
