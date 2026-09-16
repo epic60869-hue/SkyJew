@@ -120,6 +120,24 @@ public final class FarmingHistory {
             fiveMinuteReport, fiveMinuteProfit, sessionProfit, completedFiveMinuteIntervals);
     }
 
+    /** Rebaseline SkySoft's cumulative counters without ending the TastyFish session. */
+    public synchronized void rebaseline(String sessionId, SkysoftSessionReader.Snapshot snapshot) {
+        if (snapshot == null || !snapshot.valid()) return;
+        long now = System.currentTimeMillis();
+        currentSessionId = sessionId;
+        lastWall = now;
+        lastActive = snapshot.activeMillis();
+        lastProfit = snapshot.profit();
+        lastActions = snapshot.actions();
+        lastItems.clear(); lastItems.putAll(snapshot.items());
+        lastPests.clear(); lastPests.putAll(snapshot.pests());
+        samples.clear();
+        samples.add(new Sample(now, snapshot.activeMillis(), snapshot.profit()));
+        lastReportedFiveMinuteInterval = (int) Math.max(0L, snapshot.activeMillis() / FIVE_MINUTES_MS);
+        streakStartWall = now;
+        sessionEnded = false;
+    }
+
     public synchronized Update finish(String reason, SkysoftSessionReader.Snapshot snapshot) {
         if (sessionEnded || snapshot == null || !snapshot.valid()) return Update.none();
         long now = System.currentTimeMillis();
