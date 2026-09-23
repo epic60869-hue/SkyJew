@@ -37,7 +37,7 @@ public final class TastyFishDiscordScreen extends Screen {
     private String error = "";
     private boolean loading;
 
-    private TastyFishDiscordScreen(Screen previousScreen) {
+    public TastyFishDiscordScreen(Screen previousScreen) {
         super(Component.literal("TastyFish Discord"));
         this.previousScreen = previousScreen;
         active = this;
@@ -61,7 +61,7 @@ public final class TastyFishDiscordScreen extends Screen {
         super.init();
         active = this;
         rebuildLayout();
-        messageBox = new EditBox(minecraft, panelX + 255, panelY + panelH - 43, panelW - 345, 28,
+        messageBox = new EditBox(font, panelX + 255, panelY + panelH - 43, panelW - 345, 28,
             Component.literal("Message"));
         messageBox.setMaxLength(1900);
         messageBox.setHint(Component.literal("Type a Discord message..."));
