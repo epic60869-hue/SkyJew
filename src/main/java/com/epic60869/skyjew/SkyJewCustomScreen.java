@@ -38,6 +38,7 @@ public final class SkyJewCustomScreen extends Screen {
     private boolean armorTab = true;
     private EquipmentSlot selectedSlot = EquipmentSlot.HEAD;
     private ItemStack target = ItemStack.EMPTY;
+    private boolean customItemSelected;
 
     private EditBox name;
     private EditBox dye;
@@ -103,7 +104,8 @@ public final class SkyJewCustomScreen extends Screen {
             return;
         }
         if (!armorTab) {
-            target = mc.player.getMainHandItem();
+            if (customItemSelected && !target.isEmpty()) return;
+            if (!customItemSelected) target = mc.player.getMainHandItem();
             return;
         }
         target = mc.player.getItemBySlot(selectedSlot);
@@ -124,6 +126,14 @@ public final class SkyJewCustomScreen extends Screen {
 
     private void addItemFields(int x, int y, int width) {
         int fieldWidth = Math.min(470, width - 20);
+
+        addRenderableWidget(Button.builder(Component.literal("Select Item"), b -> {
+            Minecraft mc = Minecraft.getInstance();
+            mc.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
+                target = stack;
+                customItemSelected = true;
+            }));
+        }).bounds(x + fieldWidth - 95, y + 22, 95, 22).build());
 
         name = field(x, y + 55, fieldWidth, currentName());
         addLabelButton(x, y + 22, "ITEM NAME");
