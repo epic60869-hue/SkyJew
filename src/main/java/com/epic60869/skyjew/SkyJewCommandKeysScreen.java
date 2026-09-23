@@ -32,7 +32,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
     private EditBox profileName;
     private EditBox profileMatch;
     private SkyJewCommandKeys.Mode mode = SkyJewCommandKeys.Mode.SEND;
-    private SkyJewCommandKeys.Keybind editing;
+    private SkyJewCommandKeys.Macro editing;
     private boolean pickingKey;
 
     public SkyJewCommandKeysScreen(Path configDir) {
@@ -60,8 +60,8 @@ public final class SkyJewCommandKeysScreen extends Screen {
         int right = listRight + 25;
         int fieldW = Math.max(250, Math.min(460, width - right - 30));
 
-        if (selected >= macros().size()) selected = Math.max(0, macros().size() - 1);
-        editing = macros().isEmpty() ? null : macros().get(selected);
+        if (selected >= keybinds().size()) selected = Math.max(0, keybinds().size() - 1);
+        editing = keybinds().isEmpty() ? null : keybinds().get(selected);
 
         addRenderableWidget(Button.builder(Component.literal("+ Add Keybind"), b -> addMacro())
                 .bounds(left, height - 46, 125, 24).build());
@@ -126,16 +126,16 @@ public final class SkyJewCommandKeysScreen extends Screen {
 
     private void addMacro() {
         SkyJewCommandKeys.Macro m = new SkyJewCommandKeys.Macro();
-        m.name = "Macro " + (macros().size() + 1);
-        macros().add(m);
-        selected = macros().size() - 1;
+        m.name = "Macro " + (keybinds().size() + 1);
+        keybinds().add(m);
+        selected = keybinds().size() - 1;
         SkyJewCommandKeys.save();
         init();
     }
 
     private void deleteMacro() {
-        if (selected >= 0 && selected < macros().size()) {
-            macros().remove(selected);
+        if (selected >= 0 && selected < keybinds().size()) {
+            keybinds().remove(selected);
             selected = Math.max(0, selected - 1);
             SkyJewCommandKeys.save();
             init();
@@ -211,8 +211,8 @@ public final class SkyJewCommandKeysScreen extends Screen {
 
         g.text(font, "KEYBINDS", left + 12, 68, CYAN, true);
         int y = 94;
-        for (int i = 0; i < macros().size(); i++) {
-            SkyJewCommandKeys.Macro m = macros().get(i);
+        for (int i = 0; i < keybinds().size(); i++) {
+            SkyJewCommandKeys.Macro m = keybinds().get(i);
             boolean sel = i == selected;
             g.fill(left + 8, y - 4, listRight - 8, y + 27,
                     sel ? 0xFF253957 : 0xFF182231);
@@ -251,7 +251,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
                 && event.y() >= 90
                 && event.y() < height - 60) {
             int index = (int) ((event.y() - 90) / 36);
-            if (index >= 0 && index < macros().size()) {
+            if (index >= 0 && index < keybinds().size()) {
                 saveEditing();
                 selected = index;
                 init();
