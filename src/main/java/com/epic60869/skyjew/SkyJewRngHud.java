@@ -44,14 +44,14 @@ public final class SkyJewRngHud {
 
     public static void setPosition(int x, int y) {
         if (config == null) return;
-        config.farmingRngX = Math.max(0, x);
-        config.farmingRngY = Math.max(0, y);
+        config.farming.rngX = Math.max(0, x);
+        config.farming.rngY = Math.max(0, y);
         save();
     }
 
     public static void setScale(float value) {
         if (config == null) return;
-        config.farmingRngScale = Math.max(0.5f, Math.min(3.0f,
+        config.farming.rngScale = Math.max(0.5f, Math.min(3.0f,
             Math.round(value * 10.0f) / 10.0f));
         save();
     }
