@@ -1,13 +1,12 @@
 package com.epic60869.skyjew;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.AbstractSoundInstance;
+import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.RandomSource;
 import net.minecraft.core.Registry;
 
 public final class SkyJewSounds {
@@ -20,7 +19,7 @@ public final class SkyJewSounds {
         SoundEvent.createVariableRangeEvent(FIRST_BOOT_ID)
     );
 
-    private static LoopingSoundInstance firstBootInstance;
+    private static FirstBootSoundInstance firstBootInstance;
 
     private SkyJewSounds() {}
 
@@ -32,8 +31,9 @@ public final class SkyJewSounds {
         Minecraft mc = Minecraft.getInstance();
         stopFirstBoot();
 
-        firstBootInstance = new LoopingSoundInstance(FIRST_BOOT_RATTED);
-        mc.getSoundManager().play(firstBootInstance);
+        FirstBootSoundInstance instance = new FirstBootSoundInstance();
+        firstBootInstance = instance;
+        mc.getSoundManager().play(instance);
     }
 
     public static void stopFirstBoot() {
@@ -44,9 +44,9 @@ public final class SkyJewSounds {
         }
     }
 
-    private static final class LoopingSoundInstance extends AbstractSoundInstance {
-        private LoopingSoundInstance(SoundEvent sound) {
-            super(sound, SoundSource.MASTER, RandomSource.create());
+    private static final class FirstBootSoundInstance extends AbstractTickableSoundInstance {
+        private FirstBootSoundInstance() {
+            super(FIRST_BOOT_RATTED, SoundSource.MASTER, SoundInstance.createUnseededRandom());
             this.looping = true;
             this.relative = true;
             this.volume = 1.0F;
@@ -54,6 +54,17 @@ public final class SkyJewSounds {
             this.x = 0.0D;
             this.y = 0.0D;
             this.z = 0.0D;
+        }
+
+        @Override
+        public void tick() {
+            // The sound manager handles the looping. Nothing needs updating
+            // because this sound is fixed to the listener.
+        }
+
+        @Override
+        public boolean canStartSilent() {
+            return true;
         }
 
         @Override
