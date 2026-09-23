@@ -84,6 +84,7 @@ public final class TastyFishNopoFeatures {
         loadJson();
         loadEmojis();
         registerChatEmojiProtection();
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
         registerOverflowPets();
         registerPetHud();
         initialized = true;
@@ -431,7 +432,7 @@ public final class TastyFishNopoFeatures {
         }
     }
 
-    private static Component replaceEmojis(Component message) {
+    public static Component replaceChatEmojis(Component message) {
         final Component[] result = {Component.empty()};
         message.visit((style, value) -> {
             if (value == null || value.isEmpty()) return Optional.empty();
@@ -446,7 +447,7 @@ public final class TastyFishNopoFeatures {
                 String name = matcher.group(1);
                 if (EMOJIS.contains(name)) {
                     MutableComponent emoji = Component.object(new AtlasSprite(
-                        Identifier.withDefaultNamespace("gui"),
+                        Identifier.fromNamespaceAndPath("minecraft", "gui"),
                         Identifier.fromNamespaceAndPath("tastyfish-mod", name)
                     ));
                     out.append(emoji.withStyle(style));
