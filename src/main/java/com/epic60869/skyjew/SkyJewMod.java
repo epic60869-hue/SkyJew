@@ -42,8 +42,8 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void registerCommands() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-            dispatcher.register(ClientCommands.literal("sj")
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            var command = ClientCommands.literal("sj")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
                 .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
@@ -60,13 +60,27 @@ public final class SkyJewMod implements ClientModInitializer {
                         .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
                 .then(ClientCommands.literal("discord")
                     .executes(context -> openDiscord()))
-                .then(ClientCommands.literal("dm")
-                    .then(ClientCommands.argument("user", StringArgumentType.word())
-                        .then(ClientCommands.argument("message", StringArgumentType.greedyString())
-                            .executes(context -> sendDiscordDm(
-                                StringArgumentType.getString(context, "user"),
-                                StringArgumentType.getString(context, "message"))))))
-                .then(customCommand())));
+                .then(customCommand()));
+
+            dispatcher.register(command);
+            dispatcher.register(ClientCommands.literal("skyjew")
+                .executes(context -> openMenu())
+                .then(ClientCommands.literal("notes").executes(context -> openNotes()))
+                .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
+                .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+                .then(ClientCommands.literal("calc")
+                    .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
+                        .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
+                .then(ClientCommands.literal("chat")
+                    .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                        .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
+                .then(ClientCommands.literal("nick")
+                    .executes(context -> openNick())
+                    .then(ClientCommands.argument("value", StringArgumentType.greedyString())
+                        .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
+                .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
+                .then(customCommand()));
+        });
     }
 
     private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> customCommand() {
@@ -240,6 +254,7 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewCustom.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
         SkyJewMouseLock.tick(minecraft);
+        SkyJewMouseReset.tick(minecraft);
         SkyJewGlobalChat.tick();
         SkyJewExperimentHelper.tick(minecraft);
         SkyJewFoxy.tick(minecraft);
