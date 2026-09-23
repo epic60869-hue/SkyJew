@@ -11,7 +11,7 @@ import net.minecraft.core.Registry;
 
 public final class SkyJewSounds {
     private static final Identifier FIRST_BOOT_ID =
-        Identifier.fromNamespaceAndPath("skyjew-mod", "first_boot_ratted");
+        Identifier.fromNamespaceAndPath("skyjew", "first_boot_ratted");
 
     public static final SoundEvent FIRST_BOOT_RATTED = Registry.register(
         BuiltInRegistries.SOUND_EVENT,
