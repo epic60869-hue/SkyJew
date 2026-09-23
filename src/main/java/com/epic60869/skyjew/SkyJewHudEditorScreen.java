@@ -32,8 +32,8 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         int rx = SkyJewRngHud.x();
         int ry = SkyJewRngHud.y();
-        SkyJewRngHud.renderPreview(g, rx, ry);
         g.fill(rx - 5, ry - 5, rx + SkyJewRngHud.width() + 5, ry + SkyJewRngHud.height() + 5, 0x22000000);
+        SkyJewRngHud.renderPreview(g, rx, ry);
         g.text(font, Component.literal("Farming RNG"), rx, ry - 16, 0xFFFFFFFF, true);
 
         SkyJewConfig config = SkyJewConfig.current();
