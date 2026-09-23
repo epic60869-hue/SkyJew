@@ -105,7 +105,7 @@ public final class TastyFishFirstBootScreen extends Screen {
 
             config.firstBootAcknowledged = true;
             TastyFishConfig.saveCurrent(config);
-            minecraft.setScreen(previousScreen);
+            minecraft.gui.setScreen(previousScreen);
             return true;
         }
 
