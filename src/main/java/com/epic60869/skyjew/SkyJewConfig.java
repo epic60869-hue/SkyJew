@@ -205,6 +205,10 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorBoolean
         public boolean enabled = false;
 
+        @ConfigOption(name = "Open Nickname Menu", desc = "Open the dedicated /sj nick editor.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable openMenu = () -> openNick();
+
         @Expose
         @ConfigOption(name = "Name", desc = "The nickname shown by SkyJew. Maximum 32 characters.")
         @ConfigEditorText
@@ -252,6 +256,11 @@ public final class SkyJewConfig extends Config {
     private static void openRngEditor() {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> mc.gui.setScreen(new SkyJewRngHudScreen(mc.gui.screen())));
+    }
+
+    private static void openNick() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewNickScreen(mc.gui.screen())));
     }
 
     private static void openDiscord() {
