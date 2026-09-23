@@ -48,6 +48,9 @@ public final class SkyJewMod implements ClientModInitializer {
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
                 .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
                 .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+                .then(ClientCommands.literal("calc")
+                    .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
+                        .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
                 .then(ClientCommands.literal("chat")
                     .then(ClientCommands.argument("message", StringArgumentType.greedyString())
                         .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
@@ -179,6 +182,27 @@ public final class SkyJewMod implements ClientModInitializer {
 
     private int sendDiscordDm(String user, String message) {
         SkyJewGlobalChat.sendDiscordDm(user, message);
+        return 1;
+    }
+
+    private int calculate(String expression) {
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            String result = SkyJewCalculator.calculate(expression);
+            if (mc.player != null) {
+                mc.player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal("§6[SkyJew] §f" + expression + " §7= §a" + result),
+                    false
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            if (mc.player != null) {
+                mc.player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal("§c[SkyJew] Calc error: §f" + e.getMessage()),
+                    false
+                );
+            }
+        }
         return 1;
     }
 
