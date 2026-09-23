@@ -55,7 +55,7 @@ public final class SkyJewItemSelectScreen extends Screen {
         String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
         for (Item item : BuiltInRegistries.ITEM) {
             if (query.isEmpty()
-                    || item.getDescription().getString().toLowerCase(Locale.ROOT).contains(query)) {
+                    || new ItemStack(item).getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
                 items.add(item);
             }
         }
@@ -79,7 +79,7 @@ public final class SkyJewItemSelectScreen extends Screen {
         String query = value.trim().toLowerCase(Locale.ROOT);
         for (Item item : BuiltInRegistries.ITEM) {
             if (query.isEmpty()
-                    || item.getDescription().getString().toLowerCase(Locale.ROOT).contains(query)) {
+                    || new ItemStack(item).getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
                 items.add(item);
             }
         }
