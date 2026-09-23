@@ -7,9 +7,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 
+import java.awt.Desktop;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,11 +20,7 @@ public final class SkyJewDiscordScreen extends Screen {
     private final Screen previousScreen;
     private EditBox messageBox;
 
-    private int panelX;
-    private int panelY;
-    private int panelW;
-    private int panelH;
-
+    private int panelX, panelY, panelW, panelH;
     private String view = "home";
     private String selectedGuildId = "";
     private String selectedGuildName = "";
@@ -36,9 +33,21 @@ public final class SkyJewDiscordScreen extends Screen {
     private List<MessageRow> messages = new ArrayList<>();
     private String error = "";
     private boolean loading;
+    private boolean linked = false;
+    private boolean linkKnown = false;
+
+    private static final int BG = 0xFF1E1F22;
+    private static final int SERVER_BAR = 0xFF111214;
+    private static final int SIDEBAR = 0xFF2B2D31;
+    private static final int HEADER = 0xFF313338;
+    private static final int CHAT = 0xFF313338;
+    private static final int HOVER = 0xFF3F4147;
+    private static final int ACCENT = 0xFF5865F2;
+    private static final int TEXT = 0xFFF2F3F5;
+    private static final int MUTED = 0xFFB5BAC1;
 
     public SkyJewDiscordScreen(Screen previousScreen) {
-        super(Component.literal("SkyJew Discord"));
+        super(Component.literal("Discord"));
         this.previousScreen = previousScreen;
         active = this;
     }
@@ -46,12 +55,11 @@ public final class SkyJewDiscordScreen extends Screen {
     public static void handleResult(String requestId, boolean ok, JsonObject result, String detail) {
         SkyJewDiscordScreen screen = active;
         if (screen == null || screen.minecraft == null) return;
+        screen.loading = false;
         if (!ok) {
-            screen.loading = false;
             screen.error = detail.isBlank() ? "Discord request failed." : detail;
             return;
         }
-        screen.loading = false;
         screen.error = "";
         screen.applyResult(result);
     }
@@ -61,17 +69,19 @@ public final class SkyJewDiscordScreen extends Screen {
         super.init();
         active = this;
         rebuildLayout();
-        messageBox = new EditBox(font, panelX + 255, panelY + panelH - 43, panelW - 345, 28,
+
+        messageBox = new EditBox(font, panelX + 410, panelY + panelH - 52, panelW - 465, 32,
             Component.literal("Message"));
         messageBox.setMaxLength(1900);
-        messageBox.setHint(Component.literal("Type a Discord message..."));
+        messageBox.setHint(Component.literal("Message"));
         addRenderableWidget(messageBox);
+
         requestHome();
     }
 
     private void rebuildLayout() {
-        panelW = Math.min(1120, width - 32);
-        panelH = Math.min(650, height - 32);
+        panelW = Math.min(1180, width - 20);
+        panelH = Math.min(680, height - 20);
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
     }
@@ -79,8 +89,7 @@ public final class SkyJewDiscordScreen extends Screen {
     private void requestHome() {
         view = "home";
         loading = true;
-        JsonObject data = new JsonObject();
-        SkyJewGlobalChat.requestDiscord("home", data);
+        SkyJewGlobalChat.requestDiscord("home", new JsonObject());
     }
 
     private void requestChannels(String guildId, String guildName) {
@@ -126,11 +135,9 @@ public final class SkyJewDiscordScreen extends Screen {
 
         if ("dm".equals(view) && !selectedDmUserId.isBlank()) {
             data.addProperty("userId", selectedDmUserId);
-            loading = true;
             SkyJewGlobalChat.requestDiscord("sendDm", data);
         } else if ("messages".equals(view) && !selectedChannelId.isBlank()) {
             data.addProperty("channelId", selectedChannelId);
-            loading = true;
             SkyJewGlobalChat.requestDiscord("send", data);
         } else {
             return;
@@ -143,27 +150,24 @@ public final class SkyJewDiscordScreen extends Screen {
         String action = result.has("action") ? result.get("action").getAsString() : "";
 
         if ("home".equals(action)) {
+            if (result.has("linked")) {
+                linked = result.get("linked").getAsBoolean();
+                linkKnown = true;
+            }
+
             entries = new ArrayList<>();
             if (result.has("guilds") && result.get("guilds").isJsonArray()) {
                 JsonArray guilds = result.getAsJsonArray("guilds");
                 for (int i = 0; i < guilds.size(); i++) {
                     JsonObject g = guilds.get(i).getAsJsonObject();
-                    entries.add(new Entry(
-                        "guild",
-                        g.get("id").getAsString(),
-                        g.get("name").getAsString()
-                    ));
+                    entries.add(new Entry("guild", g.get("id").getAsString(), g.get("name").getAsString()));
                 }
             }
             if (result.has("dms") && result.get("dms").isJsonArray()) {
                 JsonArray dms = result.getAsJsonArray("dms");
                 for (int i = 0; i < dms.size(); i++) {
                     JsonObject d = dms.get(i).getAsJsonObject();
-                    entries.add(new Entry(
-                        "dm",
-                        d.get("id").getAsString(),
-                        d.get("name").getAsString()
-                    ));
+                    entries.add(new Entry("dm", d.get("id").getAsString(), d.get("name").getAsString()));
                 }
             }
             messages = new ArrayList<>();
@@ -179,11 +183,7 @@ public final class SkyJewDiscordScreen extends Screen {
                 JsonArray channels = result.getAsJsonArray("channels");
                 for (int i = 0; i < channels.size(); i++) {
                     JsonObject ch = channels.get(i).getAsJsonObject();
-                    entries.add(new Entry(
-                        "channel",
-                        ch.get("id").getAsString(),
-                        ch.get("name").getAsString()
-                    ));
+                    entries.add(new Entry("channel", ch.get("id").getAsString(), ch.get("name").getAsString()));
                 }
             }
             return;
@@ -214,7 +214,7 @@ public final class SkyJewDiscordScreen extends Screen {
             if (result.has("message")) {
                 JsonObject m = result.getAsJsonObject("message");
                 messages.add(new MessageRow(
-                    m.has("author") ? m.get("author").getAsString() : "SkyJew",
+                    m.has("author") ? m.get("author").getAsString() : "You",
                     m.has("content") ? m.get("content").getAsString() : "",
                     m.has("timestamp") ? m.get("timestamp").getAsString() : ""
                 ));
@@ -225,99 +225,167 @@ public final class SkyJewDiscordScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         rebuildLayout();
+        graphics.fill(0, 0, width, height, 0xCC000000);
+        graphics.fill(panelX, panelY, panelX + panelW, panelY + panelH, BG);
 
-        graphics.fill(0, 0, width, height, 0xCC050509);
+        int serverW = 72;
+        int sidebarW = 255;
+        int contentX = panelX + serverW + sidebarW;
 
-        graphics.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF202225);
-        graphics.fill(panelX, panelY, panelX + 230, panelY + panelH, 0xFF18191C);
-        graphics.fill(panelX + 230, panelY, panelX + panelW, panelY + 48, 0xFF2B2D31);
+        graphics.fill(panelX, panelY, panelX + serverW, panelY + panelH, SERVER_BAR);
+        graphics.fill(panelX + serverW, panelY, panelX + serverW + sidebarW, panelY + panelH, SIDEBAR);
+        graphics.fill(contentX, panelY, panelX + panelW, panelY + panelH, CHAT);
+        graphics.fill(contentX, panelY, panelX + panelW, panelY + 48, HEADER);
+
+        drawServerRail(graphics, mouseX, mouseY);
+        drawSidebar(graphics, mouseX, mouseY);
+        drawHeader(graphics);
+        drawContent(graphics, mouseX, mouseY);
 
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        graphics.text(font, Component.literal("Discord"), panelX + 18, panelY + 17, 0xFFFFFFFF, true);
-        graphics.text(font, Component.literal(
-            view.equals("home") ? "Servers & DMs" :
-            view.equals("channels") ? selectedGuildName :
-            view.equals("dm") ? selectedDmName : "#" + selectedChannelName
-        ), panelX + 255, panelY + 17, 0xFFFFFFFF, true);
-
-        drawButton(graphics, panelX + panelW - 86, panelY + 10, 70, 28, "Close",
-            mouseX, mouseY);
-        if (!view.equals("home")) {
-            drawButton(graphics, panelX + 238, panelY + 10, 70, 28, "Back",
-                mouseX, mouseY);
-        }
-
-        if (view.equals("messages") || view.equals("dm")) {
-            drawMessages(graphics);
-            drawButton(graphics, panelX + panelW - 82, panelY + panelH - 43, 70, 28, "Send",
-                mouseX, mouseY);
-        } else {
-            drawEntries(graphics, mouseX, mouseY);
-        }
-
         if (loading) {
-            graphics.text(font, Component.literal("Loading Discord..."),
-                panelX + 250, panelY + 58, 0xFFAAAAAA, false);
+            graphics.text(font, Component.literal("Loading..."), contentX + 18, panelY + 58, MUTED, false);
         }
         if (!error.isBlank()) {
-            graphics.text(font, Component.literal(error),
-                panelX + 250, panelY + panelH - 62, 0xFFFF5555, false);
+            graphics.text(font, Component.literal(error), contentX + 18, panelY + panelH - 24, 0xFFFF6B6B, false);
         }
     }
 
-    private void drawEntries(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        int x = panelX + 12;
-        int y = panelY + 58;
-        int max = Math.min(entries.size(), (panelH - 75) / 30);
+    private void drawServerRail(GuiGraphicsExtractor g, int mx, int my) {
+        int x = panelX + 11;
+        drawCircleLike(g, x + 25, panelY + 34, 25, ACCENT);
+        g.text(font, Component.literal("D"), x + 19, panelY + 27, 0xFFFFFFFF, true);
 
-        for (int i = 0; i < max; i++) {
-            Entry entry = entries.get(i);
-            boolean hover = mouseX >= x && mouseX < panelX + 218
-                && mouseY >= y + i * 30 && mouseY < y + i * 30 + 26;
-
-            graphics.fill(x, y + i * 30, panelX + 218, y + i * 30 + 26,
-                hover ? 0xFF3A3D43 : 0xFF24262A);
-
-            String prefix = "guild".equals(entry.type) ? "◆ " :
-                "dm".equals(entry.type) ? "DM  " : "# ";
-            graphics.text(font, Component.literal(prefix + entry.name),
-                x + 8, y + i * 30 + 8, 0xFFE5E7EB, false);
+        int y = panelY + 78;
+        int shown = 0;
+        for (Entry e : entries) {
+            if (!"guild".equals(e.type) || shown >= 12) continue;
+            int cy = y + shown * 52;
+            boolean hover = mx >= x && mx < x + 50 && my >= cy - 2 && my < cy + 48;
+            drawCircleLike(g, x + 25, cy + 23, 23, hover ? 0xFF5865F2 : 0xFF36393F);
+            String letter = e.name.isBlank() ? "?" : e.name.substring(0, 1).toUpperCase();
+            int tw = font.width(Component.literal(letter));
+            g.text(font, Component.literal(letter), x + 25 - tw / 2, cy + 16, TEXT, true);
+            shown++;
         }
 
-        if (entries.isEmpty() && !loading) {
-            graphics.text(font, Component.literal("No Discord entries available."),
-                x, y, 0xFFAAAAAA, false);
+        drawCircleLike(g, x + 25, panelY + panelH - 34, 23, 0xFF36393F);
+        g.text(font, Component.literal("+"), x + 20, panelY + panelH - 41, 0xFF43B581, true);
+    }
+
+    private void drawSidebar(GuiGraphicsExtractor g, int mx, int my) {
+        int x = panelX + 72;
+        g.text(font, Component.literal(selectedGuildName.isBlank() ? "Discord" : selectedGuildName),
+            x + 16, panelY + 17, TEXT, true);
+        g.fill(x, panelY + 47, x + 255, panelY + 48, 0xFF202225);
+
+        if (view.equals("home")) {
+            g.text(font, Component.literal("DIRECT MESSAGES"), x + 16, panelY + 67, MUTED, true);
+            int y = panelY + 88;
+            int i = 0;
+            for (Entry e : entries) {
+                if (!"dm".equals(e.type)) continue;
+                drawSidebarEntry(g, e, x + 10, y + i * 34, 235, mx, my);
+                i++;
+            }
+            if (i == 0 && linkKnown && !linked) {
+                g.text(font, Component.literal("Connect Discord to continue."), x + 16, panelY + 94, MUTED, false);
+            }
+            return;
+        }
+
+        g.text(font, Component.literal("TEXT CHANNELS"), x + 16, panelY + 67, MUTED, true);
+        int y = panelY + 88;
+        int i = 0;
+        for (Entry e : entries) {
+            if (!"channel".equals(e.type)) continue;
+            drawSidebarEntry(g, e, x + 10, y + i * 32, 235, mx, my);
+            i++;
+        }
+    }
+
+    private void drawSidebarEntry(GuiGraphicsExtractor g, Entry e, int x, int y, int w, int mx, int my) {
+        boolean selected = e.id.equals(selectedChannelId) || e.id.equals(selectedDmUserId);
+        boolean hover = mx >= x && mx < x + w && my >= y && my < y + 28;
+        if (selected || hover) g.fill(x, y, x + w, y + 28, selected ? 0xFF404249 : HOVER);
+        String prefix = "channel".equals(e.type) ? "# " : "";
+        g.text(font, Component.literal(prefix + e.name), x + 10, y + 8, selected ? TEXT : MUTED, false);
+    }
+
+    private void drawHeader(GuiGraphicsExtractor g) {
+        int x = panelX + 327;
+        String title = view.equals("home") ? "Friends / DMs" :
+            view.equals("channels") ? selectedGuildName :
+            view.equals("dm") ? selectedDmName : "# " + selectedChannelName;
+        g.text(font, Component.literal(title), x + 18, panelY + 17, TEXT, true);
+
+        if (!view.equals("home")) {
+            g.text(font, Component.literal("←"), x + 2, panelY + 16, MUTED, true);
+        }
+
+        drawSmallButton(g, panelX + panelW - 78, panelY + 10, 58, 28, "X");
+    }
+
+    private void drawContent(GuiGraphicsExtractor g, int mx, int my) {
+        int x = panelX + 327;
+
+        if (!linkKnown || !linked) {
+            drawLinkScreen(g, x, my);
+            return;
         }
 
         if (view.equals("home")) {
-            graphics.text(font, Component.literal("Click a server to browse its channels."),
-                panelX + 250, panelY + 75, 0xFFAAAAAA, false);
+            g.text(font, Component.literal("Welcome to Discord"), x + 24, panelY + 86, TEXT, true);
+            g.text(font, Component.literal("Select a server or direct message from the left."),
+                x + 24, panelY + 108, MUTED, false);
+            return;
+        }
+
+        drawMessages(g, x);
+    }
+
+    private void drawLinkScreen(GuiGraphicsExtractor g, int x, int my) {
+        int centerX = x + (panelW - 327) / 2;
+        int y = panelY + 155;
+
+        String title = linkKnown && !linked ? "Connect your Discord" : "Checking Discord connection...";
+        int tw = font.width(Component.literal(title));
+        g.text(font, Component.literal(title), centerX - tw / 2, y, TEXT, true);
+
+        if (linkKnown && !linked) {
+            String sub = "Link your account to use Discord inside Minecraft.";
+            int sw = font.width(Component.literal(sub));
+            g.text(font, Component.literal(sub), centerX - sw / 2, y + 25, MUTED, false);
+            drawButton(g, centerX - 105, y + 60, 210, 36, "Link Discord", 0, 0);
+            g.text(font, Component.literal("Your Discord password is entered only on Discord."),
+                centerX - 155, y + 111, MUTED, false);
         }
     }
 
-    private void drawMessages(GuiGraphicsExtractor graphics) {
-        int x = panelX + 250;
-        int y = panelY + 60;
-        int bottom = panelY + panelH - 58;
+    private void drawMessages(GuiGraphicsExtractor g, int x) {
+        int y = panelY + 68;
+        int bottom = panelY + panelH - 68;
         int lineY = bottom;
 
         for (int i = messages.size() - 1; i >= 0 && lineY > y; i--) {
             MessageRow row = messages.get(i);
-            String text = row.author + ": " + row.content;
-            List<String> wrapped = wrap(text, Math.max(20, (panelW - 275) / 7));
+            String author = row.author;
+            g.text(font, Component.literal(author), x + 20, lineY - 15, 0xFFFFFFFF, true);
+
+            List<String> wrapped = wrap(row.content, Math.max(24, (panelW - 370) / 7));
             for (int j = wrapped.size() - 1; j >= 0 && lineY > y; j--) {
-                graphics.text(font, Component.literal(wrapped.get(j)),
-                    x, lineY, 0xFFE5E7EB, false);
-                lineY -= 11;
+                g.text(font, Component.literal(wrapped.get(j)), x + 20, lineY + j * 11,
+                    TEXT, false);
             }
-            lineY -= 5;
+            lineY -= Math.max(28, wrapped.size() * 11 + 12);
         }
 
         if (messages.isEmpty() && !loading) {
-            graphics.text(font, Component.literal("No messages."),
-                x, y, 0xFFAAAAAA, false);
+            g.text(font, Component.literal("No messages yet."), x + 20, y + 20, MUTED, false);
         }
+
+        g.fill(x + 15, panelY + panelH - 60, panelX + panelW - 15, panelY + panelH - 12, 0xFF383A40);
     }
 
     private List<String> wrap(String text, int chars) {
@@ -333,12 +401,21 @@ public final class SkyJewDiscordScreen extends Screen {
         return result;
     }
 
-    private void drawButton(GuiGraphicsExtractor graphics, int x, int y, int w, int h,
-                            String label, int mouseX, int mouseY) {
-        boolean hover = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
-        graphics.fill(x, y, x + w, y + h, hover ? 0xFF5865F2 : 0xFF40444B);
+    private void drawButton(GuiGraphicsExtractor g, int x, int y, int w, int h, String label, int mx, int my) {
+        boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
+        g.fill(x, y, x + w, y + h, hover ? 0xFF4752C4 : ACCENT);
         int tw = font.width(Component.literal(label));
-        graphics.text(font, Component.literal(label), x + (w - tw) / 2, y + 9, 0xFFFFFFFF, true);
+        g.text(font, Component.literal(label), x + (w - tw) / 2, y + (h - 9) / 2, 0xFFFFFFFF, true);
+    }
+
+    private void drawSmallButton(GuiGraphicsExtractor g, int x, int y, int w, int h, String label) {
+        g.fill(x, y, x + w, y + h, 0xFF404249);
+        int tw = font.width(Component.literal(label));
+        g.text(font, Component.literal(label), x + (w - tw) / 2, y + 9, MUTED, true);
+    }
+
+    private void drawCircleLike(GuiGraphicsExtractor g, int cx, int cy, int radius, int color) {
+        g.fill(cx - radius, cy - radius, cx + radius, cy + radius, color);
     }
 
     @Override
@@ -348,52 +425,92 @@ public final class SkyJewDiscordScreen extends Screen {
         int mx = (int) event.x();
         int my = (int) event.y();
 
-        if (mx >= panelX + panelW - 86 && mx < panelX + panelW - 16
+        if (mx >= panelX + panelW - 78 && mx < panelX + panelW - 20
             && my >= panelY + 10 && my < panelY + 38) {
             minecraft.gui.setScreen(previousScreen);
             active = null;
             return true;
         }
 
-        if (!view.equals("home") && mx >= panelX + 238 && mx < panelX + 308
-            && my >= panelY + 10 && my < panelY + 38) {
-            if (view.equals("messages") || view.equals("dm")) {
-                requestChannels(selectedGuildId, selectedGuildName);
-            } else {
-                requestHome();
+        int contentX = panelX + 327;
+
+        if (!linkKnown || !linked) {
+            int centerX = contentX + (panelW - 327) / 2;
+            int y = panelY + 215;
+            if (mx >= centerX - 105 && mx < centerX + 105 && my >= y && my < y + 36) {
+                openDiscordLink();
+                return true;
             }
+            return super.mouseClicked(event, doubleClick);
+        }
+
+        if (!view.equals("home") && mx >= contentX && mx < contentX + 42
+            && my >= panelY + 8 && my < panelY + 42) {
+            requestHome();
             return true;
         }
 
         if (view.equals("home")) {
-            int x = panelX + 12;
-            int y = panelY + 58;
-            for (int i = 0; i < entries.size() && i < (panelH - 75) / 30; i++) {
-                if (mx >= x && mx < panelX + 218 && my >= y + i * 30 && my < y + i * 30 + 26) {
-                    Entry entry = entries.get(i);
-                    if ("guild".equals(entry.type)) requestChannels(entry.id, entry.name);
-                    else requestDm(entry.id, entry.name);
+            int x = panelX + 72;
+            int y = panelY + 88;
+            int i = 0;
+            for (Entry e : entries) {
+                if (!"dm".equals(e.type)) continue;
+                if (mx >= x + 10 && mx < x + 245 && my >= y + i * 34 && my < y + i * 34 + 28) {
+                    requestDm(e.id, e.name);
                     return true;
                 }
+                i++;
+            }
+
+            int railX = panelX + 11;
+            int railY = panelY + 78;
+            int guildIndex = 0;
+            for (Entry e : entries) {
+                if (!"guild".equals(e.type)) continue;
+                int cy = railY + guildIndex * 52;
+                if (mx >= railX && mx < railX + 50 && my >= cy - 2 && my < cy + 48) {
+                    requestChannels(e.id, e.name);
+                    return true;
+                }
+                guildIndex++;
             }
         } else if (view.equals("channels")) {
-            int x = panelX + 12;
-            int y = panelY + 58;
-            for (int i = 0; i < entries.size() && i < (panelH - 75) / 30; i++) {
-                if (mx >= x && mx < panelX + 218 && my >= y + i * 30 && my < y + i * 30 + 26) {
-                    Entry entry = entries.get(i);
-                    requestMessages(entry.id, entry.name);
+            int x = panelX + 82;
+            int y = panelY + 88;
+            int i = 0;
+            for (Entry e : entries) {
+                if (!"channel".equals(e.type)) continue;
+                if (mx >= x && mx < x + 235 && my >= y + i * 32 && my < y + i * 32 + 28) {
+                    requestMessages(e.id, e.name);
                     return true;
                 }
+                i++;
             }
-        } else if ((view.equals("messages") || view.equals("dm"))
-            && mx >= panelX + panelW - 82 && mx < panelX + panelW - 12
-            && my >= panelY + panelH - 43 && my < panelY + panelH - 15) {
+        }
+
+        if ((view.equals("messages") || view.equals("dm"))
+            && mx >= panelX + panelW - 86 && mx < panelX + panelW - 16
+            && my >= panelY + panelH - 55 && my < panelY + panelH - 15) {
             sendMessage();
             return true;
         }
 
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private void openDiscordLink() {
+        try {
+            String uuid = Minecraft.getInstance().getUser().getUuid().toString();
+            String url = "https://tastyfish.org/mod-api/discord/link?minecraft=" + uuid;
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(URI.create(url));
+            } else {
+                error = "Open https://tastyfish.org/mod-api/discord/link in your browser.";
+            }
+        } catch (Exception e) {
+            error = "Could not open your browser.";
+        }
     }
 
     @Override
