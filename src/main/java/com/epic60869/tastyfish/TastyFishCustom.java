@@ -164,9 +164,10 @@ public final class TastyFishCustom {
         try {
             if (value.trim().startsWith("{")) {
                 try {
-                    return net.minecraft.network.chat.ComponentSerialization.CODEC
+                    Component parsed = net.minecraft.network.chat.ComponentSerialization.CODEC
                             .parse(com.mojang.serialization.JsonOps.INSTANCE, JsonParser.parseString(value))
                             .result().orElse(null);
+                    if (parsed != null) return parsed;
                 } catch (Throwable ignored) {}
             }
         } catch (Throwable ignored) {}
