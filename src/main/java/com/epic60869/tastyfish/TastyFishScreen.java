@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 
 import java.nio.file.Path;
 
-/** Main TastyFish utility menu. */
 public final class TastyFishScreen extends Screen {
     private static final int BG = 0xFF070A10;
     private static final int PANEL = 0xFF101722;
@@ -18,6 +17,8 @@ public final class TastyFishScreen extends Screen {
     private static final int CYAN = 0xFF58D8FF;
     private static final int PURPLE = 0xFF9A6CFF;
     private static final int YELLOW = 0xFFFFD34D;
+    private static final int GREEN = 0xFF55E68A;
+    private static final int RED = 0xFFFF667A;
 
     private final TastyFishConfig config;
 
@@ -36,47 +37,66 @@ public final class TastyFishScreen extends Screen {
         g.fill(0, 0, width, height, BG);
         g.fill(0, 0, width, 3, PURPLE);
 
-        int panelWidth = Math.min(520, width - 40);
+        int panelWidth = Math.min(620, width - 40);
+        int panelHeight = Math.min(560, height - 40);
         int left = (width - panelWidth) / 2;
-        int top = Math.max(30, (height - 400) / 2);
+        int top = Math.max(20, (height - panelHeight) / 2);
 
-        panel(g, left, top, left + panelWidth, top + 400);
+        panel(g, left, top, left + panelWidth, top + panelHeight);
 
-        g.text(font, "✦", left + 24, top + 22, CYAN, true);
-        g.text(font, "TastyFish", left + 50, top + 18, YELLOW, true);
-        g.text(font, "Simple SkyBlock tools", left + 50, top + 35, MUTED, false);
+        g.text(font, "✦", left + 24, top + 18, CYAN, true);
+        g.text(font, "TastyFish", left + 50, top + 14, YELLOW, true);
+        g.text(font, "SkyBlock utilities", left + 50, top + 31, MUTED, false);
 
-        g.text(font, "Menu", left + 24, top + 78, TEXT, true);
-        g.text(font, "Notes, storage search and Command Keys.", left + 24, top + 101, MUTED, false);
+        int x = left + 24;
+        int right = left + panelWidth - 24;
+        int y = top + 58;
 
-        int buttonLeft = left + 24;
-        int buttonRight = left + panelWidth - 24;
-        int buttonTop = top + 128;
+        g.text(font, "General", x, y, TEXT, true);
+        drawToggle(g, x, right, y + 20, "TastyFish enabled", config.enabled, mouseX, mouseY, CYAN);
 
-        drawButton(g, buttonLeft, buttonRight, buttonTop, "✎", "Notes", "/tf notes",
-                mouseX, mouseY, CYAN);
-        drawButton(g, buttonLeft, buttonRight, buttonTop + 50, "⌕", "Storage Search",
-                "/tf search  •  Ctrl+F", mouseX, mouseY, CYAN);
-        drawButton(g, buttonLeft, buttonRight, buttonTop + 100, "⌨", "Command Keys",
-                "/tf keys", mouseX, mouseY, PURPLE);
-        drawButton(g, buttonLeft, buttonRight, buttonTop + 150, "✦", "Custom",
-                "/tf custom", mouseX, mouseY, PURPLE);
+        g.text(font, "Farming RNG", x, y + 75, TEXT, true);
+        drawToggle(g, x, right, y + 95, "RNG HUD enabled", config.farmingRngEnabled, mouseX, mouseY, CYAN);
+        drawToggle(g, x, right, y + 140, "RNG HUD background", config.farmingRngBackground, mouseX, mouseY, CYAN);
+        drawValue(g, x, right, y + 185, "RNG HUD scale", String.format("%.1fx", config.farmingRngScale), mouseX, mouseY, CYAN);
 
-        g.text(font, "Storage Search learns pages as you open them.", left + 24, top + 379, MUTED, false);
-        g.text(font, "ESC to close", left + 24, top + 329, MUTED, false);
+        g.text(font, "Mouse Lock", x, y + 250, TEXT, true);
+        drawToggle(g, x, right, y + 270, "Mouse Lock enabled", config.mouseLockEnabled, mouseX, mouseY, PURPLE);
+        drawToggle(g, x, right, y + 315, "Ground only", config.mouseLockGroundOnly, mouseX, mouseY, PURPLE);
 
+        g.text(font, "RNG HUD position", x, y + 370, TEXT, true);
+        drawPosition(g, x, right, y + 390, "X", config.farmingRngX, mouseX, mouseY, CYAN);
+        drawPosition(g, x, right, y + 435, "Y", config.farmingRngY, mouseX, mouseY, CYAN);
+
+        g.text(font, "Click a setting to change it. ESC to close.", x, top + panelHeight - 24, MUTED, false);
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
-    private void drawButton(GuiGraphicsExtractor g, int left, int right, int top,
-                            String icon, String title, String subtitle,
-                            int mouseX, int mouseY, int outlineColor) {
-        boolean hover = mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= top + 42;
-        g.fill(left, top, right, top + 42, hover ? 0xFF5B3FC0 : 0xFF5136A8);
-        outline(g, left, top, right, top + 42, outlineColor);
-        g.text(font, icon, left + 18, top + 12, TEXT, true);
-        g.text(font, title, left + 45, top + 8, TEXT, true);
-        g.text(font, subtitle, left + 45, top + 24, MUTED, false);
+    private void drawToggle(GuiGraphicsExtractor g, int left, int right, int top, String title,
+                            boolean value, int mouseX, int mouseY, int color) {
+        boolean hover = inside(mouseX, mouseY, left, right, top);
+        g.fill(left, top, right, top + 36, hover ? 0xFF1B2636 : 0xFF151E2B);
+        outline(g, left, top, right, top + 36, color);
+        g.text(font, title, left + 14, top + 10, TEXT, false);
+        g.text(font, value ? "ON" : "OFF", right - 48, top + 10, value ? GREEN : RED, true);
+    }
+
+    private void drawValue(GuiGraphicsExtractor g, int left, int right, int top, String title,
+                           String value, int mouseX, int mouseY, int color) {
+        boolean hover = inside(mouseX, mouseY, left, right, top);
+        g.fill(left, top, right, top + 36, hover ? 0xFF1B2636 : 0xFF151E2B);
+        outline(g, left, top, right, top + 36, color);
+        g.text(font, title + "  (click to cycle)", left + 14, top + 10, TEXT, false);
+        g.text(font, value, right - 48, top + 10, CYAN, true);
+    }
+
+    private void drawPosition(GuiGraphicsExtractor g, int left, int right, int top, String axis,
+                              int value, int mouseX, int mouseY, int color) {
+        boolean hover = inside(mouseX, mouseY, left, right, top);
+        g.fill(left, top, right, top + 36, hover ? 0xFF1B2636 : 0xFF151E2B);
+        outline(g, left, top, right, top + 36, color);
+        g.text(font, "RNG HUD " + axis + "  (click: +8 / shift: -8)", left + 14, top + 10, TEXT, false);
+        g.text(font, Integer.toString(value), right - 42, top + 10, CYAN, true);
     }
 
     private void panel(GuiGraphicsExtractor g, int left, int top, int right, int bottom) {
@@ -94,38 +114,51 @@ public final class TastyFishScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0) {
-            int panelWidth = Math.min(520, width - 40);
-            int left = (width - panelWidth) / 2;
-            int top = Math.max(30, (height - 350) / 2);
-            int buttonLeft = left + 24;
-            int buttonRight = left + panelWidth - 24;
-            int buttonTop = top + 128;
+        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
 
-            if (inside(event, buttonLeft, buttonRight, buttonTop)) {
-                Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-                Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir));
-                return true;
-            }
-            if (inside(event, buttonLeft, buttonRight, buttonTop + 50)) {
-                TastyFishStorageSearch.open(Minecraft.getInstance(), "");
-                return true;
-            }
-            if (inside(event, buttonLeft, buttonRight, buttonTop + 100)) {
-                Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-                Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir));
-                return true;
-            }
-            if (inside(event, buttonLeft, buttonRight, buttonTop + 150)) {
-                TastyFishCustom.open(Minecraft.getInstance(), Minecraft.getInstance().gui.screen());
-                return true;
-            }
+        int panelWidth = Math.min(620, width - 40);
+        int panelHeight = Math.min(560, height - 40);
+        int left = (width - panelWidth) / 2;
+        int top = Math.max(20, (height - panelHeight) / 2);
+        int x = left + 24;
+        int right = left + panelWidth - 24;
+        int y = top + 58;
+
+        if (inside(event.x(), event.y(), x, right, y + 20)) {
+            config.enabled = !config.enabled;
+        } else if (inside(event.x(), event.y(), x, right, y + 95)) {
+            config.farmingRngEnabled = !config.farmingRngEnabled;
+        } else if (inside(event.x(), event.y(), x, right, y + 140)) {
+            config.farmingRngBackground = !config.farmingRngBackground;
+        } else if (inside(event.x(), event.y(), x, right, y + 185)) {
+            config.farmingRngScale += event.shift() ? -0.1f : 0.1f;
+            config.farmingRngScale = clampScale(config.farmingRngScale);
+        } else if (inside(event.x(), event.y(), x, right, y + 270)) {
+            config.mouseLockEnabled = !config.mouseLockEnabled;
+        } else if (inside(event.x(), event.y(), x, right, y + 315)) {
+            config.mouseLockGroundOnly = !config.mouseLockGroundOnly;
+        } else if (inside(event.x(), event.y(), x, right, y + 390)) {
+            config.farmingRngX = Math.max(0, config.farmingRngX + (event.shift() ? -8 : 8));
+        } else if (inside(event.x(), event.y(), x, right, y + 435)) {
+            config.farmingRngY = Math.max(0, config.farmingRngY + (event.shift() ? -8 : 8));
+        } else {
+            return super.mouseClicked(event, doubleClick);
         }
-        return super.mouseClicked(event, doubleClick);
+
+        save();
+        return true;
     }
 
-    private static boolean inside(MouseButtonEvent event, int left, int right, int top) {
-        return event.x() >= left && event.x() <= right
-                && event.y() >= top && event.y() <= top + 42;
+    private void save() {
+        Path path = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json");
+        config.save(path);
+    }
+
+    private static float clampScale(float value) {
+        return Math.max(0.5f, Math.min(3.0f, Math.round(value * 10.0f) / 10.0f));
+    }
+
+    private static boolean inside(double mx, double my, int left, int right, int top) {
+        return mx >= left && mx <= right && my >= top && my <= top + 36;
     }
 }
