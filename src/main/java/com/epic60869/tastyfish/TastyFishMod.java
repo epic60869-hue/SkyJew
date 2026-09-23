@@ -48,46 +48,55 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void registerCommands() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
             dispatcher.register(ClientCommands.literal("tf")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
                 .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
                 .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
-                .then(ClientCommands.literal("custom")
-                    .executes(context -> openCustom())
-                    .then(ClientCommands.literal("renameItem")
-                        .then(ClientCommands.argument("name", StringArgumentType.greedyString())
-                            .executes(context -> customRename(StringArgumentType.getString(context, "name")))))
-                    .then(ClientCommands.literal("dyeColor")
-                        .then(ClientCommands.argument("hex", StringArgumentType.word())
-                            .executes(context -> customDye(StringArgumentType.getString(context, "hex"))))
-                        .executes(context -> customDye("")))
-                    .then(ClientCommands.literal("armorTrim")
-                        .then(ClientCommands.argument("material", StringArgumentType.word())
-                            .then(ClientCommands.argument("pattern", StringArgumentType.word())
-                                .executes(context -> customTrim(
-                                    StringArgumentType.getString(context, "material"),
-                                    StringArgumentType.getString(context, "pattern")))))
-                        .executes(context -> customTrim("", "")))
-                    .then(ClientCommands.literal("animatedDye")
-                        .then(ClientCommands.argument("hex1", StringArgumentType.word())
-                            .then(ClientCommands.argument("hex2", StringArgumentType.word())
-                                .then(ClientCommands.argument("duration", StringArgumentType.word())
-                                    .then(ClientCommands.argument("cycleBack", StringArgumentType.word())
-                                        .then(ClientCommands.argument("delay", StringArgumentType.word())
-                                            .executes(context -> customAnimated(
-                                                StringArgumentType.getString(context, "hex1"),
-                                                StringArgumentType.getString(context, "hex2"),
-                                                StringArgumentType.getString(context, "duration"),
-                                                StringArgumentType.getString(context, "cycleBack"),
-                                                StringArgumentType.getString(context, "delay"))))
-                                        .executes(context -> customAnimated(
-                                            StringArgumentType.getString(context, "hex1"),
-                                            StringArgumentType.getString(context, "hex2"),
-                                            StringArgumentType.getString(context, "duration"),
-                                            StringArgumentType.getString(context, "cycleBack"), "0"))))))));
-        });
+                .then(customCommand())));
+    }
+
+    private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> customCommand() {
+        var custom = ClientCommands.literal("custom")
+            .executes(context -> openCustom());
+
+        custom.then(ClientCommands.literal("renameItem")
+            .then(ClientCommands.argument("name", StringArgumentType.greedyString())
+                .executes(context -> customRename(StringArgumentType.getString(context, "name")))));
+
+        custom.then(ClientCommands.literal("dyeColor")
+            .executes(context -> customDye(""))
+            .then(ClientCommands.argument("hex", StringArgumentType.word())
+                .executes(context -> customDye(StringArgumentType.getString(context, "hex")))));
+
+        custom.then(ClientCommands.literal("armorTrim")
+            .executes(context -> customTrim("", ""))
+            .then(ClientCommands.argument("material", StringArgumentType.word())
+                .then(ClientCommands.argument("pattern", StringArgumentType.word())
+                    .executes(context -> customTrim(
+                        StringArgumentType.getString(context, "material"),
+                        StringArgumentType.getString(context, "pattern"))))));
+
+        custom.then(ClientCommands.literal("animatedDye")
+            .then(ClientCommands.argument("hex1", StringArgumentType.word())
+                .then(ClientCommands.argument("hex2", StringArgumentType.word())
+                    .then(ClientCommands.argument("duration", StringArgumentType.word())
+                        .then(ClientCommands.argument("cycleBack", StringArgumentType.word())
+                            .executes(context -> customAnimated(
+                                StringArgumentType.getString(context, "hex1"),
+                                StringArgumentType.getString(context, "hex2"),
+                                StringArgumentType.getString(context, "duration"),
+                                StringArgumentType.getString(context, "cycleBack"), "0"))
+                            .then(ClientCommands.argument("delay", StringArgumentType.word())
+                                .executes(context -> customAnimated(
+                                    StringArgumentType.getString(context, "hex1"),
+                                    StringArgumentType.getString(context, "hex2"),
+                                    StringArgumentType.getString(context, "duration"),
+                                    StringArgumentType.getString(context, "cycleBack"),
+                                    StringArgumentType.getString(context, "delay")))))))));
+
+        return custom;
     }
 
     private int openMenu() {
