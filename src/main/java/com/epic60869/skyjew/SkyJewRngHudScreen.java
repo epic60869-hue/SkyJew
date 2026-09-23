@@ -43,17 +43,17 @@ public final class SkyJewRngHudScreen extends Screen {
     }
 
     private boolean background() {
-        return SkyJewConfigAccess.config().farming.rng.background;
+        return SkyJewConfig.current().farming.rng.background;
     }
 
     private void setEnabled(boolean value) {
-        SkyJewConfigAccess.config().farming.rng.enabled = value;
-        SkyJewConfig.saveCurrent(SkyJewConfigAccess.config());
+        SkyJewConfig.current().farming.rng.enabled = value;
+        SkyJewConfig.saveCurrent(SkyJewConfig.current());
     }
 
     private void setBackground(boolean value) {
-        SkyJewConfigAccess.config().farming.rng.background = value;
-        SkyJewConfig.saveCurrent(SkyJewConfigAccess.config());
+        SkyJewConfig.current().farming.rng.background = value;
+        SkyJewConfig.saveCurrent(SkyJewConfig.current());
     }
 
     @Override
@@ -107,7 +107,7 @@ public final class SkyJewRngHudScreen extends Screen {
 
     @Override
     public void onClose() {
-        SkyJewConfig.saveCurrent(SkyJewConfigAccess.config());
+        SkyJewConfig.saveCurrent(SkyJewConfig.current());
         minecraft.gui.setScreen(parent);
     }
 
