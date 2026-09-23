@@ -1,16 +1,15 @@
 package com.epic60869.tastyfish.mixin;
 
 import com.epic60869.tastyfish.TastyFishMouseLock;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.OptionInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyExpressionValue;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(MouseHandler.class)
 public class TastyFishMouseHandlerMixin {
-    @ModifyExpressionValue(
+    @Redirect(
         method = "turnPlayer",
         at = @At(
             value = "INVOKE",
@@ -18,7 +17,7 @@ public class TastyFishMouseHandlerMixin {
             ordinal = 0
         )
     )
-    private Object tastyfish$mouseLock(Object original) {
-        return TastyFishMouseLock.isLocked() ? -1 / 3d : original;
+    private Object tastyfish$mouseLock(OptionInstance<?> option) {
+        return TastyFishMouseLock.isLocked() ? -1.0d / 3.0d : option.get();
     }
 }
