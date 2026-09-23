@@ -36,8 +36,6 @@ public final class SkyJewFirstBootScreen extends Screen {
     public void extractRenderState(
         GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta
     ) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-
         graphics.fill(0, 0, width, height, 0xFF000000);
 
         int imageWidth = Math.min(width - 40, 1024);
@@ -54,8 +52,9 @@ public final class SkyJewFirstBootScreen extends Screen {
             RenderPipelines.GUI_TEXTURED,
             WARNING_TEXTURE,
             imageX, imageY,
-            0, 0,
+            0.0F, 0.0F,
             imageWidth, imageHeight,
+            256, 144,
             256, 144
         );
 
