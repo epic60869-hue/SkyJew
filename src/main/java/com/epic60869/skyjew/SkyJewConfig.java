@@ -242,9 +242,24 @@ public final class SkyJewConfig extends Config {
         }
 
         FileHolder holder = new FileHolder(path);
+        boolean configExisted = Files.exists(path);
+
         managed = new ManagedConfig<>(new io.github.notenoughupdates.moulconfig.managed.ManagedConfigBuilder<>(
             holder.file, SkyJewConfig.class
         ));
+
+        // ManagedConfig may keep a new/default config entirely in memory until
+        // the config screen is opened. Save it immediately so SkyJew always
+        // has a real config file on first launch.
+        if (!configExisted) {
+            try {
+                Files.createDirectories(path.getParent());
+                managed.saveToFile();
+            } catch (Exception e) {
+                System.err.println("[SkyJew] Failed to create initial config: " + e.getMessage());
+            }
+        }
+
         return managed.getInstance();
     }
 
