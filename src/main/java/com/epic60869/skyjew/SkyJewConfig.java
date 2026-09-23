@@ -105,6 +105,12 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
         public float scale = 1.0f;
 
+        @Expose
+        public int x = 8;
+
+        @Expose
+        public int y = 8;
+
         @ConfigOption(name = "Edit Position", desc = "Open the SkyJew HUD editor and drag the Farming RNG HUD.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable editPosition = () -> openRngEditor();
@@ -336,6 +342,8 @@ public final class SkyJewConfig extends Config {
         if (old.has("farmingRngEnabled")) migrated.farming.rng.enabled = old.get("farmingRngEnabled").getAsBoolean();
         if (old.has("farmingRngBackground")) migrated.farming.rng.background = old.get("farmingRngBackground").getAsBoolean();
         if (old.has("farmingRngScale")) migrated.farming.rng.scale = old.get("farmingRngScale").getAsFloat();
+        if (old.has("farmingRngX")) migrated.farming.rng.x = old.get("farmingRngX").getAsInt();
+        if (old.has("farmingRngY")) migrated.farming.rng.y = old.get("farmingRngY").getAsInt();
         if (old.has("farmingRngX")) 
         if (old.has("mouseLockEnabled")) migrated.visual.mouseLockEnabled = old.get("mouseLockEnabled").getAsBoolean();
         if (old.has("mouseLockGroundOnly")) migrated.visual.mouseLockGroundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
