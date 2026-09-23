@@ -36,54 +36,32 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishRngHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
-        // The farming session belongs to the Minecraft process. Hypixel
-        // disconnects/reconnects and world changes never create a new session.
         startGameSession(minecraft);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> finishGameSession("game closed"));
 
         registerCommands();
-        System.out.println("[TastyFish] SkySoft integration, local analytics, guild HUD and standalone farming server loaded.");
+        System.out.println("[TastyFish] Core mod loaded.");
     }
 
     private void registerCommands() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommands.literal("tf")
                 .executes(context -> openMenu())
-                .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
-                .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("notes").executes(context -> openNotes()))
-);
-            dispatcher.register(ClientCommands.literal("tastyfish")
-                .executes(context -> openMenu())
-                .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
-                .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
                 .then(ClientCommands.literal("notes").executes(context -> openNotes())));
         });
     }
 
     private int openMenu() {
-        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishScreen(config)));
-        return 1;
-    }
-
-    private int openGuiEditor() {
-        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)));
+        Minecraft.getInstance().execute(() ->
+            Minecraft.getInstance().gui.setScreen(new TastyFishScreen(config)));
         return 1;
     }
 
     private int openNotes() {
         Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir)));
+        Minecraft.getInstance().execute(() ->
+            Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir)));
         return 1;
-    }
-
-    private void printStats() {
-        Minecraft mc = Minecraft.getInstance();
-        FarmingHistory.Data d = history.data();
-        mc.showDebugChat(net.minecraft.network.chat.Component.literal(
-            "§6TastyFish §7| 1h PB: §e" + formatCoins(d.bestOneHourProfit) +
-            " §7| Best streak: §e" + formatDuration(d.bestStreakMs) +
-            " §7| Sessions: §e" + d.sessions.size()));
     }
 
     private void startGameSession(Minecraft minecraft) {
@@ -99,12 +77,9 @@ public final class TastyFishMod implements ClientModInitializer {
         String username = minecraft.getUser() == null ? "" : minecraft.getUser().getName();
         TastyFishVersionChecker.check(minecraft);
         System.out.println("[TastyFish] Minecraft game session started: " + sessionId + " username=" + username);
-
     }
 
     private void tick(Minecraft minecraft) {
-        // Never use minecraft.player as a session boundary. It is null while
-        // disconnected from Hypixel, but the Minecraft game is still running.
         long now = System.currentTimeMillis();
         if (!gameSessionStarted || minecraft.player == null) return;
 
@@ -114,12 +89,8 @@ public final class TastyFishMod implements ClientModInitializer {
         lastUploadMillis = now;
 
         SkysoftSessionReader.Snapshot snapshot = SkysoftSessionReader.read();
-        if (!snapshot.valid()) {
-            return;
-        }
+        if (!snapshot.valid()) return;
 
-        // SkySoft can reset its FARMING tracker on world changes/reconnects.
-        // Re-baseline the local tracker, but keep the same Minecraft session.
         if (lastActiveMillis >= 0L && snapshot.activeMillis() < lastActiveMillis) {
             history.rebaseline(sessionId, snapshot);
             lastActiveMillis = -1L;
@@ -155,13 +126,16 @@ public final class TastyFishMod implements ClientModInitializer {
             minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
                 "§6§lNEW 1-HOUR PERSONAL BEST! §e" + formatCoins(update.oneHourProfit()) + " coins"));
         }
+
         if (update.newStreak() && config.farmingStreakEnabled && isStreakMilestone(update.streakMs())) {
         }
+
         if (config.farmingAchievementsEnabled) {
             List<String> unlocked = history.newlyUnlockedAchievements();
             for (String id : unlocked) {
                 String name = achievementName(id);
-                minecraft.showDebugChat(net.minecraft.network.chat.Component.literal("§d§lACHIEVEMENT UNLOCKED! §f" + name));
+                minecraft.showDebugChat(net.minecraft.network.chat.Component.literal(
+                    "§d§lACHIEVEMENT UNLOCKED! §f" + name));
             }
         }
     }
@@ -179,13 +153,6 @@ public final class TastyFishMod implements ClientModInitializer {
         lastActiveMillis = -1L;
         lastOneHourPbAlertActiveMillis = -1L;
         System.out.println("[TastyFish] Minecraft game session ended: " + sessionId + " reason=" + reason);
-    }
-
-    private static long sum(java.util.Map<String, Long> map) {
-        long total = 0L;
-        if (map == null) return total;
-        for (Long value : map.values()) if (value != null) total += value;
-        return total;
     }
 
     private static boolean isStreakMilestone(long millis) {
@@ -210,11 +177,6 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private static String formatCoins(long coins) { return String.format("%,d", coins); }
 
-    private static String formatDuration(long millis) {
-        long seconds = Math.max(0L, millis / 1000L);
-        return String.format("%dh %02dm", seconds / 3600L, (seconds % 3600L) / 60L);
-    }
-
     private static String formatCompactDuration(long millis) {
         long minutes = Math.max(0L, millis / 60_000L);
         long hours = minutes / 60L;
@@ -230,6 +192,8 @@ public final class TastyFishMod implements ClientModInitializer {
             field.setAccessible(true);
             Object value = field.get(null);
             return value == null ? "" : value.toString();
-        } catch (Throwable ignored) { return ""; }
+        } catch (Throwable ignored) {
+            return "";
+        }
     }
 }
