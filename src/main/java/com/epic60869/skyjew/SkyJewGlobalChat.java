@@ -22,7 +22,7 @@ public final class SkyJewGlobalChat {
     private static final String CONFIGURED_RELAY_URL =
         System.getProperty("skyjew.chat.url", "").trim();
     private static final String[] RELAY_URLS = CONFIGURED_RELAY_URL.isBlank()
-        ? new String[] {"wss://tastyfish.org/tf-chat", "wss://www.tastyfish.org/tf-chat"}
+        ? new String[] {"wss://mod.tastyfish.org/tf-chat", "wss://tastyfish.org/tf-chat", "wss://www.tastyfish.org/tf-chat"}
         : new String[] {CONFIGURED_RELAY_URL};
 
     private static final Gson GSON = new Gson();
