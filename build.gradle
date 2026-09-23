@@ -54,13 +54,13 @@ tasks.register('downloadNopoEmojiAssets') {
             if (path == prefix + 'emojis.json') {
                 copy {
                     from details.file
-                    into new File(nopoEmojiGeneratedDir, 'assets/tastyfish')
+                    into new File(nopoEmojiGeneratedDir, 'assets/skyjew')
                     rename { 'emojis.json' }
                 }
             } else if (path.startsWith(spritesPrefix) && path.endsWith('.png')) {
                 copy {
                     from details.file
-                    into new File(nopoEmojiGeneratedDir, 'assets/tastyfish/textures/gui/sprites')
+                    into new File(nopoEmojiGeneratedDir, 'assets/skyjew/textures/gui/sprites')
                 }
             }
         }

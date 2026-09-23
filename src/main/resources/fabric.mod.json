@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "id": "tastyfish-mod",
+  "id": "skyjew-mod",
   "version": "${version}",
-  "name": "TastyFish Mod",
-  "description": "TastyFish utilities and SkySoft farming leaderboard uploader.",
+  "name": "SkyJew Mod",
+  "description": "SkyJew utilities and SkySoft farming leaderboard uploader.",
   "authors": ["epic60869"],
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.epic60869.tastyfish.TastyFishMod"
+      "com.epic60869.skyjew.SkyJewMod"
     ]
   },
   "mixins": [
-    "tastyfish.mixins.json"
+    "skyjew.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",

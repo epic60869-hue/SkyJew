@@ -1,4 +1,4 @@
-# TastyFish Mod
+# SkyJew Mod
 
 Fabric 26.2 companion mod for Hypixel SkyBlock.
 
@@ -9,16 +9,16 @@ Fabric 26.2 companion mod for Hypixel SkyBlock.
 - Custom item tools
 - Command key system
 - Notes
-- Main `/tf` GUI
+- Main `/sj` GUI
 - Version checker
 
 ## Commands
 
-- `/tf` — open the main TastyFish GUI
-- `/tf notes` — open notes
-- `/tf keys` — open command keys
-- `/tf search` — search storage
-- `/tf custom` — open custom item tools
+- `/sj` — open the main SkyJew GUI
+- `/sj notes` — open notes
+- `/sj keys` — open command keys
+- `/sj search` — search storage
+- `/sj custom` — open custom item tools
 
 ## Removed
 
