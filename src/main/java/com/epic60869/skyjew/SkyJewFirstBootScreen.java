@@ -9,7 +9,7 @@ import net.minecraft.resources.Identifier;
 
 public final class SkyJewFirstBootScreen extends Screen {
     private static final Identifier WARNING_TEXTURE =
-        Identifier.fromNamespaceAndPath("skyjew-mod", "textures/gui/first_boot_ratted.png");
+        Identifier.fromNamespaceAndPath("skyjew", "textures/gui/first_boot_ratted.png");
 
     private static final int BUTTON_WIDTH = 220;
     private static final int BUTTON_HEIGHT = 32;
