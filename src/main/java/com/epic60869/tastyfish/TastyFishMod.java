@@ -26,6 +26,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishCustom.init(configDir);
         TastyFishNopoFeatures.init(configDir);
         TastyFishMouseLock.init(config);
+        TastyFishGlobalChat.init();
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         TastyFishVersionChecker.check(minecraft);
@@ -41,6 +42,9 @@ public final class TastyFishMod implements ClientModInitializer {
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
                 .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
                 .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+                .then(ClientCommands.literal("chat")
+                    .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                        .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
                 .then(customCommand())));
     }
 
@@ -132,6 +136,11 @@ public final class TastyFishMod implements ClientModInitializer {
                 TastyFishCustom.parseHex(a), TastyFishCustom.parseHex(b),
                 Float.parseFloat(duration), Boolean.parseBoolean(cycleBack), Float.parseFloat(delay));
         } catch (Exception ignored) {}
+        return 1;
+    }
+
+    private int sendGlobalChat(String message) {
+        TastyFishGlobalChat.send(message);
         return 1;
     }
 
