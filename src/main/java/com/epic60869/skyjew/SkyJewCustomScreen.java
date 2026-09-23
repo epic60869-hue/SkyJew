@@ -132,6 +132,7 @@ public final class SkyJewCustomScreen extends Screen {
             mc.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                 target = stack;
                 customItemSelected = true;
+                init();
             }));
         }).bounds(x + fieldWidth - 95, y + 22, 95, 22).build());
 
