@@ -76,6 +76,7 @@ public final class SkyJewExperimentHelper {
                 }
             }
         }
+    }
 
     public static boolean handleClick(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
         if (config == null || !config.experiments.enabled) return false;
