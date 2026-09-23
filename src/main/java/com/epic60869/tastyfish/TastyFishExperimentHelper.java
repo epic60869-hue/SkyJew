@@ -39,6 +39,7 @@ public final class TastyFishExperimentHelper {
     private static int ultraProgress;
     private static int lastRound = -1;
     private static int lastUltraCount = -1;
+    private static int lastReadRound = -1;
     private static String lastPhaseText = "";
     private static long lastStateChange;
     private static long lastRecovery;
@@ -86,8 +87,8 @@ public final class TastyFishExperimentHelper {
         }
     }
 
-    public static boolean shouldBlockClick(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
-        if (config == null || !config.experimentHelperEnabled || !config.experimentHelperPreventMisclicks) return false;
+    public static boolean handleClick(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
+        if (config == null || !config.experimentHelperEnabled) return false;
         if (phase != Phase.REPLICATE || !isExperimentTable(screen)) return false;
 
         Slot slot = findSlot(screen, mouseX, mouseY);
@@ -97,12 +98,17 @@ public final class TastyFishExperimentHelper {
             String expected = chronSequence.size() > chronProgress ? chronSequence.get(chronProgress) : null;
             if (expected == null) return false;
             String clicked = colorName(slot.getItem());
-            return clicked != null && !expected.equals(clicked);
+            if (clicked == null) return false;
+            if (!expected.equals(clicked)) return config.experimentHelperPreventMisclicks;
+            chronProgress++;
+            return false;
         }
 
         if (isUltrasequencer(screen)) {
             if (ultraProgress >= ultraSequence.size()) return false;
-            return slot.getContainerSlot() != ultraSequence.get(ultraProgress);
+            if (slot.index != ultraSequence.get(ultraProgress)) return config.experimentHelperPreventMisclicks;
+            ultraProgress++;
+            return false;
         }
 
         return false;
@@ -169,20 +175,13 @@ public final class TastyFishExperimentHelper {
         }
 
         if (phase == Phase.READ) {
-            // During the read phase the newly lit colour is the only useful state.
-            // Only append when the visible colour set changes, avoiding duplicate
-            // entries caused by repeated inventory packets.
-            if (!visible.equals(lastReadChronColors) && visible.size() == 1) {
-                String color = visible.iterator().next();
-                if (chronSequence.isEmpty() || !color.equals(chronSequence.get(chronSequence.size() - 1))) {
-                    chronSequence.add(color);
-                }
-                lastReadChronColors.clear();
-                lastReadChronColors.addAll(visible);
+            int round = readRound(screen);
+            if (visible.size() == 1 && round >= 0 && round != lastReadRound) {
+                chronSequence.add(visible.iterator().next());
+                lastReadRound = round;
                 lastStateChange = System.currentTimeMillis();
-            } else if (visible.isEmpty()) {
-                lastReadChronColors.clear();
             }
+            if (visible.isEmpty()) lastReadChronColors.clear();
         }
     }
 
@@ -353,6 +352,7 @@ public final class TastyFishExperimentHelper {
         ultraProgress = 0;
         lastRound = -1;
         lastUltraCount = -1;
+        lastReadRound = -1;
         lastPhaseText = "";
         lastStateChange = System.currentTimeMillis();
     }
