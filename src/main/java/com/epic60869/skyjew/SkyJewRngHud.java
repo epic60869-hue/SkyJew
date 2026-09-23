@@ -23,10 +23,10 @@ public final class SkyJewRngHud {
     }
 
     private static void extract(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker deltaTracker) {
-        if (config == null || !config.farmingRngEnabled || Minecraft.getInstance().player == null) return;
+        if (config == null || !config.farming.rngEnabled || Minecraft.getInstance().player == null) return;
         List<FarmingRngTracker.Drop> drops = FarmingRngTracker.get().active();
         if (drops.isEmpty()) return;
-        render(graphics, drops, config.farmingRngX, config.farmingRngY);
+        render(graphics, drops, config.farming.rngX, config.farming.rngY);
     }
 
     public static int width() {
@@ -39,7 +39,7 @@ public final class SkyJewRngHud {
     }
 
     public static float scale() {
-        return config == null ? 1.0f : config.farmingRngScale;
+        return config == null ? 1.0f : config.farming.rngScale;
     }
 
     public static void setPosition(int x, int y) {
@@ -81,7 +81,7 @@ public final class SkyJewRngHud {
         graphics.pose().scale(s, s);
 
         int contentHeight = 4 + drops.size() * LINE_HEIGHT;
-        if (config != null && config.farmingRngBackground) {
+        if (config != null && config.farming.rngBackground) {
             graphics.fill(-5, -3, BASE_WIDTH + 4, contentHeight + 1, 0xA8000000);
             graphics.fill(-5, -3, BASE_WIDTH + 4, -2, 0x55FFFFFF);
             graphics.fill(-5, contentHeight, BASE_WIDTH + 4, contentHeight + 1, 0x33000000);
