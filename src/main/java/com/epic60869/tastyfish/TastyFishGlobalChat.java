@@ -130,8 +130,9 @@ public final class TastyFishGlobalChat {
 
     private static void mcMessage(Component message) {
         Minecraft.getInstance().execute(() -> {
-            if (Minecraft.getInstance().gui != null) {
-                Minecraft.getInstance().gui.getChat().addMessage(message);
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                mc.player.sendSystemMessage(message);
             }
         });
     }
