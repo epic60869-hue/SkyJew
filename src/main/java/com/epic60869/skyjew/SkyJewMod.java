@@ -25,7 +25,8 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewCommandKeys.init(configDir);
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
-        SkyJewNopoFeatures.init(configDir);\n        SkyJewNick.init(config);
+        SkyJewNopoFeatures.init(configDir);
+        SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
         SkyJewGlobalChat.init();
         SkyJewExperimentHelper.init(config);
@@ -47,7 +48,11 @@ public final class SkyJewMod implements ClientModInitializer {
                 .then(ClientCommands.literal("chat")
                     .then(ClientCommands.argument("message", StringArgumentType.greedyString())
                         .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
-                .then(ClientCommands.literal("nick")\n                    .then(ClientCommands.argument("value", StringArgumentType.greedyString())\n                        .executes(context -> setNick(StringArgumentType.getString(context, "value"))))\n                    .executes(context -> showNickHelp()))\n                .then(ClientCommands.literal("discord")
+                .then(ClientCommands.literal("nick")
+                    .executes(context -> openNick())
+                    .then(ClientCommands.argument("value", StringArgumentType.greedyString())
+                        .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
+                .then(ClientCommands.literal("discord")
                     .executes(context -> openDiscord()))
                 .then(ClientCommands.literal("dm")
                     .then(ClientCommands.argument("user", StringArgumentType.word())
@@ -154,7 +159,18 @@ public final class SkyJewMod implements ClientModInitializer {
         return 1;
     }
 
-    private int showNickHelp() {\n        Minecraft.getInstance().player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[SkyJew] /sj nick <name> | <color> <name> | rainbow <name> | off"));\n        return 1;\n    }\n\n    private int setNick(String value) {\n        SkyJewNick.set(value);\n        return 1;\n    }\n\n    private int openDiscord() {
+    private int openNick() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewNickScreen(config, mc.gui.screen())));
+        return 1;
+    }
+
+    private int setNick(String value) {
+        SkyJewNick.set(value);
+        return 1;
+    }
+
+    private int openDiscord() {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> mc.gui.setScreen(new SkyJewDiscordScreen(mc.gui.screen())));
         return 1;
