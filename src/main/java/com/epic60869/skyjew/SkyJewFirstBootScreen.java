@@ -13,10 +13,11 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     private static final int BUTTON_WIDTH = 220;
     private static final int BUTTON_HEIGHT = 32;
+    private static final int IMAGE_TEXTURE_WIDTH = 256;
+    private static final int IMAGE_TEXTURE_HEIGHT = 144;
 
     private final SkyJewConfig config;
     private final Screen previousScreen;
-    private boolean audioStarted;
 
     public SkyJewFirstBootScreen(SkyJewConfig config, Screen previousScreen) {
         super(Component.literal("SkyJew"));
@@ -26,35 +27,42 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     @Override
     protected void init() {
-        if (!audioStarted) {
-            audioStarted = true;
-            SkyJewSounds.playFirstBoot();
-        }
+        // Sound is deliberately started from the client tick after this screen
+        // has actually replaced the title screen. This avoids starting audio
+        // during screen/resource transitions.
     }
 
     @Override
     public void extractRenderState(
         GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta
     ) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+
         graphics.fill(0, 0, width, height, 0xFF000000);
 
         int imageWidth = Math.min(width - 40, 1024);
-        int imageHeight = imageWidth * 144 / 256;
+        int imageHeight = imageWidth * IMAGE_TEXTURE_HEIGHT / IMAGE_TEXTURE_WIDTH;
         if (imageHeight > height / 2) {
             imageHeight = height / 2;
-            imageWidth = imageHeight * 256 / 144;
+            imageWidth = imageHeight * IMAGE_TEXTURE_WIDTH / IMAGE_TEXTURE_HEIGHT;
         }
 
         int imageX = (width - imageWidth) / 2;
         int imageY = Math.max(20, height / 2 - imageHeight - 95);
 
+        // Full-texture blit using the 26.2 GuiGraphicsExtractor overload.
+        // The source texture is exactly 256x144.
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             WARNING_TEXTURE,
-            imageX, imageY,
-            0.0F, 0.0F,
-            imageWidth, imageHeight,
-            256, 144
+            imageX,
+            imageY,
+            0,
+            0,
+            imageWidth,
+            imageHeight,
+            IMAGE_TEXTURE_WIDTH,
+            IMAGE_TEXTURE_HEIGHT
         );
 
         Component warning = Component.literal("YOU HAVE BEEN RATTED LOL");
@@ -90,10 +98,10 @@ public final class SkyJewFirstBootScreen extends Screen {
         if (event.button() != 0) return true;
 
         int imageWidth = Math.min(width - 40, 1024);
-        int imageHeight = imageWidth * 144 / 256;
+        int imageHeight = imageWidth * IMAGE_TEXTURE_HEIGHT / IMAGE_TEXTURE_WIDTH;
         if (imageHeight > height / 2) {
             imageHeight = height / 2;
-            imageWidth = imageHeight * 256 / 144;
+            imageWidth = imageHeight * IMAGE_TEXTURE_WIDTH / IMAGE_TEXTURE_HEIGHT;
         }
 
         int imageY = Math.max(20, height / 2 - imageHeight - 95);
