@@ -56,7 +56,7 @@ public final class TastyFishExperimentHelper {
             return;
         }
 
-        if (!(mc.screen instanceof AbstractContainerScreen<?> screen) || !isExperimentTable(screen)) {
+        if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> screen) || !isExperimentTable(screen)) {
             resetIfNeeded();
             return;
         }
