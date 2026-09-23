@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "skyjew",
   "version": "${version}",
-  "name": "SkyJew Mod",
+  "name": "SkyJew",
   "description": "SkyJew utilities and SkySoft farming leaderboard uploader.",
   "authors": ["epic60869"],
   "environment": "client",
