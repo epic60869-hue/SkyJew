@@ -208,8 +208,15 @@ public final class SkyJewStorageSearch {
 
         if ("INVENTORY".equals(result.type())) {
             if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
-            if (result.slot() >= screen.getMenu().slots.size()) return;
-            moveCursorToSlot(mc, screen, screen.getMenu().slots.get(result.slot()));
+            Slot target = null;
+            for (Slot slot : screen.getMenu().slots) {
+                if (slot.getContainerSlot() == result.slot()) {
+                    target = slot;
+                    break;
+                }
+            }
+            if (target == null) return;
+            moveCursorToSlot(mc, screen, target);
             pendingHighlight = null;
             return;
         }
