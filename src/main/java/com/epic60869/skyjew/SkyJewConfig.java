@@ -22,7 +22,11 @@ public final class SkyJewConfig {
     public boolean experimentHelperHighlight = true;
     public boolean experimentHelperPreventMisclicks = true;
     public boolean experimentHelperDebug = false;
-    public boolean firstBootAcknowledged = false;\n    public boolean nickEnabled = false;\n    public String nickName = "";\n    public String nickMode = "plain";\n    public String nickColor = "";
+    public boolean firstBootAcknowledged = false;
+    public boolean nickEnabled = false;
+    public String nickName = "";
+    public String nickMode = "plain";
+    public String nickColor = "";
 
     public static SkyJewConfig load(Path path) {
         try {
