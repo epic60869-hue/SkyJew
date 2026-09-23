@@ -38,9 +38,9 @@ public final class TastyFishScreen extends Screen {
 
         int panelWidth = Math.min(520, width - 40);
         int left = (width - panelWidth) / 2;
-        int top = Math.max(30, (height - 350) / 2);
+        int top = Math.max(30, (height - 400) / 2);
 
-        panel(g, left, top, left + panelWidth, top + 350);
+        panel(g, left, top, left + panelWidth, top + 400);
 
         g.text(font, "✦", left + 24, top + 22, CYAN, true);
         g.text(font, "TastyFish", left + 50, top + 18, YELLOW, true);
@@ -59,8 +59,10 @@ public final class TastyFishScreen extends Screen {
                 "/tf search  •  Ctrl+F", mouseX, mouseY, CYAN);
         drawButton(g, buttonLeft, buttonRight, buttonTop + 100, "⌨", "Command Keys",
                 "/tf keys", mouseX, mouseY, PURPLE);
+        drawButton(g, buttonLeft, buttonRight, buttonTop + 150, "✦", "Custom",
+                "/tf custom", mouseX, mouseY, PURPLE);
 
-        g.text(font, "Storage Search learns pages as you open them.", left + 24, top + 279, MUTED, false);
+        g.text(font, "Storage Search learns pages as you open them.", left + 24, top + 379, MUTED, false);
         g.text(font, "ESC to close", left + 24, top + 329, MUTED, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
@@ -112,6 +114,10 @@ public final class TastyFishScreen extends Screen {
             if (inside(event, buttonLeft, buttonRight, buttonTop + 100)) {
                 Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
                 Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir));
+                return true;
+            }
+            if (inside(event, buttonLeft, buttonRight, buttonTop + 150)) {
+                TastyFishCustom.open(Minecraft.getInstance(), Minecraft.getInstance().gui.screen());
                 return true;
             }
         }
