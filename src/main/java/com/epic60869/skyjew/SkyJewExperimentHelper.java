@@ -65,7 +65,7 @@ public final class SkyJewExperimentHelper {
     }
 
     public static void render(GuiGraphicsExtractor g, AbstractContainerScreen<?> screen) {
-        if (config == null || !config.experimentHelperEnabled || !isExperimentTable(screen)) return;
+        if (config == null || !config.experiments.enabled || !isExperimentTable(screen)) return;
 
         if (config.experiments.highlight) {
             if (phase == Phase.REPLICATE) {
@@ -105,7 +105,7 @@ public final class SkyJewExperimentHelper {
 
         if (isUltrasequencer(screen)) {
             if (ultraProgress >= ultraSequence.size()) return false;
-            if (slot.index != ultraSequence.get(ultraProgress)) return config.experimentHelperPreventMisclicks;
+            if (slot.index != ultraSequence.get(ultraProgress)) return config.experiments.preventMisclicks;
             ultraProgress++;
             return false;
         }
