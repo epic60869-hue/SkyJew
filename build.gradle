@@ -69,6 +69,8 @@ tasks.register('downloadNopoEmojiAssets') {
     }
 }
 
+tasks.named('sourcesJar') { dependsOn tasks.named('downloadNopoEmojiAssets') }
+
 processResources {
     dependsOn tasks.named('downloadNopoEmojiAssets')
     inputs.property 'version', project.version
