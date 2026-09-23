@@ -225,13 +225,14 @@ public final class TastyFishDiscordScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         rebuildLayout();
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         graphics.fill(0, 0, width, height, 0xCC050509);
 
         graphics.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF202225);
         graphics.fill(panelX, panelY, panelX + 230, panelY + panelH, 0xFF18191C);
         graphics.fill(panelX + 230, panelY, panelX + panelW, panelY + 48, 0xFF2B2D31);
+
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         graphics.text(font, Component.literal("Discord"), panelX + 18, panelY + 17, 0xFFFFFFFF, true);
         graphics.text(font, Component.literal(
