@@ -103,7 +103,7 @@ public final class SkyJewFirstBootScreen extends Screen {
         if (event.x() >= buttonX && event.x() < buttonX + BUTTON_WIDTH
             && event.y() >= buttonY && event.y() < buttonY + BUTTON_HEIGHT) {
 
-            config.firstBootAcknowledged = true;
+            config.general.firstBootAcknowledged = true;
             SkyJewConfig.saveCurrent(config);
             minecraft.gui.setScreen(previousScreen);
             return true;
