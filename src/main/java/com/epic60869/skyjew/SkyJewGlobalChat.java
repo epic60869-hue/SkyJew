@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class SkyJewGlobalChat {
     private static final String RELAY_URL =
-        System.getProperty("skyjew.chat.url", "wss://skyjew.org/tf-chat");
+        System.getProperty("skyjew.chat.url", "wss://tastyfish.org/tf-chat");
 
     private static final Gson GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
