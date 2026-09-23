@@ -501,7 +501,7 @@ public final class SkyJewDiscordScreen extends Screen {
 
     private void openDiscordLink() {
         try {
-            String uuid = Minecraft.getInstance().getUser().getUuid().toString();
+            String uuid = Minecraft.getInstance().getUser().getProfileId().toString();
             String url = "https://tastyfish.org/mod-api/discord/link?minecraft=" + uuid;
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(URI.create(url));
