@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 
 import java.nio.file.Path;
 
-/** Minimal TastyFish menu. */
+/** Main TastyFish utility menu. */
 public final class TastyFishScreen extends Screen {
     private static final int BG = 0xFF070A10;
     private static final int PANEL = 0xFF101722;
@@ -38,44 +38,43 @@ public final class TastyFishScreen extends Screen {
 
         int panelWidth = Math.min(520, width - 40);
         int left = (width - panelWidth) / 2;
-        int top = Math.max(45, (height - 260) / 2);
+        int top = Math.max(30, (height - 350) / 2);
 
-        panel(g, left, top, left + panelWidth, top + 310);
+        panel(g, left, top, left + panelWidth, top + 350);
 
         g.text(font, "✦", left + 24, top + 22, CYAN, true);
         g.text(font, "TastyFish", left + 50, top + 18, YELLOW, true);
         g.text(font, "Simple SkyBlock tools", left + 50, top + 35, MUTED, false);
 
         g.text(font, "Menu", left + 24, top + 78, TEXT, true);
-        g.text(font, "The TastyFish menu is intentionally minimal.", left + 24, top + 101, MUTED, false);
-        g.text(font, "More tools can be added here later without bringing", left + 24, top + 120, MUTED, false);
-        g.text(font, "back the old feature-heavy control centre.", left + 24, top + 138, MUTED, false);
+        g.text(font, "Notes, storage search and Command Keys.", left + 24, top + 101, MUTED, false);
 
         int buttonLeft = left + 24;
         int buttonRight = left + panelWidth - 24;
-        int buttonTop = top + 158;
-        boolean notesHover = mouseX >= buttonLeft && mouseX <= buttonRight
-            && mouseY >= buttonTop && mouseY <= buttonTop + 42;
-        boolean keysHover = mouseX >= buttonLeft && mouseX <= buttonRight
-            && mouseY >= buttonTop + 50 && mouseY <= buttonTop + 92;
+        int buttonTop = top + 128;
 
-        g.fill(buttonLeft, buttonTop, buttonRight, buttonTop + 42,
-            notesHover ? 0xFF5B3FC0 : 0xFF5136A8);
-        outline(g, buttonLeft, buttonTop, buttonRight, buttonTop + 42, CYAN);
-        g.text(font, "✎", buttonLeft + 18, buttonTop + 12, TEXT, true);
-        g.text(font, "Notes", buttonLeft + 45, buttonTop + 8, TEXT, true);
-        g.text(font, "/tf notes", buttonLeft + 45, buttonTop + 24, MUTED, false);
+        drawButton(g, buttonLeft, buttonRight, buttonTop, "✎", "Notes", "/tf notes",
+                mouseX, mouseY, CYAN);
+        drawButton(g, buttonLeft, buttonRight, buttonTop + 50, "⌕", "Storage Search",
+                "/tf search  •  Ctrl+F", mouseX, mouseY, CYAN);
+        drawButton(g, buttonLeft, buttonRight, buttonTop + 100, "⌨", "Command Keys",
+                "/tf keys", mouseX, mouseY, PURPLE);
 
-        g.fill(buttonLeft, buttonTop + 50, buttonRight, buttonTop + 92,
-            keysHover ? 0xFF5B3FC0 : 0xFF5136A8);
-        outline(g, buttonLeft, buttonTop + 50, buttonRight, buttonTop + 92, PURPLE);
-        g.text(font, "⌨", buttonLeft + 18, buttonTop + 62, TEXT, true);
-        g.text(font, "Command Keys", buttonLeft + 45, buttonTop + 58, TEXT, true);
-        g.text(font, "/tf keys", buttonLeft + 45, buttonTop + 74, MUTED, false);
-
-        g.text(font, "ESC to close", left + 24, top + 289, MUTED, false);
+        g.text(font, "Storage Search learns pages as you open them.", left + 24, top + 279, MUTED, false);
+        g.text(font, "ESC to close", left + 24, top + 329, MUTED, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
+    }
+
+    private void drawButton(GuiGraphicsExtractor g, int left, int right, int top,
+                            String icon, String title, String subtitle,
+                            int mouseX, int mouseY, int outlineColor) {
+        boolean hover = mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= top + 42;
+        g.fill(left, top, right, top + 42, hover ? 0xFF5B3FC0 : 0xFF5136A8);
+        outline(g, left, top, right, top + 42, outlineColor);
+        g.text(font, icon, left + 18, top + 12, TEXT, true);
+        g.text(font, title, left + 45, top + 8, TEXT, true);
+        g.text(font, subtitle, left + 45, top + 24, MUTED, false);
     }
 
     private void panel(GuiGraphicsExtractor g, int left, int top, int right, int bottom) {
@@ -96,19 +95,31 @@ public final class TastyFishScreen extends Screen {
         if (event.button() == 0) {
             int panelWidth = Math.min(520, width - 40);
             int left = (width - panelWidth) / 2;
-            int top = Math.max(45, (height - 260) / 2);
+            int top = Math.max(30, (height - 350) / 2);
             int buttonLeft = left + 24;
             int buttonRight = left + panelWidth - 24;
-            int buttonTop = top + 174;
+            int buttonTop = top + 128;
 
-            if (event.x() >= buttonLeft && event.x() <= buttonRight
-                && event.y() >= buttonTop && event.y() <= buttonTop + 42) {
+            if (inside(event, buttonLeft, buttonRight, buttonTop)) {
                 Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-                Minecraft.getInstance().setScreen(new TastyFishNotesScreen(configDir));
+                Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir));
+                return true;
+            }
+            if (inside(event, buttonLeft, buttonRight, buttonTop + 50)) {
+                TastyFishStorageSearch.open(Minecraft.getInstance(), "");
+                return true;
+            }
+            if (inside(event, buttonLeft, buttonRight, buttonTop + 100)) {
+                Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+                Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir));
                 return true;
             }
         }
-
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private static boolean inside(MouseButtonEvent event, int left, int right, int top) {
+        return event.x() >= left && event.x() <= right
+                && event.y() >= top && event.y() <= top + 42;
     }
 }
