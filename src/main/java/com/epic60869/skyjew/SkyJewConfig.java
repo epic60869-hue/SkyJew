@@ -327,6 +327,10 @@ public final class SkyJewConfig extends Config {
         return managed.getInstance();
     }
 
+    public static SkyJewConfig current() {
+        return managed == null ? null : managed.getInstance();
+    }
+
     public static void openGui() {
         if (managed != null) {
             managed.openConfigGui();
