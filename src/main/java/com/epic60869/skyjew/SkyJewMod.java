@@ -193,7 +193,7 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        if (!config.firstBootAcknowledged && !firstBootScreenShown && minecraft.gui.screen() != null) {
+        if (!config.general.firstBootAcknowledged && !firstBootScreenShown && minecraft.gui.screen() != null) {
             firstBootScreenShown = true;
             minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, minecraft.gui.screen()));
             return;
