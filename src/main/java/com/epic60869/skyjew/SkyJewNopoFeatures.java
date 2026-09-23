@@ -39,7 +39,7 @@ public final class SkyJewNopoFeatures {
     private static final String CHAT_FILE = "skyjew-nopo-chat-emojis.json";
     private static final String SLAYER_FILE = "skyjew-slayer-drops.json";
     private static final String CROP_FILE = "skyjew-rare-crops.json";
-    private static final Identifier PET_HUD_ID = Identifier.fromNamespaceAndPath("skyjew-mod", "pet_display");
+    private static final Identifier PET_HUD_ID = Identifier.fromNamespaceAndPath("skyjew", "pet_display");
 
     private static Path configDir;
     private static boolean initialized;
