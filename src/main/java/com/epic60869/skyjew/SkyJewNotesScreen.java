@@ -20,7 +20,7 @@ import java.util.List;
  */
 public final class SkyJewNotesScreen extends Screen {
     private static final int BG = 0xFF080B12;
-    private static final int PANEL = 0xF4141B27;
+    private static final int PANEL = 0xFF000000;
     private static final int BORDER = 0xFF26364D;
     private static final int MUTED = 0xFF8D9AAF;
     private static final int CYAN = 0xFF58D8FF;
@@ -100,8 +100,8 @@ public final class SkyJewNotesScreen extends Screen {
             );
             box.setValue(noteLines.get(i));
             box.setMaxLength(MAX_LINE_LENGTH);
-            box.setBordered(true);
-            box.setHint(Component.literal("Type a note..."));
+            box.setBordered(false);
+            box.setHint(Component.empty());
             addRenderableWidget(box);
             visibleLines.add(box);
         }
@@ -192,8 +192,6 @@ public final class SkyJewNotesScreen extends Screen {
         int bottom = height - 24;
 
         g.fill(left, 48, right, bottom, PANEL);
-        g.fill(left, 48, right, 49, BORDER);
-        g.fill(left, bottom - 1, right, bottom, BORDER);
 
         g.text(font, "SkyJew Notes", left + 18, 58, YELLOW, true);
         g.text(font, "Saved automatically when you close. ENTER creates a new line.", left + 150, 58, MUTED, false);
