@@ -27,6 +27,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishNopoFeatures.init(configDir);
         TastyFishMouseLock.init(config);
         TastyFishGlobalChat.init();
+        TastyFishExperimentHelper.init(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         TastyFishVersionChecker.check(minecraft);
@@ -164,6 +165,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishNopoFeatures.tick(minecraft);
         TastyFishMouseLock.tick(minecraft);
         TastyFishGlobalChat.tick();
+        TastyFishExperimentHelper.tick(minecraft);
         TastyFishFoxy.tick(minecraft);
     }
 }
