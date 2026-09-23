@@ -28,13 +28,13 @@ public final class TastyFishCommandKeys {
     private static final String FILE_NAME = "tastyfish-command-keys.json";
     private static final Random RANDOM = new Random();
 
-    public enum Mode { SEND, TYPE, CYCLE, RANDOM, REPEAT }
+    public enum Mode { SEND, TYPE, EDIT, CYCLE, RANDOM, REPEAT }
 
     public enum Conflict { SUBMIT, ASSERT, VETO, AVOID }
 
     public static final class Macro {
         public String name = "New Macro";
-        public int keyCode = GLFW.GLFW_KEY_UNKNOWN;
+        public int keyCode = GLFW.GLFW_KEY_UNKNOWN;\n        public boolean mouseButton = false;
         public int modifier = 0;
         public Mode mode = Mode.SEND;
         public int delayMs = 250;
@@ -47,7 +47,7 @@ public final class TastyFishCommandKeys {
 
     public static final class Profile {
         public String name = "Default";
-        public String match = "";
+        public String match = "";\n        public boolean singleplayerDefault = false;\n        public boolean multiplayerDefault = false;
         public List<Macro> macros = new ArrayList<>();
     }
 
@@ -59,7 +59,7 @@ public final class TastyFishCommandKeys {
     private static Data data = new Data();
     private static Path configDir;
     private static boolean initialized;
-    private static final java.util.Set<Integer> previousKeys = new java.util.HashSet<>();
+    private static final java.util.Set<Integer> previousKeys = new java.util.HashSet<>();\n    private static final java.util.Set<Integer> previousMouseButtons = new java.util.HashSet<>();\n    private static String lastSent = "";\n    private static String lastCommand = "";\n    private static String lastPrivateSender = "";\n    private static String editValue = "";
 
     private TastyFishCommandKeys() {}
 
@@ -123,7 +123,7 @@ public final class TastyFishCommandKeys {
                 return p;
             }
         }
-        return defaultProfile;
+        for (Profile p : data.profiles) {\n            if (target.equals("singleplayer") && p.singleplayerDefault) return p;\n            if (!target.equals("singleplayer") && p.multiplayerDefault) return p;\n        }\n        return defaultProfile;
     }
 
     private static String currentTarget(Minecraft mc) {
