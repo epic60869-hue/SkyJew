@@ -15,6 +15,12 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     implementation 'com.google.code.gson:gson:2.13.2'
+
+    // MoulConfig: the same config engine used by SkyHanni/NotEnoughUpdates.
+    implementation "org.notenoughupdates.moulconfig:modern-26.2:${project.moulconfig_version}"
+    include "org.notenoughupdates.moulconfig:modern-26.2:${project.moulconfig_version}"
+    implementation "net.fabricmc:fabric-language-kotlin:${project.flk_version}"
+    include "net.fabricmc:fabric-language-kotlin:${project.flk_version}"
 }
 
 java {
