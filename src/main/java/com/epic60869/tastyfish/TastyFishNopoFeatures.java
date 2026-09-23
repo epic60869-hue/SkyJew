@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.component.DataComponents;
@@ -83,7 +82,6 @@ public final class TastyFishNopoFeatures {
         configDir = dir;
         loadJson();
         loadEmojis();
-        registerChatEmojiProtection();
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
         registerOverflowPets();
         registerPetHud();
@@ -97,20 +95,6 @@ public final class TastyFishNopoFeatures {
             petTick = 0;
             updatePetDisplay(mc);
         }
-    }
-
-    private static void registerChatEmojiProtection() {
-        ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signed, sender, params, timestamp) -> {
-            if (EMOJIS.isEmpty()) return true;
-            Component replaced = replaceEmojis(message);
-            if (replaced == message || replaced.getString().equals(message.getString())) return true;
-
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.gui != null) mc.gui.getChat().addMessage(replaced);
-            return false;
-        });
-
-        ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> true);
     }
 
     private static void registerOverflowPets() {
@@ -164,13 +148,12 @@ public final class TastyFishNopoFeatures {
     }
 
     private static void updatePetDisplay(Minecraft mc) {
-        if (!isHypixel() || mc.connection == null) {
+        if (!isHypixel() || mc.getConnection() == null) {
             petDisplay = null;
             return;
         }
 
-        List<Component> tab = mc.connection.onlinePlayers.stream()
-            .sorted(PlayerTabOverlay.PLAYER_COMPARATOR)
+        List<Component> tab = mc.getConnection().getOnlinePlayers().stream()
             .map(PlayerInfo::getTabListDisplayName)
             .filter(Objects::nonNull)
             .toList();
@@ -208,7 +191,7 @@ public final class TastyFishNopoFeatures {
 
             Matcher xpMatch = Pattern.compile("^ +\\+(?<xp>[\\d,.]+) XP$").matcher(line);
             if (xpMatch.matches()) {
-                currentXp = parseDouble(xpMatch.group("xp"));
+                currentXp = (float) parseDouble(xpMatch.group("xp"));
                 maxLevel = true;
                 float totalXp = currentXp + calculativeXpForLevel(realLevel, rarityOffset);
                 overflowLevel = calcLevel(totalXp, rarityOffset);
@@ -283,7 +266,7 @@ public final class TastyFishNopoFeatures {
             };
             return Optional.empty();
         }, Style.EMPTY);
-        return result[0];
+        return result;
     }
 
     private static String styleColorName(Style style) {
@@ -433,7 +416,7 @@ public final class TastyFishNopoFeatures {
     }
 
     public static Component replaceChatEmojis(Component message) {
-        final Component[] result = {Component.empty()};
+        final MutableComponent result = Component.empty();
         message.visit((style, value) -> {
             if (value == null || value.isEmpty()) return Optional.empty();
 
@@ -459,7 +442,7 @@ public final class TastyFishNopoFeatures {
             if (cursor < value.length()) {
                 out.append(Component.literal(value.substring(cursor)).withStyle(style));
             }
-            result[0].append(out);
+            result.append(out);
             return Optional.empty();
         }, Style.EMPTY);
         return result[0];
