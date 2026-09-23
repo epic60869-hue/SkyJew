@@ -190,16 +190,14 @@ public final class SkyJewMod implements ClientModInitializer {
         try {
             String result = SkyJewCalculator.calculate(expression);
             if (mc.player != null) {
-                mc.player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("§6[SkyJew] §f" + expression + " §7= §a" + result),
-                    false
+                mc.gui.hud.getChat().addClientSystemMessage(
+                    net.minecraft.network.chat.Component.literal("§6[SkyJew] §f" + expression + " §7= §a" + result)
                 );
             }
         } catch (IllegalArgumentException e) {
             if (mc.player != null) {
-                mc.player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("§c[SkyJew] Calc error: §f" + e.getMessage()),
-                    false
+                mc.gui.hud.getChat().addClientSystemMessage(
+                    net.minecraft.network.chat.Component.literal("§c[SkyJew] Calc error: §f" + e.getMessage())
                 );
             }
         }
