@@ -22,7 +22,55 @@ java {
     withSourcesJar()
 }
 
+def nopoEmojiGeneratedDir = file("$buildDir/generated/nopo-emojis")
+
+sourceSets {
+    main {
+        resources {
+            srcDir nopoEmojiGeneratedDir
+        }
+    }
+}
+
+tasks.register('downloadNopoEmojiAssets') {
+    outputs.dir nopoEmojiGeneratedDir
+    doLast {
+        def marker = new File(nopoEmojiGeneratedDir, '.complete')
+        if (marker.exists()) return
+
+        delete nopoEmojiGeneratedDir
+        mkdir nopoEmojiGeneratedDir
+
+        def zipFile = new File(temporaryDir, 'NopoMod.zip')
+        def url = new URL('https://github.com/NopoTheGamer/NopoMod/archive/3243c18910c1b281f6585cd4657b349df4c60d50.zip')
+        url.withInputStream { input -> zipFile.withOutputStream { output -> output << input } }
+
+        def prefix = 'NopoMod-3243c18910c1b281f6585cd4657b349df4c60d50/src/main/resources/assets/nopo/'
+        def spritesPrefix = prefix + 'textures/gui/sprites/'
+
+        zipTree(zipFile).visit { details ->
+            if (details.isDirectory()) return
+            def path = details.relativePath.pathString
+            if (path == prefix + 'emojis.json') {
+                copy {
+                    from details.file
+                    into new File(nopoEmojiGeneratedDir, 'assets/tastyfish')
+                    rename { 'emojis.json' }
+                }
+            } else if (path.startsWith(spritesPrefix) && path.endsWith('.png')) {
+                copy {
+                    from details.file
+                    into new File(nopoEmojiGeneratedDir, 'assets/tastyfish/textures/gui/sprites')
+                }
+            }
+        }
+
+        marker.text = 'Nopo emoji assets fetched from pinned upstream commit.'
+    }
+}
+
 processResources {
+    dependsOn tasks.named('downloadNopoEmojiAssets')
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') {
         expand 'version': project.version

@@ -38,6 +38,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishCommandKeys.init(configDir);
         TastyFishStorageSearch.init(configDir);
         TastyFishCustom.init(configDir);
+        TastyFishNopoFeatures.init(configDir);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         startGameSession(minecraft);
@@ -181,6 +182,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishCommandKeys.tick(minecraft);
         TastyFishStorageSearch.tick(minecraft);
         TastyFishCustom.tick(minecraft);
+        TastyFishNopoFeatures.tick(minecraft);
         if (!gameSessionStarted || minecraft.player == null) return;
 
         if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) {

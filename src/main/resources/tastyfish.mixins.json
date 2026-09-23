@@ -5,6 +5,7 @@
   "mixins": [
     "TastyFishItemStackMixin",
     "TastyFishDyedItemColorMixin",
-    "TastyFishDataComponentHolderMixin"
+    "TastyFishDataComponentHolderMixin",
+    "TastyFishChatHudMixin"
   ]
 }
