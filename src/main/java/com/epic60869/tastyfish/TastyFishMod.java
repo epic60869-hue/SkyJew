@@ -152,5 +152,6 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishStorageSearch.tick(minecraft);
         TastyFishCustom.tick(minecraft);
         TastyFishNopoFeatures.tick(minecraft);
+        TastyFishFoxy.tick(minecraft);
     }
 }
