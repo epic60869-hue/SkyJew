@@ -42,23 +42,22 @@ public final class SkyJewRngHud {
         return config == null ? 1.0f : config.farming.rng.scale;
     }
 
-    public static int x() { return posX; }
-    public static int y() { return posY; }
-
-    private static int posX = 8;
-    private static int posY = 8;
+    public static int x() { return positionX(); }
+    public static int y() { return positionY(); }
 
     private static int positionX() {
-        return posX;
+        return config == null ? 8 : config.farming.rng.x;
     }
 
     private static int positionY() {
-        return posY;
+        return config == null ? 8 : config.farming.rng.y;
     }
 
     public static void setPosition(int x, int y) {
-        posX = Math.max(0, x);
-        posY = Math.max(0, y);
+        if (config == null) return;
+        config.farming.rng.x = Math.max(0, x);
+        config.farming.rng.y = Math.max(0, y);
+        save();
     }
 
     public static void setScale(float value) {
