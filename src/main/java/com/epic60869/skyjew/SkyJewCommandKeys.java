@@ -19,7 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Built-in Command Keys style macro system for SkyJew.
+ * Built-in Command Keys style keybind system for SkyJew.
  *
  * This is client-side and intentionally stores only the macro configuration.
  */
@@ -33,7 +33,7 @@ public final class SkyJewCommandKeys {
     public enum Conflict { SUBMIT, ASSERT, VETO, AVOID }
 
     public static final class Macro {
-        public String name = "New Macro";
+        public String name = "New Keybind";
         public int keyCode = GLFW.GLFW_KEY_UNKNOWN;
         public boolean mouseButton = false;
         public int modifier = 0;
