@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "package": "com.epic60869.skyjew.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "SkyJewItemStackMixin",
+    "SkyJewDyedItemColorMixin",
+    "SkyJewDataComponentHolderMixin",
+    "SkyJewChatHudMixin",
+    "SkyJewMouseHandlerMixin",
+    "SkyJewExperimentScreenMixin"
+  ]
+}
