@@ -35,6 +35,10 @@ public final class SkyJewConfig extends Config {
     public General general = new General();
 
     @Expose
+    @Category(name = "Chat", desc = "Chat quality-of-life features.")
+    public Chat chat = new Chat();
+
+    @Expose
     @Category(name = "Farming", desc = "Farming overlays and RNG tools.")
     public Farming farming = new Farming();
 
@@ -77,6 +81,13 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         public boolean firstBootAcknowledged = false;
+    }
+
+    public static final class Chat {
+        @Expose
+        @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
+        @ConfigEditorBoolean
+        public boolean compactChat = true;
     }
 
     public static final class Farming {
