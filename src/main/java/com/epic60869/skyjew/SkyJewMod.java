@@ -65,6 +65,7 @@ public final class SkyJewMod implements ClientModInitializer {
                 .then(ClientCommands.argument("value", StringArgumentType.greedyString())
                     .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
             .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
+            .then(ClientCommands.literal("gui").executes(context -> openHudEditor()))
             .then(customCommand());
     }
 
@@ -177,6 +178,12 @@ public final class SkyJewMod implements ClientModInitializer {
     private int openDiscord() {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> mc.gui.setScreen(new SkyJewDiscordScreen(mc.gui.screen())));
+        return 1;
+    }
+
+    private int openHudEditor() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewHudEditorScreen(mc.gui.screen())));
         return 1;
     }
 
