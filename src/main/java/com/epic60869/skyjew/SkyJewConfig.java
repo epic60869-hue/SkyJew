@@ -6,6 +6,7 @@ import com.google.gson.annotations.Expose;
 import io.github.notenoughupdates.moulconfig.Config;
 import io.github.notenoughupdates.moulconfig.annotations.Category;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
+import io.github.notenoughupdates.moulconfig.annotations.Accordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
@@ -193,6 +194,40 @@ public final class SkyJewConfig extends Config {
         public boolean backpack = true;
     }
 
+    public static final class Misc {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
+        public Nickname nickname = new Nickname();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mouse Reset", desc = "Reset the mouse cursor when selected SkyBlock menus open.")
+        public MouseReset mouseReset = new MouseReset();
+    }
+
+    public static final class MouseReset {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Enable automatic mouse reset for selected menus.")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "Accessory Bag", desc = "Reset the cursor when the Accessory Bag opens.")
+        @ConfigEditorBoolean
+        public boolean accessoryBag = true;
+
+        @Expose
+        @ConfigOption(name = "Ender Chest", desc = "Reset the cursor when an Ender Chest opens.")
+        @ConfigEditorBoolean
+        public boolean enderChest = true;
+
+        @Expose
+        @ConfigOption(name = "Backpack", desc = "Reset the cursor when a Backpack opens.")
+        @ConfigEditorBoolean
+        public boolean backpack = true;
+    }
+
     public static final class Nickname {
         @Expose
         @ConfigOption(name = "Nickname Enabled", desc = "Use your SkyJew nickname in SkyJew global chat.")
@@ -241,6 +276,11 @@ public final class SkyJewConfig extends Config {
         Minecraft mc = Minecraft.getInstance();
         Path dir = mc.gameDirectory.toPath().resolve("config");
         mc.execute(() -> mc.gui.setScreen(new SkyJewCommandKeysScreen(dir)));
+    }
+
+    private static void openRngEditor() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewRngHudScreen(mc.gui.screen())));
     }
 
     private static void openRngEditor() {
