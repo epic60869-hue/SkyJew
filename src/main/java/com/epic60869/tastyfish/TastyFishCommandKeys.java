@@ -149,9 +149,9 @@ public final class TastyFishCommandKeys {
     }
 
     public static void tick(Minecraft mc) {
-        if (!initialized || mc.player == null || mc.screen != null) return;
+        if (!initialized || mc.player == null || mc.gui.screen() != null) return;
 
-        long window = mc.getWindow().getWindow();
+        long window = mc.getWindow().handle();
         Profile profile = activeProfile();
 
         for (Macro macro : profile.macros) {
