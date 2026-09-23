@@ -238,8 +238,8 @@ public final class SkyJewStorageSearch {
                                          net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen,
                                          Slot slot) {
         double scale = mc.getWindow().getGuiScale();
-        double x = (screen.getGuiLeft() + slot.x + 8) * scale;
-        double y = (screen.getGuiTop() + slot.y + 8) * scale;
+        double x = (screen.getX() + slot.x + 8) * scale;
+        double y = (screen.getY() + slot.y + 8) * scale;
         GLFW.glfwSetCursorPos(mc.getWindow().handle(), x, y);
     }
 
