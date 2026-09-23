@@ -210,7 +210,7 @@ public final class TastyFishCommandKeys {
 
         if (macro.mode == Mode.TYPE) {
             String text = expand(macro.commands.get(0), mc);
-            mc.gui.setScreen(new ChatScreen(text));
+            mc.gui.setScreen(new ChatScreen(text, false, false));
             return;
         }
 
