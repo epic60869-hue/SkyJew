@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
 import java.nio.file.Path;
@@ -195,10 +196,21 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        if (!config.general.firstBootAcknowledged && !firstBootScreenShown) {
+        // Do not show the first-boot screen during Minecraft's startup/resource
+        // loading. The loading screen replaces custom screens at that stage,
+        // which also causes the first-boot sound to be stopped.
+        if (!config.general.firstBootAcknowledged
+            && !firstBootScreenShown
+            && minecraft.gui.screen() instanceof TitleScreen) {
             firstBootScreenShown = true;
             Screen currentScreen = minecraft.gui.screen();
-            minecraft.execute(() -> minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, currentScreen)));
+            minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, currentScreen));
+            return;
+        }
+
+        if (!config.general.firstBootAcknowledged
+            && minecraft.gui.screen() instanceof SkyJewFirstBootScreen) {
+            SkyJewSounds.tickFirstBoot();
             return;
         }
         SkyJewCommandKeys.tick(minecraft);
