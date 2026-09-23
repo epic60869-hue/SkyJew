@@ -20,6 +20,7 @@ public final class SkyJewSounds {
     );
 
     private static FirstBootSoundInstance firstBootInstance;
+    private static int firstBootTicks;
 
     private SkyJewSounds() {}
 
@@ -33,7 +34,24 @@ public final class SkyJewSounds {
 
         FirstBootSoundInstance instance = new FirstBootSoundInstance();
         firstBootInstance = instance;
+        firstBootTicks = 0;
         mc.getSoundManager().play(instance);
+    }
+
+    /**
+     * Keeps the first-boot audio alive even if the sound manager ends a
+     * looping instance. The bundled clip is short, so restart it before the
+     * two-second clip can finish.
+     */
+    public static void tickFirstBoot() {
+        if (firstBootInstance == null) {
+            playFirstBoot();
+            return;
+        }
+
+        if (++firstBootTicks >= 100) {
+            playFirstBoot();
+        }
     }
 
     public static void stopFirstBoot() {
@@ -41,6 +59,8 @@ public final class SkyJewSounds {
         if (firstBootInstance != null) {
             mc.getSoundManager().stop(firstBootInstance);
             firstBootInstance = null;
+        }
+        firstBootTicks = 0;
         }
     }
 
