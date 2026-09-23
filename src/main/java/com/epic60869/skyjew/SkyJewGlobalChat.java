@@ -162,6 +162,7 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("username", username);
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
+            });
     }
 
     private static String shortError(Throwable error) {
