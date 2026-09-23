@@ -1,7 +1,7 @@
 {
   "first_boot_ratted": {
     "sounds": [
-      "skyjew-mod:first_boot_ratted"
+      "skyjew:first_boot_ratted"
     ]
   }
 }
