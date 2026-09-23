@@ -2,13 +2,13 @@ package com.epic60869.skyjew;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.RandomSource;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 
 public final class SkyJewSounds {
     private static final Identifier FIRST_BOOT_ID =
@@ -42,8 +42,8 @@ public final class SkyJewSounds {
         Minecraft mc = Minecraft.getInstance();
         firstBootPlayed = true;
 
-        // This uses the same non-positional/master-style playback as a UI sound,
-        // but enables the SoundInstance loop flag so the OGG repeats indefinitely.
+        // Same non-positional/master-style playback as a UI sound, but with
+        // the loop flag enabled so the OGG repeats until it is stopped.
         firstBootSound = new SimpleSoundInstance(
             FIRST_BOOT_ID,
             SoundSource.MASTER,
