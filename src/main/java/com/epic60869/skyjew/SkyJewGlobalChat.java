@@ -57,7 +57,7 @@ public final class SkyJewGlobalChat {
                 PENDING_MESSAGES.offer(clean.substring(0, Math.min(clean.length(), 500)));
             }
             connect();
-            mcMessage(Component.literal("[SkyJew] Global chat is connecting; your message will be sent when connected.")
+            mcMessage(Component.literal("[SJ] Global chat is connecting; your message will be sent when connected.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -87,7 +87,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SkyJew] Discord is still connecting...")
+            mcMessage(Component.literal("[SJ] Discord is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -104,13 +104,13 @@ public final class SkyJewGlobalChat {
         String cleanMessage = String.valueOf(message == null ? "" : message).trim();
 
         if (cleanTarget.isEmpty()) {
-            mcMessage(Component.literal("[SkyJew] Usage: /sj dm <discord-user> <message/link>")
+            mcMessage(Component.literal("[SJ] Usage: /sj dm <discord-user> <message/link>")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
 
         if (cleanMessage.isEmpty()) {
-            mcMessage(Component.literal("[SkyJew] The Discord DM cannot be empty.")
+            mcMessage(Component.literal("[SJ] The Discord DM cannot be empty.")
                 .withStyle(Style.EMPTY.withColor(0xFF5555)));
             return;
         }
@@ -124,7 +124,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SkyJew] Discord link is still connecting. Try again in a moment.")
+            mcMessage(Component.literal("[SJ] Discord link is still connecting. Try again in a moment.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -147,7 +147,7 @@ public final class SkyJewGlobalChat {
                     if (relayIndex + 1 < RELAY_URLS.length) {
                         relayIndex++;
                     }
-                    mcMessage(Component.literal("[SkyJew] Global chat connection failed: "
+                    mcMessage(Component.literal("[SJ] Global chat connection failed: "
                         + shortError(error) + " — retrying.")
                         .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     scheduleReconnect();
@@ -162,10 +162,6 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("username", username);
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
-
-                mcMessage(Component.literal("[SkyJew] Global chat connected.")
-                    .withStyle(Style.EMPTY.withColor(0x55FF55)));
-            });
     }
 
     private static String shortError(Throwable error) {
@@ -253,10 +249,10 @@ public final class SkyJewGlobalChat {
                     String detail = packet.has("message") ? packet.get("message").getAsString() : "";
 
                     if (ok) {
-                        mcMessage(Component.literal("[SkyJew] Discord DM sent to " + target + ".")
+                        mcMessage(Component.literal("[SJ] Discord DM sent to " + target + ".")
                             .withStyle(Style.EMPTY.withColor(0x55FF55)));
                     } else {
-                        mcMessage(Component.literal("[SkyJew] Discord DM failed: " + detail)
+                        mcMessage(Component.literal("[SJ] Discord DM failed: " + detail)
                             .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     }
                     return;
@@ -273,7 +269,7 @@ public final class SkyJewGlobalChat {
                 if (name.isBlank()) name = "Unknown";
 
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
-                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SkyJew]";
+                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
 
                 String line = prefix + " [" + name + "] " + message;
                 mcMessage(Component.literal(line));
