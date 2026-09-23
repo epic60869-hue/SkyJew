@@ -36,7 +36,7 @@ public final class SkyJewNick {
         String value = input == null ? "" : input.trim();
 
         if (value.isEmpty() || value.equalsIgnoreCase("off") || value.equalsIgnoreCase("reset")) {
-            config().nickname.enabled = false;
+            config().misc.nickname.enabled = false;
             config().nickname.name = "";
             config().nickname.style = "Plain";
             config().nickname.customHex = "";
