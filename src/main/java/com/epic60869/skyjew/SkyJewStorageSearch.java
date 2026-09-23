@@ -51,8 +51,8 @@ public final class SkyJewStorageSearch {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "skyjew-storage-search.json";
 
-    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)^Ender Chest\\s*#?\\s*(\\d+).*$");
-    private static final Pattern BACKPACK = Pattern.compile("(?i)^Backpack\\s*#?\\s*(\\d+).*$");
+    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)ender chest\\s*#?\\s*(\\d+)");
+    private static final Pattern BACKPACK = Pattern.compile("(?i)backpack\\s*#?\\s*(\\d+)");
 
     private static final long CAPTURE_INTERVAL_MS = 400L;
     private static final long SAVE_INTERVAL_MS = 1200L;
@@ -64,6 +64,7 @@ public final class SkyJewStorageSearch {
     private static long lastSave;
     private static boolean dirty;
     private static boolean previousOpenKey;
+    private static Result pendingHighlight;
 
     private record Page(String type, int number, String label, String blob, long updatedMs) {}
 
@@ -82,6 +83,7 @@ public final class SkyJewStorageSearch {
         if (!initialized || mc.player == null) return;
 
         captureOpenStorage(mc);
+        applyPendingHighlight(mc);
 
         boolean ctrl = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
                 || GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
@@ -182,6 +184,7 @@ public final class SkyJewStorageSearch {
     }
 
     public static void openResult(Minecraft mc, Result result) {
+        pendingHighlight = result;
         if ("INVENTORY".equals(result.type())) {
             mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
             return;
@@ -199,6 +202,46 @@ public final class SkyJewStorageSearch {
         }
     }
 
+    private static void applyPendingHighlight(Minecraft mc) {
+        Result result = pendingHighlight;
+        if (result == null || mc.gui.screen() == null) return;
+
+        if ("INVENTORY".equals(result.type())) {
+            if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
+            if (result.slot() >= screen.getMenu().slots.size()) return;
+            moveCursorToSlot(mc, screen, screen.getMenu().slots.get(result.slot()));
+            pendingHighlight = null;
+            return;
+        }
+
+        if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
+        String title = cleanTitle(screen.getTitle().getString());
+        boolean matching = result.type().equals("ENDER_CHEST")
+            ? title.contains("ender chest")
+            : title.contains("backpack");
+        if (!matching) return;
+
+        if (result.slot() >= 0 && result.slot() < screen.getMenu().slots.size()) {
+            moveCursorToSlot(mc, screen, screen.getMenu().slots.get(result.slot()));
+            pendingHighlight = null;
+        }
+    }
+
+    private static void moveCursorToSlot(Minecraft mc,
+                                         net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen,
+                                         Slot slot) {
+        double scale = mc.getWindow().getGuiScale();
+        double x = (screen.getGuiLeft() + slot.x + 8) * scale;
+        double y = (screen.getGuiTop() + slot.y + 8) * scale;
+        GLFW.glfwSetCursorPos(mc.getWindow().handle(), x, y);
+    }
+
+    private static String cleanTitle(String title) {
+        return title.replaceAll("§[0-9A-FK-ORa-fk-or]", "")
+            .replaceAll("\\s+", " ")
+            .trim().toLowerCase(Locale.ROOT);
+    }
+
     private static void captureOpenStorage(Minecraft mc) {
         if (!isHypixel(mc)) return;
         if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> container)) return;
@@ -208,7 +251,7 @@ public final class SkyJewStorageSearch {
         if (now - lastCapture < CAPTURE_INTERVAL_MS) return;
         lastCapture = now;
 
-        StorageTarget target = identify(container.getTitle().getString());
+        StorageTarget target = identify(cleanTitle(container.getTitle().getString()));
         if (target == null) return;
 
         List<Slot> slots = container.getMenu().slots;
@@ -233,14 +276,15 @@ public final class SkyJewStorageSearch {
     }
 
     private static StorageTarget identify(String title) {
-        Matcher ender = ENDER_CHEST.matcher(title.trim());
-        if (ender.matches()) {
+        String normalized = title == null ? "" : title.trim();
+        Matcher ender = ENDER_CHEST.matcher(normalized);
+        if (ender.find()) {
             int number = parseNumber(ender.group(1));
             return number > 0 ? new StorageTarget("ENDER_CHEST", number, "Ender Chest #" + number) : null;
         }
 
-        Matcher backpack = BACKPACK.matcher(title.trim());
-        if (backpack.matches()) {
+        Matcher backpack = BACKPACK.matcher(normalized);
+        if (backpack.find()) {
             int number = parseNumber(backpack.group(1));
             return number > 0 ? new StorageTarget("BACKPACK", number, "Backpack #" + number) : null;
         }
