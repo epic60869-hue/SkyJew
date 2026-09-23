@@ -23,7 +23,7 @@ public final class TastyFishFoxy {
 
         if (RANDOM.nextInt(10_000) == 0) {
             mc.getSoundManager().play(
-                SimpleSoundInstance.forUI(SoundEvents.ENTITY_GHAST_SCREAM, 1.5F, 0.72F)
+                SimpleSoundInstance.forUI(SoundEvents.GHAST_SCREAM, 1.5F, 0.72F)
             );
             mc.gui.setScreen(new TastyFishFoxyScreen(mc.gui.screen()));
         }
