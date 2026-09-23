@@ -20,16 +20,16 @@ import java.util.Locale;
  * customization controls on the right.
  */
 public final class SkyJewCustomScreen extends Screen {
-    private static final int BG = 0xFF101216;
-    private static final int PANEL = 0xFF191D24;
-    private static final int PANEL_2 = 0xFF20252E;
-    private static final int PANEL_3 = 0xFF272D37;
-    private static final int BORDER = 0xFF3A414D;
-    private static final int TEXT = 0xFFF4F4F4;
-    private static final int MUTED = 0xFFA7ADB8;
-    private static final int ACCENT = 0xFFE7B84B;
-    private static final int ACTIVE = 0xFF4B5360;
-    private static final int HOVER = 0xFF343B46;
+    private static final int BG = 0xFF101010;
+    private static final int PANEL = 0xFF161616;
+    private static final int PANEL_2 = 0xFF202020;
+    private static final int PANEL_3 = 0xFF292929;
+    private static final int BORDER = 0xFF565656;
+    private static final int TEXT = 0xFFF0F0F0;
+    private static final int MUTED = 0xFFB7B7B7;
+    private static final int ACCENT = 0xFFD0D0D0;
+    private static final int ACTIVE = 0xFF3A3A3A;
+    private static final int HOVER = 0xFF4A4A4A;
     private static final int GREEN = 0xFF6BE7A0;
     private static final int RED = 0xFFE56A6A;
 
@@ -60,22 +60,22 @@ public final class SkyJewCustomScreen extends Screen {
         clearWidgets();
         refreshTarget();
 
-        int panelWidth = Math.min(900, width - 30);
-        int panelHeight = Math.min(520, height - 30);
+        int panelWidth = Math.min(720, width - 30);
+        int panelHeight = Math.min(500, height - 30);
         int left = (width - panelWidth) / 2;
         int top = (height - panelHeight) / 2;
 
         // Top tab bar.
-        addRenderableWidget(Button.builder(Component.literal("ARMOUR"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Armor"), b -> {
             armorTab = true;
             selectedSlot = firstEditableArmorSlot();
             init();
-        }).bounds(left, top, 130, 28).build());
+        }).bounds(left + 55, top, 270, 28).build());
 
-        addRenderableWidget(Button.builder(Component.literal("ITEM"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Item"), b -> {
             armorTab = false;
             init();
-        }).bounds(left + 132, top, 130, 28).build());
+        }).bounds(left + 335, top, 270, 28).build());
 
         int right = left + panelWidth;
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
@@ -312,8 +312,8 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(left, top, right, top + 2, ACCENT);
 
         // Tab bar.
-        g.fill(left, top, left + 264, top + 28, PANEL_2);
-        g.fill(left + (armorTab ? 0 : 132), top, left + (armorTab ? 130 : 262), top + 28, ACTIVE);
+        g.fill(left + 55, top, left + 605, top + 28, PANEL_2);
+        g.fill(left + (armorTab ? 55 : 335), top, left + (armorTab ? 325 : 605), top + 28, ACTIVE);
 
         // Content split.
         int contentTop = top + 42;
@@ -323,7 +323,7 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(left + 10, contentTop, previewRight - 5, bottom - 10, PANEL_2);
         outline(g, left + 10, contentTop, previewRight - 5, bottom - 10, BORDER);
 
-        g.text(font, armorTab ? "Armour Customization" : "Item Customization",
+        g.text(font, armorTab ? "Armor" : "Item",
                 left + 22, contentTop + 12, TEXT, true);
 
         g.text(font, target.isEmpty() ? "No item selected" : target.getHoverName().getString(),
@@ -334,7 +334,7 @@ public final class SkyJewCustomScreen extends Screen {
             outline(g, left + 83, contentTop + 55, left + 202, contentTop + 174, BORDER);
             g.item(target, left + 121, contentTop + 75);
             g.text(font, "Selected", left + 117, contentTop + 144, MUTED, false);
-            g.text(font, "UUID", left + 23, contentTop + 188, ACCENT, true);
+            g.text(font, "Item UUID", left + 23, contentTop + 188, ACCENT, true);
             String uuid = SkyJewCustom.uuid(target);
             g.text(font, uuid.isBlank() ? "No UUID" : trim(uuid, 30),
                     left + 23, contentTop + 205, uuid.isBlank() ? RED : MUTED, false);
@@ -342,7 +342,7 @@ public final class SkyJewCustomScreen extends Screen {
 
         if (armorTab) {
             drawArmorSelector(g, left + 22, bottom - 78, mouseX, mouseY);
-            g.text(font, "Select a piece to customize it", left + 22, bottom - 28, MUTED, false);
+            g.text(font, "Select an armor piece to customize it", left + 22, bottom - 28, MUTED, false);
         } else {
             g.text(font, "Main-hand item", left + 22, bottom - 55, MUTED, false);
             g.text(font, "Hold the item you want to customize before opening this screen.",
