@@ -34,7 +34,6 @@ public final class TastyFishMod implements ClientModInitializer {
         history = new FarmingHistory(configDir.resolve("tastyfish-farming.json"));
         FarmingRngTracker.get().register();
         TastyFishRngHud.register(config);
-        TastyFishGuildLeaderboardHud.register(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         // The farming session belongs to the Minecraft process. Hypixel
@@ -106,8 +105,6 @@ public final class TastyFishMod implements ClientModInitializer {
     private void tick(Minecraft minecraft) {
         // Never use minecraft.player as a session boundary. It is null while
         // disconnected from Hypixel, but the Minecraft game is still running.
-        TastyFishGuildLeaderboardHud.tick();
-
         long now = System.currentTimeMillis();
         if (!gameSessionStarted || minecraft.player == null) return;
 
