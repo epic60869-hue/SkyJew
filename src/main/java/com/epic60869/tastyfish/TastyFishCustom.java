@@ -15,6 +15,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import net.minecraft.world.item.equipment.trim.TrimMaterial;
 import net.minecraft.world.item.equipment.trim.TrimPattern;
@@ -84,7 +86,9 @@ public final class TastyFishCustom {
 
     public static String uuid(ItemStack stack) {
         try {
-            return stack == null ? "" : stack.getUuid();
+            if (stack == null) return "";
+            CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+            return data == null ? "" : data.copyTag().getStringOr("uuid", "");
         } catch (Throwable ignored) {
             return "";
         }
@@ -158,7 +162,13 @@ public final class TastyFishCustom {
         String value = getName(stack);
         if (value == null || value.isBlank()) return original;
         try {
-            if (value.trim().startsWith("{")) return Component.Serializer.fromJson(value);
+            if (value.trim().startsWith("{")) {
+                try {
+                    return net.minecraft.network.chat.ComponentSerialization.CODEC
+                            .parse(com.mojang.serialization.JsonOps.INSTANCE, JsonParser.parseString(value))
+                            .result().orElse(null);
+                } catch (Throwable ignored) {}
+            }
         } catch (Throwable ignored) {}
         return Component.literal(value);
     }
