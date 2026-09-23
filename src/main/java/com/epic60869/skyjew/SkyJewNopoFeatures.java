@@ -138,16 +138,41 @@ public final class SkyJewNopoFeatures {
     }
 
     private static void renderPetHud(GuiGraphicsExtractor context) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null || !config.pets.display) return;
         if (!isHypixel() || petDisplay == null || petDisplay.isEmpty()) return;
+        renderPetHudAt(context, config.pets.x, config.pets.y, false);
+    }
+
+    public static void renderPetHudPreview(GuiGraphicsExtractor context, int x, int y) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null) return;
+        if (petDisplay != null && !petDisplay.isEmpty()) {
+            renderPetHudAt(context, x, y, true);
+            return;
+        }
+
         var font = Minecraft.getInstance().font;
-        int x = 10;
-        int y = 10;
+        context.fill(x - 6, y - 6, x + 230, y + 34, 0x99000000);
+        context.text(font, Component.literal("Pet:"), x, y, 0xFFFFD83D, true);
+        context.text(font, Component.literal("[Lvl 200] Golden Dragon"), x, y + 11, 0xFFFFAA00, false);
+        context.text(font, Component.literal("2,345,678/2,500,000 XP (93.8%)"), x, y + 22, 0xFFFFD83D, false);
+    }
+
+    private static void renderPetHudAt(GuiGraphicsExtractor context, int x, int y, boolean preview) {
+        var font = Minecraft.getInstance().font;
+        if (preview) context.fill(x - 6, y - 6, x + 250, y + petDisplay.size() * 11 + 6, 0x99000000);
         for (int i = 0; i < petDisplay.size(); i++) {
-            context.text(font, petDisplay.get(i), x, y + i * 10, -1);
+            context.text(font, petDisplay.get(i), x, y + i * 11, -1);
         }
     }
 
     private static void updatePetDisplay(Minecraft mc) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null || !config.pets.display || !config.pets.autoDisplay) {
+            petDisplay = null;
+            return;
+        }
         if (!isHypixel() || mc.getConnection() == null) {
             petDisplay = null;
             return;
@@ -160,7 +185,8 @@ public final class SkyJewNopoFeatures {
 
         int petIndex = -1;
         for (int i = 0; i < tab.size(); i++) {
-            if ("Pet:".equals(tab.get(i).getString().trim())) {
+            if (tab.get(i).getString().trim().equalsIgnoreCase("Pet:")
+                    || tab.get(i).getString().trim().startsWith("Pet:")) {
                 petIndex = i;
                 break;
             }
