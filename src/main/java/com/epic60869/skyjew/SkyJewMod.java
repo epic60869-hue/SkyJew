@@ -106,8 +106,7 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private int openMenu() {
-        Minecraft.getInstance().execute(() ->
-            Minecraft.getInstance().gui.setScreen(new SkyJewScreen(config)));
+        Minecraft.getInstance().execute(SkyJewConfig::openGui);
         return 1;
     }
 
@@ -160,8 +159,7 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private int openNick() {
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.gui.setScreen(new SkyJewNickScreen(config, mc.gui.screen())));
+        Minecraft.getInstance().execute(SkyJewConfig::openGui);
         return 1;
     }
 
