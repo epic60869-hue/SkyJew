@@ -13,6 +13,7 @@ import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class TastyFishGlobalChat {
     private static final String RELAY_URL =
@@ -24,6 +25,7 @@ public final class TastyFishGlobalChat {
         .build();
 
     private static final AtomicBoolean CONNECTING = new AtomicBoolean(false);
+    private static final AtomicLong REQUEST_IDS = new AtomicLong();
     private static volatile WebSocket socket;
     private static volatile long reconnectAt = 0L;
     private static volatile String username = "Unknown";
@@ -59,6 +61,22 @@ public final class TastyFishGlobalChat {
             mcMessage(Component.literal("[Mod] Global chat is reconnecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
         }
+    }
+
+    public static void requestDiscord(String action, JsonObject data) {
+        WebSocket ws = socket;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            connect();
+            mcMessage(Component.literal("[Mod] Discord is still connecting...")
+                .withStyle(Style.EMPTY.withColor(0xFFFF55)));
+            return;
+        }
+
+        JsonObject packet = data == null ? new JsonObject() : data.deepCopy();
+        packet.addProperty("type", "discord");
+        packet.addProperty("action", action);
+        packet.addProperty("requestId", Long.toString(REQUEST_IDS.incrementAndGet()));
+        ws.sendText(GSON.toJson(packet), true);
     }
 
     public static void sendDiscordDm(String target, String message) {
@@ -175,6 +193,19 @@ public final class TastyFishGlobalChat {
             try {
                 JsonObject packet = JsonParser.parseString(raw).getAsJsonObject();
                 String type = packet.has("type") ? packet.get("type").getAsString() : "";
+
+                if ("discordResult".equals(type)) {
+                    String requestId = packet.has("requestId")
+                        ? packet.get("requestId").getAsString() : "";
+                    boolean ok = packet.has("ok") && packet.get("ok").getAsBoolean();
+                    JsonObject result = packet.has("result") && packet.get("result").isJsonObject()
+                        ? packet.getAsJsonObject("result") : new JsonObject();
+                    String detail = packet.has("message") ? packet.get("message").getAsString() : "";
+
+                    Minecraft.getInstance().execute(() ->
+                        TastyFishDiscordScreen.handleResult(requestId, ok, result, detail));
+                    return;
+                }
 
                 if ("dmResult".equals(type)) {
                     boolean ok = packet.has("ok") && packet.get("ok").getAsBoolean();
