@@ -77,15 +77,6 @@ public final class SkyJewExperimentHelper {
             }
         }
 
-        int round = Math.max(lastRound, lastUltraCount);
-        if (config.experiments.debug && round >= 0) {
-            g.text(Minecraft.getInstance().font,
-                "TF Exp: " + phase + "  round=" + round
-                    + "  progress=" + (isUltrasequencer(screen) ? ultraProgress : chronProgress),
-                8, 8, 0xFFFFFFFF, true);
-        }
-    }
-
     public static boolean handleClick(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
         if (config == null || !config.experiments.enabled) return false;
         if (phase != Phase.REPLICATE || !isExperimentTable(screen)) return false;
