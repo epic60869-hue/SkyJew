@@ -266,7 +266,7 @@ public final class TastyFishNopoFeatures {
             };
             return Optional.empty();
         }, Style.EMPTY);
-        return result;
+        return result[0];
     }
 
     private static String styleColorName(Style style) {
@@ -445,7 +445,7 @@ public final class TastyFishNopoFeatures {
             result.append(out);
             return Optional.empty();
         }, Style.EMPTY);
-        return result[0];
+        return result;
     }
 
     private static double parseDouble(String value) {
