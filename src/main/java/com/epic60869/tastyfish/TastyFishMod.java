@@ -52,7 +52,7 @@ public final class TastyFishMod implements ClientModInitializer {
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
+);
             dispatcher.register(ClientCommands.literal("tastyfish")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
