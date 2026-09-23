@@ -54,7 +54,6 @@ public final class SkyJewFirstBootScreen extends Screen {
             imageX, imageY,
             0.0F, 0.0F,
             imageWidth, imageHeight,
-            256, 144,
             256, 144
         );
 
