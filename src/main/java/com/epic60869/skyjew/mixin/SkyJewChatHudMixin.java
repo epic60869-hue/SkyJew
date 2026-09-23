@@ -19,17 +19,9 @@ public abstract class SkyJewChatHudMixin implements SkyJewChatCompactor.ChatComp
     @Shadow
     private List<GuiMessage> allMessages;
 
-    @Shadow
-    private List<GuiMessage.Line> trimmedMessages;
-
     @Override
     public List<GuiMessage> skyjew$getAllMessages() {
         return allMessages;
-    }
-
-    @Override
-    public List<GuiMessage.Line> skyjew$getTrimmedMessages() {
-        return trimmedMessages;
     }
 
     @ModifyVariable(
