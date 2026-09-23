@@ -19,6 +19,7 @@ public final class SkyJewMod implements ClientModInitializer {
         Minecraft minecraft = Minecraft.getInstance();
         Path configDir = minecraft.gameDirectory.toPath().resolve("config");
         config = SkyJewConfig.load(configDir.resolve("skyjew-mod.json"));
+        SkyJewSounds.initialize();
 
         FarmingRngTracker.get().register();
         SkyJewRngHud.register(config);
