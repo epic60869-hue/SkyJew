@@ -47,6 +47,12 @@ public final class TastyFishMod implements ClientModInitializer {
                 .then(ClientCommands.literal("chat")
                     .then(ClientCommands.argument("message", StringArgumentType.greedyString())
                         .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
+                .then(ClientCommands.literal("dm")
+                    .then(ClientCommands.argument("user", StringArgumentType.word())
+                        .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                            .executes(context -> sendDiscordDm(
+                                StringArgumentType.getString(context, "user"),
+                                StringArgumentType.getString(context, "message"))))))
                 .then(customCommand())));
     }
 
@@ -143,6 +149,11 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private int sendGlobalChat(String message) {
         TastyFishGlobalChat.send(message);
+        return 1;
+    }
+
+    private int sendDiscordDm(String user, String message) {
+        TastyFishGlobalChat.sendDiscordDm(user, message);
         return 1;
     }
 
