@@ -18,6 +18,10 @@ public final class TastyFishConfig {
     public float farmingRngScale = 1.0f;
     public boolean mouseLockEnabled = false;
     public boolean mouseLockGroundOnly = true;
+    public boolean experimentHelperEnabled = true;
+    public boolean experimentHelperHighlight = true;
+    public boolean experimentHelperPreventMisclicks = true;
+    public boolean experimentHelperDebug = false;
 
     public static TastyFishConfig load(Path path) {
         try {
