@@ -32,7 +32,6 @@ public final class SkyJewCustomScreen extends Screen {
     private static final int MUTED = 0xFFB5BAC1;
     private static final int ACCENT = 0xFFE2E3E5;
     private static final int SELECTED = 0xFF5865F2;
-    private static final int HOVER = 0xFF3F4147;
     private static final int RED = 0xFFFF6B6B;
     private static final int GREEN = 0xFF57F287;
 
@@ -50,7 +49,7 @@ public final class SkyJewCustomScreen extends Screen {
     private EditBox animSecondField;
     private EditBox animDurationField;
     private EditBox animDelayField;
-    private EditBox modelField;
+
     private boolean cycleBack;
 
     public SkyJewCustomScreen(Screen previousScreen) {
@@ -61,33 +60,30 @@ public final class SkyJewCustomScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        showColorPicker = false;
 
         int panelW = Math.min(920, width - 30);
         int panelH = Math.min(540, height - 30);
         int left = (width - panelW) / 2;
         int top = (height - panelH) / 2;
 
-        int tabY = top + 8;
         addRenderableWidget(Button.builder(Component.literal("Armor"), b -> {
             itemTab = false;
             selectedItem = ItemStack.EMPTY;
+            showColorPicker = false;
             init();
-        }).bounds(left + 8, tabY, 120, 24).build());
+        }).bounds(left + 8, top + 8, 120, 24).build());
 
         addRenderableWidget(Button.builder(Component.literal("Item"), b -> {
             itemTab = true;
+            showColorPicker = false;
             init();
-        }).bounds(left + 133, tabY, 120, 24).build());
+        }).bounds(left + 133, top + 8, 120, 24).build());
 
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
                 .bounds(left + panelW - 88, top + panelH + 5, 88, 24).build());
 
-        if (itemTab) {
-            initItemControls(left, top, panelW, panelH);
-        } else {
-            initArmorControls(left, top, panelW, panelH);
-        }
+        if (itemTab) initItemControls(left, top, panelW, panelH);
+        else initArmorControls(left, top, panelW, panelH);
     }
 
     private void initArmorControls(int left, int top, int panelW, int panelH) {
@@ -141,14 +137,12 @@ public final class SkyJewCustomScreen extends Screen {
             }).bounds(x, ay + 52, 115, 20).build());
             addRenderableWidget(Button.builder(Component.literal("Apply Animated"), b -> {
                 try {
-                    SkyJewCustom.setAnimatedDye(
-                            target,
+                    SkyJewCustom.setAnimatedDye(target,
                             SkyJewCustom.parseHex(animFirstField.getValue()),
                             SkyJewCustom.parseHex(animSecondField.getValue()),
                             Float.parseFloat(animDurationField.getValue()),
                             cycleBack,
-                            Float.parseFloat(animDelayField.getValue())
-                    );
+                            Float.parseFloat(animDelayField.getValue()));
                     init();
                 } catch (Exception ignored) {}
             }).bounds(x + 120, ay + 52, 125, 20).build());
@@ -171,18 +165,10 @@ public final class SkyJewCustomScreen extends Screen {
             SkyJewCustom.clearAll(target);
             init();
         }).bounds(x, top + panelH - 48, 110, 24).build());
-
-        addRenderableWidget(Button.builder(Component.literal("Edit Selected Item"), b -> {
-            itemTab = true;
-            selectedItem = target;
-            init();
-        }).bounds(x + 120, top + panelH - 48, 140, 24).build());
     }
 
     private void initItemControls(int left, int top, int panelW, int panelH) {
-        if (selectedItem.isEmpty()) {
-            selectedItem = findFirstCustomizableItem();
-        }
+        if (selectedItem.isEmpty()) selectedItem = findFirstCustomizableItem();
 
         int x = left + 355;
         int y = top + 55;
@@ -242,8 +228,7 @@ public final class SkyJewCustomScreen extends Screen {
     }
 
     private ItemStack currentArmor() {
-        return Minecraft.getInstance().player == null
-                ? ItemStack.EMPTY
+        return Minecraft.getInstance().player == null ? ItemStack.EMPTY
                 : Minecraft.getInstance().player.getItemBySlot(selectedArmor);
     }
 
@@ -304,10 +289,8 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(left, top, right, bottom, PANEL);
         outline(g, left, top, right, bottom, BORDER);
 
-        // This mirrors Skyblocker's two-tab Customization screen.
         g.fill(left + 8, top + 8, left + 253, top + 32, INNER);
         g.fill(left + (itemTab ? 133 : 8), top + 8, left + (itemTab ? 253 : 128), top + 32, SELECTED);
-
         g.text(font, "SkyJew Customization", left + 265, top + 15, TEXT, true);
 
         int previewL = left + 15;
@@ -317,27 +300,19 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(previewL, previewT, previewR, previewB, INNER);
         outline(g, previewL, previewT, previewR, previewB, BORDER);
 
-        if (itemTab) {
-            drawItemPreview(g, previewL, previewT, previewR, previewB, selectedItem);
-        } else {
-            drawArmorPreview(g, previewL, previewT, previewR, previewB);
-        }
+        if (itemTab) drawItemPreview(g, previewL, previewT, previewR, previewB, selectedItem);
+        else drawArmorPreview(g, previewL, previewT, previewR, previewB);
 
         int controlsL = left + 355;
         int controlsR = right - 15;
         int controlsT = top + 48;
         g.fill(controlsL, controlsT, controlsR, bottom - 15, INNER_DARK);
         outline(g, controlsL, controlsT, controlsR, bottom - 15, BORDER);
-
         g.text(font, itemTab ? "Item Customization" : "Armor Customization",
                 controlsL + 12, controlsT + 12, ACCENT, true);
 
-        if (!showColorPicker) {
-            super.extractRenderState(g, mouseX, mouseY, delta);
-        } else {
-            super.extractRenderState(g, mouseX, mouseY, delta);
-            drawColorPicker(g, mouseX, mouseY);
-        }
+        super.extractRenderState(g, mouseX, mouseY, delta);
+        if (showColorPicker) drawColorPicker(g);
     }
 
     private void drawArmorPreview(GuiGraphicsExtractor g, int l, int t, int r, int b) {
@@ -346,15 +321,14 @@ public final class SkyJewCustomScreen extends Screen {
 
         EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
         String[] labels = {"HEAD", "CHEST", "LEGS", "FEET"};
+
         for (int i = 0; i < slots.length; i++) {
             int x = l + 22 + i * 72;
             int y = t + 58;
-            ItemStack stack = Minecraft.getInstance().player == null
-                    ? ItemStack.EMPTY
+            ItemStack stack = Minecraft.getInstance().player == null ? ItemStack.EMPTY
                     : Minecraft.getInstance().player.getItemBySlot(slots[i]);
             boolean selected = selectedArmor == slots[i];
-            boolean hover = false;
-            g.fill(x, y, x + 62, y + 62, selected ? SELECTED : (hover ? HOVER : PANEL));
+            g.fill(x, y, x + 62, y + 62, selected ? SELECTED : PANEL);
             outline(g, x, y, x + 62, y + 62, selected ? ACCENT : BORDER);
             if (!stack.isEmpty()) g.item(stack, x + 23, y + 8);
             g.text(font, labels[i], x + 8, y + 42, MUTED, false);
@@ -367,16 +341,6 @@ public final class SkyJewCustomScreen extends Screen {
             g.item(selected, l + 143, t + 168);
             g.text(font, "UUID: " + trim(SkyJewCustom.uuid(selected), 30), l + 15, t + 215, MUTED, false);
         }
-
-        int hotbarY = b - 70;
-        g.fill(l + 15, hotbarY, r - 15, hotbarY + 42, PANEL);
-        g.text(font, "Equipment", l + 25, hotbarY + 8, TEXT, true);
-        for (int i = 0; i < slots.length; i++) {
-            ItemStack stack = Minecraft.getInstance().player == null
-                    ? ItemStack.EMPTY
-                    : Minecraft.getInstance().player.getItemBySlot(slots[i]);
-            if (!stack.isEmpty()) g.item(stack, l + 25 + i * 40, hotbarY + 18);
-        }
     }
 
     private void drawItemPreview(GuiGraphicsExtractor g, int l, int t, int r, int b, ItemStack stack) {
@@ -386,18 +350,20 @@ public final class SkyJewCustomScreen extends Screen {
         outline(g, l + 100, t + 65, r - 100, t + 190, BORDER);
         if (!stack.isEmpty()) {
             g.item(stack, (l + r) / 2 - 8, t + 100);
-            g.text(font, stack.getHoverName(), (l + r) / 2 - Math.min(80, font.width(stack.getHoverName()) / 2), t + 145, TEXT, false);
+            g.text(font, stack.getHoverName(), (l + r) / 2 - Math.min(80, font.width(stack.getHoverName()) / 2),
+                    t + 145, TEXT, false);
             g.text(font, "UUID: " + trim(SkyJewCustom.uuid(stack), 28), l + 20, t + 215, MUTED, false);
         } else {
             g.text(font, "No item selected", l + 115, t + 120, RED, false);
         }
     }
 
-    private void drawColorPicker(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    private void drawColorPicker(GuiGraphicsExtractor g) {
         int w = 300;
         int h = 210;
         int l = (width - w) / 2;
         int t = (height - h) / 2;
+
         g.fill(0, 0, width, height, 0x99000000);
         g.fill(l, t, l + w, t + h, PANEL);
         outline(g, l, t, l + w, t + h, ACCENT);
@@ -407,33 +373,25 @@ public final class SkyJewCustomScreen extends Screen {
         int sy = t + 38;
         int sw = 210;
         int sh = 125;
+
+        // Saturation/value area with a fixed red hue, plus a hue strip.
         for (int yy = 0; yy < sh; yy++) {
-            float v = 1f - yy / (float)(sh - 1);
+            float v = 1f - yy / (float) (sh - 1);
             for (int xx = 0; xx < sw; xx++) {
-                float s = xx / (float)(sw - 1);
-                int rgb = hsvToRgb((xx / (float)sw) * 360f, s, v);
+                float s = xx / (float) (sw - 1);
+                int rgb = hsvToRgb(0f, s, v);
                 g.fill(sx + xx, sy + yy, sx + xx + 1, sy + yy + 1, 0xFF000000 | rgb);
             }
         }
-
         for (int yy = 0; yy < sh; yy++) {
-            float hue = yy / (float)(sh - 1) * 360f;
+            float hue = yy / (float) (sh - 1) * 360f;
             int rgb = hsvToRgb(hue, 1f, 1f);
             g.fill(sx + sw + 8, sy + yy, sx + sw + 28, sy + yy + 1, 0xFF000000 | rgb);
         }
 
-        g.text(font, "Click the colour area to set the HEX field.", l + 15, t + 177, MUTED, false);
-        addRenderableWidget(Button.builder(Component.literal("Close"), b -> {
-            showColorPicker = false;
-            init();
-        }).bounds(l + w - 80, t + h - 28, 65, 20).build());
-
-        if (mouseX >= sx && mouseX < sx + sw && mouseY >= sy && mouseY < sy + sh) {
-            int rgb = hsvToRgb((mouseX - sx) / (float)sw * 360f,
-                    (mouseX - sx) / (float)sw,
-                    1f - (mouseY - sy) / (float)sh);
-            if (dyeField != null) dyeField.setValue(String.format(Locale.ROOT, "%06X", rgb));
-        }
+        g.text(font, "Click the colour area or hue strip.", l + 15, t + 177, MUTED, false);
+        g.fill(l + w - 80, t + h - 28, l + w - 15, t + h - 8, INNER);
+        g.text(font, "Close", l + w - 66, t + h - 23, TEXT, false);
     }
 
     @Override
@@ -447,16 +405,31 @@ public final class SkyJewCustomScreen extends Screen {
             int sy = t + 38;
             int sw = 210;
             int sh = 125;
-            if (event.button() == 0 && event.x() >= sx && event.x() < sx + sw && event.y() >= sy && event.y() < sy + sh) {
-                int rgb = hsvToRgb((event.x() - sx) / (float)sw * 360f,
-                        (event.x() - sx) / (float)sw,
-                        1f - (event.y() - sy) / (float)sh);
+
+            if (event.button() == 0 && event.x() >= sx && event.x() < sx + sw
+                    && event.y() >= sy && event.y() < sy + sh) {
+                int rgb = hsvToRgb(0f,
+                        (float) (event.x() - sx) / sw,
+                        1f - (float) (event.y() - sy) / sh);
                 if (dyeField != null) dyeField.setValue(String.format(Locale.ROOT, "%06X", rgb));
                 showColorPicker = false;
-                init();
                 return true;
             }
-            return super.mouseClicked(event, doubleClick);
+
+            if (event.button() == 0 && event.x() >= sx + sw + 8 && event.x() < sx + sw + 28
+                    && event.y() >= sy && event.y() < sy + sh) {
+                float hue = (float) (event.y() - sy) / sh * 360f;
+                int rgb = hsvToRgb(hue, 1f, 1f);
+                if (dyeField != null) dyeField.setValue(String.format(Locale.ROOT, "%06X", rgb));
+                showColorPicker = false;
+                return true;
+            }
+
+            if (event.button() == 0 && event.x() >= l + w - 80 && event.y() >= t + h - 32) {
+                showColorPicker = false;
+                return true;
+            }
+            return true;
         }
 
         if (!itemTab && event.button() == 0) {
@@ -465,10 +438,12 @@ public final class SkyJewCustomScreen extends Screen {
             int left = (width - panelW) / 2;
             int top = (height - panelH) / 2;
             int y = top + 106;
-            for (int i = 0; i < 4; i++) {
+            EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
+
+            for (int i = 0; i < slots.length; i++) {
                 int x = left + 37 + i * 72;
                 if (event.x() >= x && event.x() < x + 62 && event.y() >= y && event.y() < y + 62) {
-                    selectedArmor = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}[i];
+                    selectedArmor = slots[i];
                     init();
                     return true;
                 }
@@ -489,7 +464,9 @@ public final class SkyJewCustomScreen extends Screen {
         else if (h < 240) { r = 0; g = x; b = c; }
         else if (h < 300) { r = x; g = 0; b = c; }
         else { r = c; g = 0; b = x; }
-        return ((int)((r + m) * 255) << 16) | ((int)((g + m) * 255) << 8) | (int)((b + m) * 255);
+        return ((int) ((r + m) * 255) << 16)
+                | ((int) ((g + m) * 255) << 8)
+                | (int) ((b + m) * 255);
     }
 
     private static String trim(String s, int max) {
