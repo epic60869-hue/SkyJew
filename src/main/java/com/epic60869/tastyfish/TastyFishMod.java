@@ -171,9 +171,9 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        if (!config.firstBootAcknowledged && !firstBootScreenShown && minecraft.screen != null) {
+        if (!config.firstBootAcknowledged && !firstBootScreenShown && minecraft.gui.screen() != null) {
             firstBootScreenShown = true;
-            minecraft.gui.setScreen(new TastyFishFirstBootScreen(config, minecraft.screen));
+            minecraft.gui.setScreen(new TastyFishFirstBootScreen(config, minecraft.gui.screen()));
             return;
         }
         TastyFishCommandKeys.tick(minecraft);
