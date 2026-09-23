@@ -138,7 +138,7 @@ public final class TastyFishScreen extends Screen {
         } else if (inside(event.x(), event.y(), x, right, y + 315)) {
             config.mouseLockGroundOnly = !config.mouseLockGroundOnly;
         } else if (inside(event.x(), event.y(), x, right, y + 390)) {
-            config.farmingRngX = Math.max(0, config.farmingRngX + (event.shift() ? -8 : 8));
+            config.farmingRngX = Math.max(0, config.farmingRngX + (Minecraft.getInstance().hasShiftDown() ? -8 : 8));
         } else if (inside(event.x(), event.y(), x, right, y + 435)) {
             config.farmingRngY = Math.max(0, config.farmingRngY + (event.shift() ? -8 : 8));
         } else {
