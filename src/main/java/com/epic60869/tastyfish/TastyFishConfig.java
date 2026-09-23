@@ -9,22 +9,6 @@ import java.nio.file.Path;
 
 public final class TastyFishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String FARMING_SERVER = "https://tastyfish.org/api/farming";
-    private static final String DISCORD_DESTINATION_ID = "1538133706294829106";
-    private static final String FARMING_API_KEY_ENV = "TASTYFISH_FARMING_API_KEY";
-    private static final String FARMING_API_KEY_PROPERTY = "tastyfish.farming.apiKey";
-
-    public boolean farmingServerEnabled = true;
-    public String farmingServerEndpoint = FARMING_SERVER;
-    public String farmingServerApiKey = "";
-    public int uploadIntervalSeconds = 30;
-    public String discordDestinationId = DISCORD_DESTINATION_ID;
-
-    @Deprecated public String endpoint = FARMING_SERVER;
-    @Deprecated public String discordChannelId = "";
-    @Deprecated public String discordForumId = "";
-    @Deprecated public String discordReportEndpoint = FARMING_SERVER + "/v1/report";
-    @Deprecated public String discordReportSecret = "";
 
     public boolean enabled = true;
     public boolean farmingRngEnabled = true;
@@ -32,31 +16,12 @@ public final class TastyFishConfig {
     public int farmingRngX = 8;
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
-    public boolean farmingAnalyticsEnabled = true;
-    public boolean farmingSessionRecorderEnabled = true;
-    public boolean farmingPersonalBestEnabled = true;
-    public boolean farmingStreakEnabled = true;
-    public boolean farmingAchievementsEnabled = true;
-    public boolean discordForumEnabled = true;
-    public boolean discordSendSessions = true;
-    public boolean discordSendPersonalBests = true;
-    public boolean discordSendStreaks = true;
-    public boolean discordSendAchievements = true;
     public boolean guildLeaderboardHudEnabled = true;
     public String guildLeaderboardWebsite = "https://tastyfish.org";
     public int guildLeaderboardRefreshSeconds = 30;
     public int guildLeaderboardHudX = 8;
     public int guildLeaderboardHudY = 8;
     public float guildLeaderboardHudScale = 1.0f;
-
-    /** Resolve the API key without ever writing environment/property secrets to disk. */
-    public String getFarmingServerApiKey() {
-        String property = System.getProperty(FARMING_API_KEY_PROPERTY, "").trim();
-        if (!property.isBlank()) return property;
-        String environment = System.getenv(FARMING_API_KEY_ENV);
-        if (environment != null && !environment.isBlank()) return environment.trim();
-        return farmingServerApiKey == null ? "" : farmingServerApiKey.trim();
-    }
 
     public static TastyFishConfig load(Path path) {
         try {
@@ -65,19 +30,21 @@ public final class TastyFishConfig {
                 c.save(path);
                 return c;
             }
-            TastyFishConfig c = GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), TastyFishConfig.class);
+
+            TastyFishConfig c = GSON.fromJson(
+                Files.readString(path, StandardCharsets.UTF_8),
+                TastyFishConfig.class
+            );
+
             if (c == null) c = new TastyFishConfig();
-            if (c.uploadIntervalSeconds < 10) c.uploadIntervalSeconds = 10;
+
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
-            if (c.guildLeaderboardRefreshSeconds < 10) c.guildLeaderboardRefreshSeconds = 10;
-            c.guildLeaderboardHudScale = Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
-            c.farmingServerEnabled = true;
-            c.farmingServerEndpoint = FARMING_SERVER;
-            c.guildLeaderboardWebsite = "https://tastyfish.org";
-            c.endpoint = FARMING_SERVER;
-            c.discordReportEndpoint = FARMING_SERVER + "/v1/report";
-            c.discordDestinationId = DISCORD_DESTINATION_ID;
-            c.discordSendSessions = true;
+            if (c.guildLeaderboardRefreshSeconds < 10) {
+                c.guildLeaderboardRefreshSeconds = 10;
+            }
+            c.guildLeaderboardHudScale =
+                Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
+
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
@@ -88,7 +55,11 @@ public final class TastyFishConfig {
     public void save(Path path) {
         try {
             Files.createDirectories(path.getParent());
-            Files.writeString(path, GSON.toJson(this), StandardCharsets.UTF_8);
+            Files.writeString(
+                path,
+                GSON.toJson(this),
+                StandardCharsets.UTF_8
+            );
         } catch (IOException e) {
             System.err.println("[TastyFish] Failed to save config: " + e.getMessage());
         }
