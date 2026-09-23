@@ -3,7 +3,7 @@
   "id": "skyjew",
   "version": "${version}",
   "name": "SkyJew",
-  "description": "SkyJew utilities and SkySoft farming leaderboard uploader.",
+  "description": "SkyJew utilities and Hypixel SkyBlock features.",
   "authors": ["epic60869"],
   "environment": "client",
   "entrypoints": {
@@ -18,7 +18,6 @@
     "fabricloader": ">=0.19.3",
     "fabric-api": ">=0.153.0+26.2",
     "minecraft": "26.2",
-    "java": ">=25",
-    "skysoft": "*"
+    "java": ">=25"
   }
 }
