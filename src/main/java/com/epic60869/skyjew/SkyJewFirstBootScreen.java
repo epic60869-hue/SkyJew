@@ -25,8 +25,7 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     @Override
     protected void init() {
-        // The button is drawn and handled manually so the screen remains completely
-        // self-contained and cannot accidentally inherit another widget's styling.
+        SkyJewSounds.playFirstBoot();
     }
 
     @Override
@@ -103,6 +102,7 @@ public final class SkyJewFirstBootScreen extends Screen {
         if (event.x() >= buttonX && event.x() < buttonX + BUTTON_WIDTH
             && event.y() >= buttonY && event.y() < buttonY + BUTTON_HEIGHT) {
 
+            SkyJewSounds.stopFirstBoot();
             config.general.firstBootAcknowledged = true;
             SkyJewConfig.saveCurrent(config);
             minecraft.gui.setScreen(previousScreen);
@@ -110,6 +110,12 @@ public final class SkyJewFirstBootScreen extends Screen {
         }
 
         return true;
+    }
+
+    @Override
+    public void removed() {
+        SkyJewSounds.stopFirstBoot();
+        super.removed();
     }
 
     @Override
