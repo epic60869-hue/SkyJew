@@ -97,7 +97,6 @@ public final class SkyJewChatCompactor {
             }
         }
 
-        access.skyjew$getTrimmedMessages().removeIf(line -> line.addedTime() == addedTime);
     }
 
     private static boolean isSeparator(String text) {
@@ -123,6 +122,5 @@ public final class SkyJewChatCompactor {
 
     public interface ChatComponentAccess {
         List<GuiMessage> skyjew$getAllMessages();
-        List<GuiMessage.Line> skyjew$getTrimmedMessages();
     }
 }
