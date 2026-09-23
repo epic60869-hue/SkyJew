@@ -6,7 +6,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Locale;
 
-/** Optional cursor reset for common Hypixel storage menus. */
+/** Resets the cursor when selected Hypixel storage menus open. */
 public final class SkyJewMouseReset {
     private static Screen lastScreen;
     private static long lastReset;
@@ -23,27 +23,36 @@ public final class SkyJewMouseReset {
 
         String title;
         try {
-            title = screen.getTitle().getString().toLowerCase(Locale.ROOT);
+            title = screen.getTitle().getString()
+                .replaceAll("§.", "")
+                .toLowerCase(Locale.ROOT)
+                .trim();
         } catch (Throwable ignored) {
             return;
         }
 
-        boolean reset = (config.misc.mouseReset.accessoryBag && contains(title, "accessory bag"))
-            || (config.misc.mouseReset.enderChest && contains(title, "ender chest"))
-            || (config.misc.mouseReset.backpack && contains(title, "backpack"));
+        boolean reset = (config.misc.mouseReset.accessoryBag && matches(title, "accessory bag"))
+            || (config.misc.mouseReset.enderChest && matches(title, "ender chest"))
+            || (config.misc.mouseReset.backpack && matches(title, "backpack"));
 
-        if (!reset || System.currentTimeMillis() - lastReset < 100L) return;
+        if (!reset || System.currentTimeMillis() - lastReset < 250L) return;
 
         lastReset = System.currentTimeMillis();
+
+        // GLFW cursor coordinates are window coordinates, not the framebuffer
+        // pixel dimensions returned by Window#getWidth/#getHeight.
         mc.execute(() -> {
             long window = mc.getWindow().handle();
-            GLFW.glfwSetCursorPos(window,
-                mc.getWindow().getWidth() / 2.0,
-                mc.getWindow().getHeight() / 2.0);
+            double x = mc.getWindow().getGuiScaledWidth() / 2.0;
+            double y = mc.getWindow().getGuiScaledHeight() / 2.0;
+            GLFW.glfwSetCursorPos(window, x, y);
         });
     }
 
-    private static boolean contains(String title, String value) {
-        return title.contains(value);
+    private static boolean matches(String title, String value) {
+        return title.equals(value)
+            || title.startsWith(value + " ")
+            || title.contains(" " + value + " ")
+            || title.endsWith(" " + value);
     }
 }
