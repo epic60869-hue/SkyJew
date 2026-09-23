@@ -23,10 +23,10 @@ public final class SkyJewRngHud {
     }
 
     private static void extract(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker deltaTracker) {
-        if (config == null || !config.farming.rngEnabled || Minecraft.getInstance().player == null) return;
+        if (config == null || !config.farming.rng.enabled || Minecraft.getInstance().player == null) return;
         List<FarmingRngTracker.Drop> drops = FarmingRngTracker.get().active();
         if (drops.isEmpty()) return;
-        render(graphics, drops, config.farming.rngX, config.farming.rngY);
+        render(graphics, drops, positionX(), positionY());
     }
 
     public static int width() {
@@ -39,19 +39,31 @@ public final class SkyJewRngHud {
     }
 
     public static float scale() {
-        return config == null ? 1.0f : config.farming.rngScale;
+        return config == null ? 1.0f : config.farming.rng.scale;
+    }
+
+    public static int x() { return posX; }
+    public static int y() { return posY; }
+
+    private static int posX = 8;
+    private static int posY = 8;
+
+    private static int positionX() {
+        return posX;
+    }
+
+    private static int positionY() {
+        return posY;
     }
 
     public static void setPosition(int x, int y) {
-        if (config == null) return;
-        config.farming.rngX = Math.max(0, x);
-        config.farming.rngY = Math.max(0, y);
-        save();
+        posX = Math.max(0, x);
+        posY = Math.max(0, y);
     }
 
     public static void setScale(float value) {
         if (config == null) return;
-        config.farming.rngScale = Math.max(0.5f, Math.min(3.0f,
+        config.farming.rng.scale = Math.max(0.5f, Math.min(3.0f,
             Math.round(value * 10.0f) / 10.0f));
         save();
     }
@@ -81,7 +93,7 @@ public final class SkyJewRngHud {
         graphics.pose().scale(s, s);
 
         int contentHeight = 4 + drops.size() * LINE_HEIGHT;
-        if (config != null && config.farming.rngBackground) {
+        if (config != null && config.farming.rng.background) {
             graphics.fill(-5, -3, BASE_WIDTH + 4, contentHeight + 1, 0xA8000000);
             graphics.fill(-5, -3, BASE_WIDTH + 4, -2, 0x55FFFFFF);
             graphics.fill(-5, contentHeight, BASE_WIDTH + 4, contentHeight + 1, 0x33000000);
