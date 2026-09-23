@@ -61,7 +61,6 @@ public final class SkyJewSounds {
             firstBootInstance = null;
         }
         firstBootTicks = 0;
-        }
     }
 
     private static final class FirstBootSoundInstance extends AbstractTickableSoundInstance {
