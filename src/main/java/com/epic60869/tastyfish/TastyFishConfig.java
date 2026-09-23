@@ -16,6 +16,8 @@ public final class TastyFishConfig {
     public int farmingRngX = 8;
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
+    public boolean mouseLockEnabled = false;
+    public boolean mouseLockGroundOnly = true;
 
     public static TastyFishConfig load(Path path) {
         try {
