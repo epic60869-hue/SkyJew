@@ -7,7 +7,6 @@
     "SkyJewDyedItemColorMixin",
     "SkyJewDataComponentHolderMixin",
     "SkyJewChatHudMixin",
-    "SkyJewChatComponentAccessor",
     "SkyJewMouseHandlerMixin",
     "SkyJewExperimentScreenMixin",
     "SkyJewContainerScreenAccessor"
