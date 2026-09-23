@@ -46,7 +46,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null) {
             connect();
-            mcMessage(Component.literal("[Mod] Global chat is still connecting...")
+            mcMessage(Component.literal("[SkyJew] Global chat is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -61,7 +61,7 @@ public final class SkyJewGlobalChat {
             ws.sendText(GSON.toJson(packet), true);
         } else {
             connect();
-            mcMessage(Component.literal("[Mod] Global chat is reconnecting...")
+            mcMessage(Component.literal("[SkyJew] Global chat is reconnecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
         }
     }
@@ -70,7 +70,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[Mod] Discord is still connecting...")
+            mcMessage(Component.literal("[SkyJew] Discord is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -87,13 +87,13 @@ public final class SkyJewGlobalChat {
         String cleanMessage = String.valueOf(message == null ? "" : message).trim();
 
         if (cleanTarget.isEmpty()) {
-            mcMessage(Component.literal("[Mod] Usage: /sj dm <discord-user> <message/link>")
+            mcMessage(Component.literal("[SkyJew] Usage: /sj dm <discord-user> <message/link>")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
 
         if (cleanMessage.isEmpty()) {
-            mcMessage(Component.literal("[Mod] The Discord DM cannot be empty.")
+            mcMessage(Component.literal("[SkyJew] The Discord DM cannot be empty.")
                 .withStyle(Style.EMPTY.withColor(0xFF5555)));
             return;
         }
@@ -107,7 +107,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[Mod] Discord link is still connecting. Try again in a moment.")
+            mcMessage(Component.literal("[SkyJew] Discord link is still connecting. Try again in a moment.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -216,10 +216,10 @@ public final class SkyJewGlobalChat {
                     String detail = packet.has("message") ? packet.get("message").getAsString() : "";
 
                     if (ok) {
-                        mcMessage(Component.literal("[Mod] Discord DM sent to " + target + ".")
+                        mcMessage(Component.literal("[SkyJew] Discord DM sent to " + target + ".")
                             .withStyle(Style.EMPTY.withColor(0x55FF55)));
                     } else {
-                        mcMessage(Component.literal("[Mod] Discord DM failed: " + detail)
+                        mcMessage(Component.literal("[SkyJew] Discord DM failed: " + detail)
                             .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     }
                     return;
@@ -236,7 +236,7 @@ public final class SkyJewGlobalChat {
                 if (name.isBlank()) name = "Unknown";
 
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
-                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[Mod]";
+                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SkyJew]";
 
                 String line = prefix + " [" + name + "] " + message;
                 mcMessage(Component.literal(line));
