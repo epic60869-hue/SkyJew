@@ -160,6 +160,7 @@ public final class SkyJewGlobalChat {
                 JsonObject hello = new JsonObject();
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
+                hello.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
             });
