@@ -23,7 +23,7 @@ public abstract class TastyFishExperimentScreenMixin {
         MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir
     ) {
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
-        if (TastyFishExperimentHelper.shouldBlockClick(screen, event.x(), event.y())) {
+        if (TastyFishExperimentHelper.handleClick(screen, event.x(), event.y())) {
             cir.setReturnValue(true);
         }
     }
