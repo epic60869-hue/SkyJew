@@ -37,9 +37,9 @@ public final class SkyJewNick {
 
         if (value.isEmpty() || value.equalsIgnoreCase("off") || value.equalsIgnoreCase("reset")) {
             config().misc.nickname.enabled = false;
-            config().nickname.name = "";
-            config().nickname.style = "Plain";
-            config().nickname.customHex = "";
+            config().misc.nickname.name = "";
+            config().misc.nickname.style = "Plain";
+            config().misc.nickname.customHex = "";
             save();
             message("Nickname disabled.", 0x55FF55);
             return;
@@ -71,45 +71,45 @@ public final class SkyJewNick {
         }
 
         name = clean(name);
-        config().nickname.enabled = true;
-        config().nickname.name = name;
-        config().nickname.style = style;
-        config().nickname.customHex = customHex;
+        config().misc.nickname.enabled = true;
+        config().misc.nickname.name = name;
+        config().misc.nickname.style = style;
+        config().misc.nickname.customHex = customHex;
         save();
 
         message("Nickname set to " + name + ("Rainbow".equals(style) ? " (rainbow)" : ""), 0x55FF55);
     }
 
     public static String mode() {
-        return config().nickname.style == null ? "Plain" : config().nickname.style;
+        return config().misc.nickname.style == null ? "Plain" : config().misc.nickname.style;
     }
 
     public static void applyGuiName(String name) {
         String value = clean(name);
-        config().nickname.name = value;
-        config().nickname.enabled = !value.isBlank();
+        config().misc.nickname.name = value;
+        config().misc.nickname.enabled = !value.isBlank();
         save();
     }
 
     public static String outgoingName() {
-        if (!config().nickname.enabled || config().nickname.name == null || config().nickname.name.isBlank()) {
+        if (!config().misc.nickname.enabled || config().misc.nickname.name == null || config().misc.nickname.name.isBlank()) {
             return Minecraft.getInstance().getUser().getName();
         }
-        return config().nickname.name;
+        return config().misc.nickname.name;
     }
 
     public static Component displayName(String actualName) {
-        if (!config().nickname.enabled
+        if (!config().misc.nickname.enabled
             || !actualName.equals(Minecraft.getInstance().getUser().getName())
-            || config().nickname.name == null
-            || config().nickname.name.isBlank()) {
+            || config().misc.nickname.name == null
+            || config().misc.nickname.name.isBlank()) {
             return Component.literal(actualName);
         }
-        return styled(config().nickname.name);
+        return styled(config().misc.nickname.name);
     }
 
     public static Component styled(String text) {
-        String style = config().nickname.style == null ? "Plain" : config().nickname.style;
+        String style = config().misc.nickname.style == null ? "Plain" : config().misc.nickname.style;
 
         if ("Rainbow".equalsIgnoreCase(style)) {
             MutableComponent out = Component.empty();
@@ -126,9 +126,9 @@ public final class SkyJewNick {
         String key = style.toLowerCase(Locale.ROOT).replace(' ', '_');
         Integer rgb = COLORS.get(key);
 
-        if ("plain".equals(key) && config().nickname.customHex != null
-            && config().nickname.customHex.matches("#[0-9a-fA-F]{6}")) {
-            rgb = Integer.parseInt(config().nickname.customHex.substring(1), 16);
+        if ("plain".equals(key) && config().misc.nickname.customHex != null
+            && config().misc.nickname.customHex.matches("#[0-9a-fA-F]{6}")) {
+            rgb = Integer.parseInt(config().misc.nickname.customHex.substring(1), 16);
         }
 
         return rgb == null
