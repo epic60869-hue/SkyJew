@@ -210,23 +210,12 @@ public final class SkyJewConfig extends Config {
         public Runnable openMenu = () -> openNick();
 
         @Expose
-        @ConfigOption(name = "Name", desc = "The nickname shown by SkyJew. Maximum 32 characters.")
-        @ConfigEditorText
         public String name = "";
 
         @Expose
-        @ConfigOption(name = "Style", desc = "Choose a classic Minecraft colour or rainbow.")
-        @ConfigEditorDropdown(values = {
-            "Plain", "Black", "Dark Blue", "Dark Green", "Dark Aqua",
-            "Dark Red", "Dark Purple", "Gold", "Gray", "Dark Gray",
-            "Blue", "Green", "Aqua", "Red", "Light Purple", "Yellow",
-            "White", "Rainbow"
-        })
         public String style = "Plain";
 
         @Expose
-        @ConfigOption(name = "Custom Hex Colour", desc = "Optional #RRGGBB colour. Used when Style is Plain.")
-        @ConfigEditorText
         public String customHex = "";
     }
 
