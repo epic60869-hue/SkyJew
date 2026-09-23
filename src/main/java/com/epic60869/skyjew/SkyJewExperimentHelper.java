@@ -87,7 +87,7 @@ public final class SkyJewExperimentHelper {
     }
 
     public static boolean handleClick(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
-        if (config == null || !config.experimentHelperEnabled) return false;
+        if (config == null || !config.experiments.enabled) return false;
         if (phase != Phase.REPLICATE || !isExperimentTable(screen)) return false;
 
         Slot slot = findSlot(screen, mouseX, mouseY);
