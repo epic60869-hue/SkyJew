@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
 import java.nio.file.Path;
@@ -194,9 +195,10 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        if (!config.general.firstBootAcknowledged && !firstBootScreenShown && minecraft.gui.screen() != null) {
+        if (!config.general.firstBootAcknowledged && !firstBootScreenShown) {
             firstBootScreenShown = true;
-            minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, minecraft.gui.screen()));
+            Screen currentScreen = minecraft.gui.screen();
+            minecraft.execute(() -> minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, currentScreen)));
             return;
         }
         SkyJewCommandKeys.tick(minecraft);
