@@ -52,12 +52,13 @@ public final class TastyFishMod implements ClientModInitializer {
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
+                .then(ClientCommands.literal("notes").executes(context -> openNotes()))
 );
             dispatcher.register(ClientCommands.literal("tastyfish")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("gui").executes(context -> openGuiEditor()))
                 .then(ClientCommands.literal("stats").executes(context -> { printStats(); return 1; }))
-                .then(ClientCommands.literal("discord").executes(context -> { printDiscordHelp(); return 1; })));
+                .then(ClientCommands.literal("notes").executes(context -> openNotes())));
         });
     }
 
@@ -68,6 +69,12 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private int openGuiEditor() {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishGuiEditor(config)));
+        return 1;
+    }
+
+    private int openNotes() {
+        Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir)));
         return 1;
     }
 
