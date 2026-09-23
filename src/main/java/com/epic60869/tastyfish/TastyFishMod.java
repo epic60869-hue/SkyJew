@@ -12,6 +12,7 @@ import java.nio.file.Path;
 public final class TastyFishMod implements ClientModInitializer {
 
     private TastyFishConfig config;
+    private boolean firstBootScreenShown;
 
     @Override
     public void onInitializeClient() {
@@ -159,6 +160,11 @@ public final class TastyFishMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
+        if (!config.firstBootAcknowledged && !firstBootScreenShown && minecraft.screen != null) {
+            firstBootScreenShown = true;
+            minecraft.gui.setScreen(new TastyFishFirstBootScreen(config, minecraft.screen));
+            return;
+        }
         TastyFishCommandKeys.tick(minecraft);
         TastyFishStorageSearch.tick(minecraft);
         TastyFishCustom.tick(minecraft);
