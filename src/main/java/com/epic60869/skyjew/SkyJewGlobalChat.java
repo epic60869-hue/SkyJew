@@ -12,13 +12,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class SkyJewGlobalChat {
-    private static final String RELAY_URL =
-        System.getProperty("skyjew.chat.url", "wss://tastyfish.org/tf-chat");
+    private static final String CONFIGURED_RELAY_URL =
+        System.getProperty("skyjew.chat.url", "").trim();
+    private static final String[] RELAY_URLS = CONFIGURED_RELAY_URL.isBlank()
+        ? new String[] {"wss://tastyfish.org/tf-chat", "wss://www.tastyfish.org/tf-chat"}
+        : new String[] {CONFIGURED_RELAY_URL};
 
     private static final Gson GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -30,6 +35,8 @@ public final class SkyJewGlobalChat {
     private static volatile WebSocket socket;
     private static volatile long reconnectAt = 0L;
     private static volatile String username = "Unknown";
+    private static volatile int relayIndex = 0;
+    private static final Queue<String> PENDING_MESSAGES = new ArrayDeque<>();
 
     private SkyJewGlobalChat() {}
 
@@ -44,25 +51,35 @@ public final class SkyJewGlobalChat {
         if (clean.isEmpty()) return;
 
         WebSocket ws = socket;
-        if (ws == null) {
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            synchronized (PENDING_MESSAGES) {
+                if (PENDING_MESSAGES.size() >= 20) PENDING_MESSAGES.poll();
+                PENDING_MESSAGES.offer(clean.substring(0, Math.min(clean.length(), 500)));
+            }
             connect();
-            mcMessage(Component.literal("[SkyJew] Global chat is still connecting...")
+            mcMessage(Component.literal("[SkyJew] Global chat is connecting; your message will be sent when connected.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
 
-        if (!ws.isInputClosed() && !ws.isOutputClosed()) {
-            JsonObject packet = new JsonObject();
-            packet.addProperty("type", "message");
-            packet.addProperty("username", username);
-            packet.addProperty("nickname", SkyJewNick.outgoingName());
-            packet.addProperty("nicknameMode", SkyJewNick.mode());
-            packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
-            ws.sendText(GSON.toJson(packet), true);
-        } else {
-            connect();
-            mcMessage(Component.literal("[SkyJew] Global chat is reconnecting...")
-                .withStyle(Style.EMPTY.withColor(0xFFFF55)));
+        sendNow(ws, clean);
+    }
+
+    private static void sendNow(WebSocket ws, String clean) {
+        JsonObject packet = new JsonObject();
+        packet.addProperty("type", "message");
+        packet.addProperty("username", username);
+        packet.addProperty("nickname", SkyJewNick.outgoingName());
+        packet.addProperty("nicknameMode", SkyJewNick.mode());
+        packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
+        ws.sendText(GSON.toJson(packet), true);
+    }
+
+    private static void flushPending(WebSocket ws) {
+        synchronized (PENDING_MESSAGES) {
+            while (!PENDING_MESSAGES.isEmpty()) {
+                sendNow(ws, PENDING_MESSAGES.poll());
+            }
         }
     }
 
@@ -118,24 +135,44 @@ public final class SkyJewGlobalChat {
     private static void connect() {
         if (!CONNECTING.compareAndSet(false, true)) return;
 
+        String relayUrl = RELAY_URLS[Math.min(relayIndex, RELAY_URLS.length - 1)];
+
         HTTP.newWebSocketBuilder()
             .connectTimeout(Duration.ofSeconds(10))
-            .buildAsync(URI.create(RELAY_URL), new Listener())
+            .buildAsync(URI.create(relayUrl), new Listener())
             .whenComplete((ws, error) -> {
                 CONNECTING.set(false);
                 if (error != null) {
                     socket = null;
+                    if (relayIndex + 1 < RELAY_URLS.length) {
+                        relayIndex++;
+                    }
+                    mcMessage(Component.literal("[SkyJew] Global chat connection failed: "
+                        + shortError(error) + " — retrying.")
+                        .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     scheduleReconnect();
                     return;
                 }
 
+                relayIndex = 0;
                 socket = ws;
 
                 JsonObject hello = new JsonObject();
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
                 ws.sendText(GSON.toJson(hello), true);
+                flushPending(ws);
+
+                mcMessage(Component.literal("[SkyJew] Global chat connected.")
+                    .withStyle(Style.EMPTY.withColor(0x55FF55)));
             });
+    }
+
+    private static String shortError(Throwable error) {
+        Throwable cause = error;
+        while (cause.getCause() != null) cause = cause.getCause();
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     private static void scheduleReconnect() {
