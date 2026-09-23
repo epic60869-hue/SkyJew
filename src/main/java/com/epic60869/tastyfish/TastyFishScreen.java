@@ -2,411 +2,305 @@ package com.epic60869.tastyfish;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 
-/** Clean, compact SkyHanni/SkySoft-inspired TastyFish control centre. */
+/**
+ * Main TastyFish control centre.
+ *
+ * This screen is intentionally separate from the HUD systems: it is a
+ * configuration/control menu only.
+ */
 public final class TastyFishScreen extends Screen {
-    private static final int BG = 0xFF080B12;
-    private static final int SIDEBAR = 0xFF0B111B;
-    private static final int PANEL = 0xF4141B27;
-    private static final int PANEL_2 = 0xF70C121C;
-    private static final int BORDER = 0xFF26364D;
-    private static final int TEXT = 0xFFF1F4FF;
-    private static final int MUTED = 0xFF8D9AAF;
+    private static final int BG = 0xFF070A10;
+    private static final int SIDEBAR = 0xFF0B1019;
+    private static final int PANEL = 0xFF101722;
+    private static final int PANEL_2 = 0xFF0C131D;
+    private static final int BORDER = 0xFF263448;
+    private static final int TEXT = 0xFFF3F6FF;
+    private static final int MUTED = 0xFF8794A8;
     private static final int CYAN = 0xFF58D8FF;
     private static final int PURPLE = 0xFF9A6CFF;
     private static final int YELLOW = 0xFFFFD34D;
     private static final int GREEN = 0xFF35E39B;
     private static final int RED = 0xFFFF657A;
 
-    private static final int MAIN = 0;
+    private static final int HOME = 0;
     private static final int FARMING = 1;
-    private static final int HUD = 2;
-    private static final int SESSION = 3;
-    private static final int PB = 4;
-    private static final int STREAK = 5;
-    private static final int ACHIEVEMENTS = 6;
-    private static final int DISCORD = 7;
-    private static final int SETTINGS = 8;
+    private static final int RNG = 2;
+    private static final int SESSIONS = 3;
+    private static final int NOTES = 4;
+    private static final int SETTINGS = 5;
 
     private final TastyFishConfig config;
     private final FarmingHistory history;
-    private int page = FARMING;
-    private long nextSkysoftRead;
+    private int page = HOME;
+    private long nextSnapshotRead;
     private SkysoftSessionReader.Snapshot snapshot = SkysoftSessionReader.Snapshot.empty();
     private boolean skysoftAvailable;
-
-    private EditBox discordChannelBox;
-    private EditBox discordForumBox;
 
     public TastyFishScreen(TastyFishConfig config) {
         super(Component.literal("TastyFish"));
         this.config = config;
-        this.history = new FarmingHistory(Minecraft.getInstance().gameDirectory.toPath()
-            .resolve("config").resolve("tastyfish-farming.json"));
+        this.history = new FarmingHistory(
+            Minecraft.getInstance().gameDirectory.toPath()
+                .resolve("config")
+                .resolve("tastyfish-farming.json")
+        );
     }
 
     @Override
     protected void init() {
         clearWidgets();
-        discordChannelBox = null;
-        discordForumBox = null;
-
-        if (page == DISCORD) {
-            int left = contentLeft() + 30;
-            int boxWidth = 180;
-            discordChannelBox = field(left, 150, boxWidth, config.discordChannelId, "Discord channel ID");
-            discordForumBox = field(left, 215, boxWidth, config.discordForumId, "Discord forum channel ID");
-        }
         refreshSkysoft(true);
     }
 
-    private EditBox field(int x, int y, int width, String value, String hint) {
-        EditBox box = new EditBox(font, x, y, width, 24, Component.literal(hint));
-        box.setValue(value == null ? "" : value);
-        box.setHint(Component.literal(hint));
-        addRenderableWidget(box);
-        return box;
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+        refreshSkysoft(false);
+        drawBackground(g);
+        drawSidebar(g, mouseX, mouseY);
+        drawTopBar(g);
+        switch (page) {
+            case HOME -> drawHome(g);
+            case FARMING -> drawFarming(g);
+            case RNG -> drawRng(g);
+            case SESSIONS -> drawSessions(g);
+            case NOTES -> drawNotes(g);
+            case SETTINGS -> drawSettings(g);
+            default -> drawHome(g);
+        }
+        super.extractRenderState(g, mouseX, mouseY, delta);
     }
-
-    private void rebuild() { init(); }
 
     private void refreshSkysoft(boolean force) {
         long now = System.currentTimeMillis();
-        if (!force && now < nextSkysoftRead) return;
-        nextSkysoftRead = now + 1000L;
+        if (!force && now < nextSnapshotRead) return;
+        nextSnapshotRead = now + 1000L;
         snapshot = SkysoftSessionReader.read();
         skysoftAvailable = snapshot.valid();
     }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        refreshSkysoft(false);
-        resizeDiscordFields();
-        drawBackground(graphics);
-        drawSidebar(graphics, mouseX, mouseY);
-        drawHeader(graphics);
-        drawPage(graphics, mouseX, mouseY);
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-    }
-
-
-    private void resizeDiscordFields() {
-        if (page != DISCORD) return;
-        int collapsed = 180;
-        int expanded = Math.min(520, Math.max(260, contentWidth() - 80));
-        if (discordChannelBox != null) discordChannelBox.setWidth(discordChannelBox.isFocused() ? expanded : collapsed);
-        if (discordForumBox != null) discordForumBox.setWidth(discordForumBox.isFocused() ? expanded : collapsed);
-    }
-
     private void drawBackground(GuiGraphicsExtractor g) {
         g.fill(0, 0, width, height, BG);
-        g.fill(0, 0, width, 2, 0xFF5D3CFF);
-        g.fill(0, height - 1, width, height, 0xFF152033);
+        g.fill(0, 0, width, 3, PURPLE);
     }
 
     private void drawSidebar(GuiGraphicsExtractor g, int mx, int my) {
-        int sw = 185;
+        int sw = 190;
         g.fill(0, 0, sw, height, SIDEBAR);
         g.fill(sw - 1, 0, sw, height, BORDER);
 
-        g.text(font, "✦", 22, 20, CYAN, true);
-        g.text(font, "TastyFish", 45, 16, YELLOW, true);
-        g.text(font, "SkyBlock Farming", 45, 32, MUTED, false);
+        g.text(font, "✦", 20, 19, CYAN, true);
+        g.text(font, "TastyFish", 43, 16, YELLOW, true);
+        g.text(font, "SkyBlock Companion", 43, 31, MUTED, false);
 
-        int y = 66;
-        y = nav(g, "⌂", "Dashboard", MAIN, y, mx, my);
+        int y = 63;
+        y = nav(g, "⌂", "Overview", HOME, y, mx, my);
         y = nav(g, "❖", "Farming", FARMING, y, mx, my);
-        y = nav(g, "◈", "Guild HUD", HUD, y, mx, my);
-        y = nav(g, "◷", "Sessions", SESSION, y, mx, my);
-        y = nav(g, "★", "Personal Bests", PB, y, mx, my);
-        y = nav(g, "♨", "Streaks", STREAK, y, mx, my);
-        y = nav(g, "☆", "Achievements", ACHIEVEMENTS, y, mx, my);
-        y = nav(g, "◉", "Discord", DISCORD, y, mx, my);
+        y = nav(g, "✧", "RNG Tracker", RNG, y, mx, my);
+        y = nav(g, "◷", "Sessions", SESSIONS, y, mx, my);
+        y = nav(g, "✎", "Notes", NOTES, y, mx, my);
         y = nav(g, "⚙", "Settings", SETTINGS, y, mx, my);
 
-        int bottom = height - 72;
+        int bottom = height - 70;
         g.fill(16, bottom, sw - 16, bottom + 1, BORDER);
-        g.text(font, "Farm • Track • Improve", 22, bottom + 14, MUTED, false);
-        g.text(font, skysoftAvailable ? "SkySoft connected" : "SkySoft waiting", 22, bottom + 31,
-            skysoftAvailable ? GREEN : RED, false);
+        g.text(font, "TastyFish Mod", 20, bottom + 14, TEXT, true);
+        g.text(font, "26.2", 20, bottom + 31, MUTED, false);
+        g.text(font, skysoftAvailable ? "● SkySoft connected" : "● SkySoft waiting",
+            68, bottom + 31, skysoftAvailable ? GREEN : RED, false);
     }
 
     private int nav(GuiGraphicsExtractor g, String icon, String label, int id, int y, int mx, int my) {
         boolean selected = page == id;
-        boolean hover = mx >= 10 && mx <= 174 && my >= y && my <= y + 30;
+        boolean hover = mx >= 10 && mx <= 178 && my >= y && my <= y + 32;
+
         if (selected) {
-            g.fill(10, y, 174, y + 30, 0xFF6742D9);
-            g.fill(10, y, 13, y + 30, CYAN);
+            g.fill(10, y, 178, y + 32, 0xFF5136A8);
+            g.fill(10, y, 13, y + 32, CYAN);
         } else if (hover) {
-            g.fill(10, y, 174, y + 30, 0xFF172233);
+            g.fill(10, y, 178, y + 32, 0xFF172333);
         }
-        g.text(font, icon, 22, y + 8, selected ? TEXT : CYAN, true);
-        g.text(font, label, 46, y + 8, selected ? TEXT : 0xFFD5DCEA, false);
-        return y + 34;
+
+        g.text(font, icon, 22, y + 9, selected ? TEXT : CYAN, true);
+        g.text(font, label, 48, y + 9, selected ? TEXT : 0xFFD7DEEA, false);
+        return y + 38;
     }
 
-    private void drawHeader(GuiGraphicsExtractor g) {
-        int left = contentLeft();
+    private void drawTopBar(GuiGraphicsExtractor g) {
+        int left = 210;
         g.text(font, pageTitle(), left, 15, TEXT, true);
         g.text(font, pageSubtitle(), left, 31, MUTED, false);
 
-        int sx = width - 230;
-        g.fill(sx, 10, width - 16, 42, PANEL_2);
-        outline(g, sx, 10, width - 16, 42, BORDER);
-        g.text(font, "26.2", sx + 14, 19, 0xFF8FA3C2, false);
-        g.text(font, "•", sx + 54, 19, skysoftAvailable ? GREEN : RED, true);
-        g.text(font, skysoftAvailable ? "SkySoft Connected" : "SkySoft Waiting", sx + 67, 19,
+        int x = width - 210;
+        g.fill(x, 10, width - 16, 43, PANEL_2);
+        outline(g, x, 10, width - 16, 43, BORDER);
+        g.text(font, "26.2", x + 13, 19, MUTED, false);
+        g.text(font, "●", x + 56, 19, skysoftAvailable ? GREEN : RED, true);
+        g.text(font, skysoftAvailable ? "Connected" : "Waiting", x + 72, 19,
             skysoftAvailable ? GREEN : RED, true);
     }
 
-    private void drawPage(GuiGraphicsExtractor g, int mx, int my) {
-        switch (page) {
-            case MAIN -> renderMain(g);
-            case FARMING -> renderFarming(g);
-            case HUD -> renderHudPage(g);
-            case SESSION -> renderSession(g);
-            case PB -> renderPersonalBest(g);
-            case STREAK -> renderStreak(g);
-            case ACHIEVEMENTS -> renderAchievements(g);
-            case DISCORD -> renderDiscord(g);
-            case SETTINGS -> renderSettings(g);
-            default -> renderFarming(g);
-        }
-    }
-
-    private void renderMain(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
+    private void drawHome(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
         int gap = 12;
-        int cardW = (contentWidth() - gap * 2) / 3;
-        statCard(g, left, 58, cardW, "Current Crop", currentCrop(), YELLOW);
-        statCard(g, left + cardW + gap, 58, cardW, "Session Profit", coins(snapshot.profit()), GREEN);
-        statCard(g, left + (cardW + gap) * 2, 58, cardW, "Active Time", duration(snapshot.activeMillis()), CYAN);
+        int w = (r - l - gap * 2) / 3;
 
-        int top = 150;
-        int bottom = height - 18;
-        int leftW = (contentWidth() - 12) * 3 / 5;
-        panel(g, left, top, left + leftW, bottom, "Live Farming", CYAN);
-        drawStat(g, left + 24, top + 58, "Actions", number(snapshot.actions()), PURPLE);
-        drawStat(g, left + 24, top + 108, "Tracked Items", number(snapshot.valuedItems()), CYAN);
-        drawStat(g, left + 24, top + 158, "Pests", number(sum(snapshot.pests())), YELLOW);
-        drawStat(g, left + 250, top + 58, "1h Personal Best", coins(history.data().bestOneHourProfit), YELLOW);
-        drawStat(g, left + 250, top + 108, "Best Streak", duration(history.data().bestStreakMs), PURPLE);
-        drawStat(g, left + 250, top + 158, "Sessions", number(history.data().sessions.size()), CYAN);
-        g.text(font, skysoftAvailable ? "Live SkySoft FARMING tracker detected" : "Enable SkySoft's Farming Profit Tracker",
-            left + 24, top + 225, skysoftAvailable ? GREEN : RED, true);
-        g.text(font, "ProfitTrackerStatistics.sessionStats", left + 24, top + 247, MUTED, false);
+        card(g, l, 60, w, "SESSION PROFIT", coins(snapshot.profit()), GREEN);
+        card(g, l + w + gap, 60, w, "ACTIVE TIME", duration(snapshot.activeMillis()), CYAN);
+        card(g, l + (w + gap) * 2, 60, w, "ACTIONS", number(snapshot.actions()), PURPLE);
 
-        int rightX = left + leftW + 12;
-        panel(g, rightX, top, right, bottom, "Guild Collection", PURPLE);
-        TastyFishWebsiteClient.Result guild = getGuildResult();
-        if (guild.available()) {
-            g.text(font, guild.boardName(), rightX + 22, top + 58, YELLOW, true);
-            g.text(font, format(guild.value()) + "  [#" + guild.position() + "]", rightX + 22, top + 83, TEXT, true);
-            if (guild.hasAheadPlayer()) {
-                g.text(font, format(guild.behind()) + " behind " + guild.aheadName(), rightX + 22, top + 122, CYAN, false);
-                g.text(font, "[#" + guild.aheadPosition() + "]", rightX + 22, top + 143, MUTED, false);
-            }
-        } else {
-            g.text(font, "Waiting for tastyfish.org", rightX + 22, top + 62, MUTED, false);
-            g.text(font, "The HUD automatically matches the current crop", rightX + 22, top + 91, MUTED, false);
-            g.text(font, "to an enabled guild collection leaderboard.", rightX + 22, top + 109, MUTED, false);
-        }
+        panel(g, l, 145, l + (r - l) * 2 / 3, height - 18, "Farming overview", CYAN);
+        int x = l + 24;
+        stat(g, x, 195, "Current crop", currentCrop(), YELLOW);
+        stat(g, x, 245, "1-hour personal best", coins(history.data().bestOneHourProfit), YELLOW);
+        stat(g, x, 295, "Best streak", duration(history.data().bestStreakMs), PURPLE);
+        stat(g, x, 345, "Completed sessions", number(history.data().sessions.size()), CYAN);
+        stat(g, x, 395, "Tracked items", number(snapshot.valuedItems()), GREEN);
+
+        g.text(font, skysoftAvailable
+            ? "SkySoft FARMING data is being detected."
+            : "SkySoft FARMING data is not currently available.",
+            x, 455, skysoftAvailable ? GREEN : RED, true);
+        g.text(font, "Use the sidebar to configure farming, view RNG drops,",
+            x, 480, MUTED, false);
+        g.text(font, "review sessions, or open your local notes.", x, 498, MUTED, false);
+
+        int rx = l + (r - l) * 2 / 3 + 12;
+        panel(g, rx, 145, r, height - 18, "Quick actions", PURPLE);
+        action(g, rx + 20, 195, r - 20, "Farming settings", "Configure analytics and overlays", FARMING);
+        action(g, rx + 20, 255, r - 20, "RNG tracker", "View farming rare-drop tracking", RNG);
+        action(g, rx + 20, 315, r - 20, "Notes", "Open your persistent notepad", NOTES);
+        action(g, rx + 20, 375, r - 20, "Sessions", "Review locally saved sessions", SESSIONS);
     }
 
-    private void renderFarming(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        int mid = left + (contentWidth() * 3 / 5);
-        int bottom = height - 18;
+    private void drawFarming(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
+        int split = l + (r - l) * 3 / 5;
 
-        panel(g, left, 58, mid, bottom, "Farming", CYAN);
-        toggleRow(g, left + 24, 106, "Enable Farming Features", config.enabled, "Main TastyFish features", 0);
-        toggleRow(g, left + 24, 156, "Farming RNG Overlay", config.farmingRngEnabled, "Rare farming drops", 1);
-        toggleRow(g, left + 24, 206, "RNG Background", config.farmingRngBackground, "Dark background behind drops", 2);
-        toggleRow(g, left + 24, 256, "Farming Analytics", config.farmingAnalyticsEnabled, "Sessions, PBs, streaks and achievements", 3);
-        toggleRow(g, left + 24, 326, "Session Recorder", config.farmingSessionRecorderEnabled, "Save completed sessions locally", 4);
-        toggleRow(g, left + 24, 376, "Personal Bests", config.farmingPersonalBestEnabled, "Track rolling one-hour PB", 5);
-        toggleRow(g, left + 24, 426, "Farming Streak", config.farmingStreakEnabled, "Track continuous farming time", 6);
-        toggleRow(g, left + 24, 476, "Achievements", config.farmingAchievementsEnabled, "Unlock farming milestones", 7);
+        panel(g, l, 60, split, height - 18, "Farming features", CYAN);
+        toggleRow(g, l + 24, 108, "TastyFish features", config.enabled, "Master switch", 0);
+        toggleRow(g, l + 24, 166, "Farming RNG overlay", config.farmingRngEnabled, "Rare farming drops", 1);
+        toggleRow(g, l + 24, 224, "RNG background", config.farmingRngBackground, "Background behind RNG notifications", 2);
+        toggleRow(g, l + 24, 282, "Farming analytics", config.farmingAnalyticsEnabled, "Profit, PBs, streaks and achievements", 3);
+        toggleRow(g, l + 24, 340, "Session recorder", config.farmingSessionRecorderEnabled, "Save completed sessions locally", 4);
+        toggleRow(g, l + 24, 398, "Personal bests", config.farmingPersonalBestEnabled, "Rolling one-hour PB tracking", 5);
+        toggleRow(g, l + 24, 456, "Farming streak", config.farmingStreakEnabled, "Continuous farming time", 6);
 
-        panel(g, mid + 12, 58, right, bottom, "Preview", PURPLE);
-        int px = mid + 34;
-        int py = 106;
-        g.fill(px, py, right - 22, py + 170, PANEL_2);
-        outline(g, px, py, right - 22, py + 170, BORDER);
-        g.text(font, "❖ FARMING", px + 18, py + 18, GREEN, true);
-        g.text(font, "Crop: " + currentCrop(), px + 18, py + 48, TEXT, false);
-        g.text(font, "Session: " + duration(snapshot.activeMillis()), px + 18, py + 70, CYAN, false);
-        g.text(font, "Profit: " + coins(snapshot.profit()), px + 18, py + 92, GREEN, false);
-        g.text(font, "Guild HUD: " + (config.guildLeaderboardHudEnabled ? "ON" : "OFF"), px + 18, py + 114,
-            config.guildLeaderboardHudEnabled ? PURPLE : MUTED, false);
-        g.text(font, "Use Guild HUD for the collection gap display.", px + 18, py + 145, MUTED, false);
+        panel(g, split + 12, 60, r, height - 18, "Live preview", PURPLE);
+        int px = split + 32;
+        g.text(font, currentCrop(), px, 112, YELLOW, true);
+        g.text(font, coins(snapshot.profit()), px, 145, GREEN, true);
+        g.text(font, duration(snapshot.activeMillis()), px, 178, CYAN, true);
+        g.text(font, number(snapshot.actions()) + " actions", px, 211, MUTED, false);
+        g.text(font, "Achievements", px, 260, MUTED, false);
+        toggle(g, px, 278, config.farmingAchievementsEnabled);
+        g.text(font, "Upload interval", px, 330, MUTED, false);
+        g.text(font, config.uploadIntervalSeconds + " seconds", px, 350, TEXT, false);
+        g.text(font, "Data stays locally recorded and farming",
+            px, 405, MUTED, false);
+        g.text(font, "uploads use the TastyFish farming server.", px, 423, MUTED, false);
     }
 
-    private void renderHudPage(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        int bottom = height - 18;
-        int split = left + contentWidth() * 3 / 5;
+    private void drawRng(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
+        panel(g, l, 60, r, height - 18, "Farming RNG tracker", YELLOW);
 
-        panel(g, left, 58, split, bottom, "Guild Collection HUD", PURPLE);
-        toggleRow(g, left + 24, 106, "Enable Guild HUD", config.guildLeaderboardHudEnabled,
-            "Show the collection gap while farming", 20);
-        g.text(font, "Website", left + 24, 174, MUTED, false);
-        g.text(font, "Public read-only leaderboard data from tastyfish.org", left + 24, 191, TEXT, false);
-        g.text(font, "Refresh", left + 24, 245, MUTED, false);
-        g.text(font, config.guildLeaderboardRefreshSeconds + " seconds", left + 24, 264, TEXT, false);
-        g.text(font, "Position", left + 24, 315, MUTED, false);
-        g.text(font, config.guildLeaderboardHudX + ", " + config.guildLeaderboardHudY, left + 24, 334, TEXT, false);
-        g.text(font, "Scale", left + 24, 385, MUTED, false);
-        g.text(font, String.format(Locale.ROOT, "%.1fx", config.guildLeaderboardHudScale), left + 24, 404, TEXT, false);
-        g.text(font, "The HUD automatically follows the current SkySoft farming crop.", left + 24, 470, MUTED, false);
-        g.text(font, "It only uses guild leaderboard rows from the website.", left + 24, 490, MUTED, false);
+        g.text(font, "Overlay", l + 24, 108, MUTED, false);
+        toggle(g, l + 24, 126, config.farmingRngEnabled);
+        g.text(font, "Background", l + 150, 108, MUTED, false);
+        toggle(g, l + 150, 126, config.farmingRngBackground);
 
-        panel(g, split + 12, 58, right, bottom, "Live Preview", CYAN);
-        int px = split + 36;
-        int py = 118;
-        g.fill(px, py, right - 24, py + 120, 0xB6070B11);
-        outline(g, px, py, right - 24, py + 120, BORDER);
-        TastyFishGuildLeaderboardHud.renderPreview(g, px + 18, py + 20);
-        g.text(font, "Only two lines are shown in-game:", px + 18, py + 86, MUTED, false);
-        g.text(font, "collection + placement, then the member ahead + gap", px + 18, py + 103, MUTED, false);
+        g.text(font, "Position", l + 24, 195, MUTED, false);
+        g.text(font, config.farmingRngX + ", " + config.farmingRngY, l + 24, 216, TEXT, false);
+        g.text(font, "Scale", l + 24, 260, MUTED, false);
+        g.text(font, String.format(Locale.ROOT, "%.1fx", config.farmingRngScale), l + 24, 281, TEXT, false);
+
+        g.text(font, "Tracked rare drops", l + 260, 195, MUTED, false);
+        g.text(font, "FarmingRngTracker is active", l + 260, 216, GREEN, true);
+        g.text(font, "Drops are detected from farming chat/events.", l + 260, 245, MUTED, false);
+        g.text(font, "Use the overlay in-game to see the latest drops.", l + 260, 265, MUTED, false);
+
+        g.fill(l + 24, 330, r - 24, 390, PANEL_2);
+        outline(g, l + 24, 330, r - 24, 390, BORDER);
+        g.text(font, "Tip", l + 40, 350, YELLOW, true);
+        g.text(font, "The RNG tracker is independent from the guild leaderboard HUD.",
+            l + 40, 371, MUTED, false);
     }
 
-    private void renderSession(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, height - 18, "Recent Sessions", CYAN);
+    private void drawSessions(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
+        panel(g, l, 60, r, height - 18, "Recent sessions", CYAN);
+
         List<FarmingHistory.Session> sessions = history.data().sessions;
         if (sessions.isEmpty()) {
-            g.text(font, "No completed sessions yet.", left + 24, 108, MUTED, false);
+            g.text(font, "No completed farming sessions yet.", l + 26, 112, MUTED, false);
             return;
         }
-        int y = 105;
-        int start = Math.max(0, sessions.size() - 10);
+
+        int y = 104;
+        int start = Math.max(0, sessions.size() - 9);
         for (int i = sessions.size() - 1; i >= start; i--) {
             FarmingHistory.Session s = sessions.get(i);
-            g.fill(left + 18, y - 7, right - 18, y + 37, PANEL_2);
-            g.text(font, s.crop(), left + 30, y, YELLOW, true);
-            g.text(font, duration(s.activeMillis()), left + 220, y, TEXT, false);
-            g.text(font, coinsDouble(s.profit()), left + 330, y, GREEN, false);
-            g.text(font, s.reason(), right - 145, y, MUTED, false);
-            y += 50;
+            g.fill(l + 18, y - 8, r - 18, y + 39, PANEL_2);
+            g.text(font, s.crop(), l + 30, y, YELLOW, true);
+            g.text(font, duration(s.activeMillis()), l + 205, y, CYAN, false);
+            g.text(font, coins(s.profit()), l + 320, y, GREEN, false);
+            g.text(font, s.reason(), r - 125, y, MUTED, false);
+            y += 52;
         }
     }
 
-    private void renderPersonalBest(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, 250, "1-Hour Personal Best", YELLOW);
-        g.text(font, coins(history.data().bestOneHourProfit), left + 26, 112, YELLOW, true);
-        g.text(font, "rolling one-hour farming profit", left + 26, 138, MUTED, false);
-        g.text(font, "Best crop", left + 300, 104, MUTED, false);
-        g.text(font, history.data().bestOneHourCrop, left + 300, 124, TEXT, true);
-        g.text(font, "Recorded", left + 300, 154, MUTED, false);
-        g.text(font, history.data().bestOneHourAt == 0 ? "Not yet" : formatEpoch(history.data().bestOneHourAt), left + 300, 174, TEXT, false);
-        drawProgress(g, left + 26, 205, contentWidth() - 52, 10, Math.min(1f, history.data().bestOneHourProfit / 10_000_000f), YELLOW);
+    private void drawNotes(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
+        panel(g, l, 60, r, height - 18, "Notes", YELLOW);
 
-        panel(g, left, 270, right, height - 18, "How it works", PURPLE);
-        g.text(font, "TastyFish samples SkySoft's cumulative FARMING session profit.", left + 26, 315, TEXT, false);
-        g.text(font, "The rolling one-hour value is saved locally and survives restarts.", left + 26, 340, MUTED, false);
+        g.text(font, "Persistent local notepad", l + 28, 115, YELLOW, true);
+        g.text(font, "Write anything you want and keep it between Minecraft sessions.", l + 28, 145, MUTED, false);
+        g.text(font, "Your notes are stored in:", l + 28, 195, MUTED, false);
+        g.text(font, "config/tastyfish-notes.txt", l + 28, 218, CYAN, true);
+        g.fill(l + 28, 265, l + 210, 302, 0xFF5136A8);
+        g.text(font, "OPEN NOTEPAD", l + 63, 278, TEXT, true);
+
+        g.text(font, "Unlimited lines", l + 28, 350, GREEN, true);
+        g.text(font, "ENTER creates a new line • mouse wheel scrolls • ESC saves", l + 28, 375, MUTED, false);
     }
 
-    private void renderStreak(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, 265, "Farming Streak", PURPLE);
-        g.text(font, duration(history.data().bestStreakMs), left + 26, 115, PURPLE, true);
-        g.text(font, "best continuous farming time", left + 26, 141, MUTED, false);
-        drawProgress(g, left + 26, 185, contentWidth() - 52, 10,
-            Math.min(1f, history.data().bestStreakMs / (5f * 3600000f)), PURPLE);
-        g.text(font, "A gap longer than five minutes without progress ends the streak.", left + 26, 225, TEXT, false);
+    private void drawSettings(GuiGraphicsExtractor g) {
+        int l = 210;
+        int r = width - 16;
+        panel(g, l, 60, r, height - 18, "Settings", CYAN);
 
-        panel(g, left, 285, right, height - 18, "Milestones", CYAN);
-        milestone(g, left + 26, 330, "30 minutes", history.data().bestStreakMs >= 30 * 60000L);
-        milestone(g, left + 26, 370, "1 hour", history.data().bestStreakMs >= 60 * 60000L);
-        milestone(g, left + 26, 410, "2 hours", history.data().bestStreakMs >= 2 * 60 * 60000L);
-        milestone(g, left + 26, 450, "5 hours", history.data().bestStreakMs >= 5 * 60 * 60000L);
-        milestone(g, left + 26, 490, "10 hours", history.data().bestStreakMs >= 10 * 60 * 60000L);
+        setting(g, l + 26, 110, "Farming server", config.farmingServerEndpoint, config.farmingServerEnabled ? GREEN : RED);
+        setting(g, l + 26, 160, "Upload interval", config.uploadIntervalSeconds + " seconds", TEXT);
+        setting(g, l + 26, 210, "Local history", "config/tastyfish-farming.json", CYAN);
+        setting(g, l + 26, 260, "Notes", "config/tastyfish-notes.txt", YELLOW);
+        setting(g, l + 26, 310, "SkySoft", skysoftAvailable ? "Connected" : "Waiting", skysoftAvailable ? GREEN : RED);
+
+        g.fill(l + 26, 370, r - 26, 430, PANEL_2);
+        outline(g, l + 26, 370, r - 26, 430, BORDER);
+        g.text(font, "TastyFish", l + 42, 388, YELLOW, true);
+        g.text(font, "Farming tools, local analytics, RNG tracking and notes.",
+            l + 42, 410, MUTED, false);
     }
 
-    private void renderAchievements(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, height - 18, "Farming Achievements", YELLOW);
-        String[][] entries = {
-            {"FIRST_HARVEST", "First Harvest", "Track your first crop"},
-            {"MILLION_CROPS", "Million Crops", "Track 1,000,000 crops"},
-            {"TEN_MILLION_CROPS", "Ten Million Crops", "Track 10,000,000 crops"},
-            {"MILLIONAIRE", "Farming Millionaire", "Earn 1,000,000 farming coins"},
-            {"BILLIONAIRE", "Farming Billionaire", "Earn 1,000,000,000 farming coins"},
-            {"ONE_HOUR_FARMER", "One-Hour Farmer", "Reach a 1,000,000 coin one-hour PB"},
-            {"FIVE_HOUR_STREAK", "Five-Hour Streak", "Farm continuously for five hours"},
-            {"PEST_CONTROL", "Pest Control", "Track 1,000 pest kills"}
-        };
-        int y = 100;
-        for (String[] e : entries) {
-            boolean unlocked = history.data().unlockedAchievements.contains(e[0]);
-            g.fill(left + 18, y - 7, right - 18, y + 42, unlocked ? 0xFF182B28 : PANEL_2);
-            g.text(font, unlocked ? "★" : "☆", left + 30, y + 7, unlocked ? YELLOW : MUTED, true);
-            g.text(font, e[1], left + 62, y, unlocked ? YELLOW : TEXT, true);
-            g.text(font, e[2], left + 62, y + 19, MUTED, false);
-            g.text(font, unlocked ? "UNLOCKED" : "LOCKED", right - 92, y + 7, unlocked ? GREEN : MUTED, true);
-            y += 57;
-        }
-    }
-
-    private void renderDiscord(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, height - 18, "Discord Reports", PURPLE);
-        toggleRow(g, left + 24, 104, "Enable Discord Reports", config.discordForumEnabled,
-            "Relay reports through the TastyFish website/bot", 30);
-        g.text(font, "Channel ID", left + 24, 133, MUTED, false);
-        g.text(font, "Forum ID", left + 24, 198, MUTED, false);
-        g.text(font, "Website (fixed)", left + 24, 283, MUTED, false);
-        g.text(font, "https://tastyfish.org", left + 24, 301, TEXT, false);
-        g.text(font, "Report Types", left + 24, 360, MUTED, false);
-        checkbox(g, left + 24, 386, "Sessions", config.discordSendSessions);
-        checkbox(g, left + 140, 386, "PBs", config.discordSendPersonalBests);
-        checkbox(g, left + 220, 386, "Streaks", config.discordSendStreaks);
-        checkbox(g, left + 330, 386, "Achievements", config.discordSendAchievements);
-
-        panel(g, left + contentWidth() / 2, 58, right, height - 18, "How Discord Works", CYAN);
-        int rx = left + contentWidth() / 2 + 22;
-        g.text(font, "No webhook is stored in the mod.", rx, 108, TEXT, true);
-        g.text(font, "The mod sends the report to tastyfish.org", rx, 140, MUTED, false);
-        g.text(font, "with the target Discord channel/forum IDs.", rx, 160, MUTED, false);
-        g.text(font, "The main TastyFish Discord bot posts it.", rx, 192, GREEN, false);
-        g.text(font, "Channel ID = normal text channel", rx, 235, TEXT, false);
-        g.text(font, "Forum ID = forum channel for new posts", rx, 255, TEXT, false);
-        g.text(font, "Channel/forum IDs are local settings; the bot token stays on the server.", rx, 300, 0xFFFFB85A, false);
-    }
-
-    private void renderSettings(GuiGraphicsExtractor g) {
-        int left = contentLeft();
-        int right = width - 16;
-        panel(g, left, 58, right, height - 18, "Settings", CYAN);
-        g.text(font, "SkySoft endpoint", left + 24, 104, MUTED, false);
-        g.text(font, config.endpoint, left + 24, 124, TEXT, false);
-        g.text(font, "Upload interval", left + 24, 165, MUTED, false);
-        g.text(font, config.uploadIntervalSeconds + " seconds", left + 24, 185, TEXT, false);
-        g.text(font, "Local analytics", left + 24, 225, MUTED, false);
-        g.text(font, "config/tastyfish-farming.json", left + 24, 245, CYAN, false);
-        g.text(font, "Guild HUD commands", left + 24, 285, MUTED, false);
-        g.text(font, "/tf stats  •  /tf discord", left + 24, 305, TEXT, false);
-        g.text(font, "Discord relay secret", left + 24, 345, MUTED, false);
-        g.text(font, config.discordReportSecret.isBlank() ? "Not configured" : "Configured", left + 24, 365,
-            config.discordReportSecret.isBlank() ? MUTED : GREEN, false);
-        g.text(font, "Edit it in config/tastyfish-mod.json; it is never sent to Discord.", left + 24, 400, MUTED, false);
+    private void action(GuiGraphicsExtractor g, int l, int y, int r, String title, String subtitle, int target) {
+        boolean hover = false;
+        g.fill(l, y, r, y + 45, PANEL_2);
+        outline(g, l, y, r, y + 45, BORDER);
+        g.text(font, title, l + 14, y + 9, TEXT, true);
+        g.text(font, subtitle, l + 14, y + 26, MUTED, false);
+        g.text(font, "›", r - 20, y + 13, CYAN, true);
     }
 
     private void panel(GuiGraphicsExtractor g, int l, int t, int r, int b, String title, int accent) {
@@ -416,19 +310,28 @@ public final class TastyFishScreen extends Screen {
         g.text(font, title, l + 20, t + 19, TEXT, true);
     }
 
-    private void statCard(GuiGraphicsExtractor g, int x, int y, int w, String label, String value, int accent) {
+    private void card(GuiGraphicsExtractor g, int x, int y, int w, String label, String value, int accent) {
         g.fill(x, y, x + w, y + 72, PANEL);
         outline(g, x, y, x + w, y + 72, BORDER);
         g.fill(x, y, x + 3, y + 72, accent);
-        g.text(font, label, x + 16, y + 15, MUTED, false);
+        g.text(font, label, x + 16, y + 14, MUTED, false);
         g.text(font, value, x + 16, y + 38, accent, true);
     }
 
-    private void toggleRow(GuiGraphicsExtractor g, int x, int y, String title, boolean enabled, String subtitle, int rowId) {
+    private void stat(GuiGraphicsExtractor g, int x, int y, String label, String value, int accent) {
+        g.text(font, label, x, y, MUTED, false);
+        g.text(font, value, x, y + 20, accent, true);
+    }
+
+    private void setting(GuiGraphicsExtractor g, int x, int y, String label, String value, int accent) {
+        g.text(font, label, x, y, MUTED, false);
+        g.text(font, value, x, y + 19, accent, false);
+    }
+
+    private void toggleRow(GuiGraphicsExtractor g, int x, int y, String title, boolean enabled, String subtitle, int id) {
         g.text(font, title, x, y, TEXT, false);
-        g.text(font, subtitle, x, y + 17, MUTED, false);
-        int tx = Math.min(width - 100, x + 500);
-        toggle(g, tx, y - 5, enabled);
+        g.text(font, subtitle, x, y + 18, MUTED, false);
+        toggle(g, Math.min(width - 105, x + 430), y - 5, enabled);
     }
 
     private void toggle(GuiGraphicsExtractor g, int x, int y, boolean enabled) {
@@ -437,29 +340,6 @@ public final class TastyFishScreen extends Screen {
         g.fill(enabled ? x + 31 : x + 4, y + 4, enabled ? x + 50 : x + 23, y + 20,
             enabled ? GREEN : 0xFF8D96A7);
         g.text(font, enabled ? "ON" : "OFF", x - 36, y + 7, enabled ? GREEN : MUTED, true);
-    }
-
-    private void checkbox(GuiGraphicsExtractor g, int x, int y, String label, boolean checked) {
-        g.fill(x, y, x + 14, y + 14, checked ? PURPLE : 0xFF1A2230);
-        outline(g, x, y, x + 14, y + 14, checked ? PURPLE : BORDER);
-        if (checked) g.text(font, "✓", x + 2, y - 1, TEXT, true);
-        g.text(font, label, x + 22, y, TEXT, false);
-    }
-
-    private void drawStat(GuiGraphicsExtractor g, int x, int y, String label, String value, int accent) {
-        g.text(font, label, x, y, MUTED, false);
-        g.text(font, value, x, y + 20, accent, true);
-    }
-
-    private void drawProgress(GuiGraphicsExtractor g, int x, int y, int w, int h, float value, int accent) {
-        g.fill(x, y, x + w, y + h, 0xFF1A2432);
-        g.fill(x, y, x + Math.max(2, Math.round(w * Math.max(0f, Math.min(1f, value)))), y + h, accent);
-    }
-
-    private void milestone(GuiGraphicsExtractor g, int x, int y, String label, boolean unlocked) {
-        g.text(font, unlocked ? "★" : "☆", x, y, unlocked ? YELLOW : MUTED, true);
-        g.text(font, label, x + 28, y, unlocked ? TEXT : MUTED, false);
-        g.text(font, unlocked ? "Reached" : "Locked", x + 150, y, unlocked ? GREEN : MUTED, false);
     }
 
     private void outline(GuiGraphicsExtractor g, int l, int t, int r, int b, int color) {
@@ -472,66 +352,85 @@ public final class TastyFishScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+
         int x = (int) event.x();
         int y = (int) event.y();
 
-        if (x >= 10 && x <= 174) {
-            int navY = 66;
-            int[] ids = {MAIN, FARMING, HUD, SESSION, PB, STREAK, ACHIEVEMENTS, DISCORD, SETTINGS};
+        if (x >= 10 && x <= 178) {
+            int navY = 63;
+            int[] ids = {HOME, FARMING, RNG, SESSIONS, NOTES, SETTINGS};
             for (int id : ids) {
-                if (y >= navY && y <= navY + 30) {
-                    saveFields();
+                if (y >= navY && y <= navY + 32) {
                     page = id;
-                    rebuild();
+                    init();
                     return true;
                 }
-                navY += 34;
+                navY += 38;
             }
+        }
+
+        if (page == HOME) {
+            int l = 210;
+            int r = width - 16;
+            int rx = l + (r - l) * 2 / 3 + 12;
+            if (x >= rx && x <= r && y >= 195 && y <= 240) {
+                page = FARMING;
+                init();
+                return true;
+            }
+            if (x >= rx && x <= r && y >= 255 && y <= 300) {
+                page = RNG;
+                init();
+                return true;
+            }
+            if (x >= rx && x <= r && y >= 315 && y <= 360) {
+                page = NOTES;
+                init();
+                return true;
+            }
+            if (x >= rx && x <= r && y >= 375 && y <= 420) {
+                page = SESSIONS;
+                init();
+                return true;
+            }
+        }
+
+        if (page == NOTES && x >= 235 && x <= 420 && y >= 265 && y <= 310) {
+            Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+            Minecraft.getInstance().setScreen(new TastyFishNotesScreen(configDir));
+            return true;
         }
 
         if (page == FARMING) {
-            int toggleX = Math.min(width - 100, contentLeft() + 24 + 500);
-            if (x >= toggleX - 8 && x <= toggleX + 62) {
-                int[] rows = {106, 156, 206, 256, 326, 376, 426, 476};
-                int row = nearestRow(y, rows);
-                if (row >= 0) {
-                    switch (row) {
-                        case 0 -> config.enabled = !config.enabled;
-                        case 1 -> config.farmingRngEnabled = !config.farmingRngEnabled;
-                        case 2 -> config.farmingRngBackground = !config.farmingRngBackground;
-                        case 3 -> config.farmingAnalyticsEnabled = !config.farmingAnalyticsEnabled;
-                        case 4 -> config.farmingSessionRecorderEnabled = !config.farmingSessionRecorderEnabled;
-                        case 5 -> config.farmingPersonalBestEnabled = !config.farmingPersonalBestEnabled;
-                        case 6 -> config.farmingStreakEnabled = !config.farmingStreakEnabled;
-                        case 7 -> config.farmingAchievementsEnabled = !config.farmingAchievementsEnabled;
+            int tx = Math.min(width - 105, 234 + 430);
+            int[] rows = {108, 166, 224, 282, 340, 398, 456};
+            if (x >= tx - 10 && x <= tx + 65) {
+                for (int i = 0; i < rows.length; i++) {
+                    if (y >= rows[i] - 10 && y <= rows[i] + 30) {
+                        switch (i) {
+                            case 0 -> config.enabled = !config.enabled;
+                            case 1 -> config.farmingRngEnabled = !config.farmingRngEnabled;
+                            case 2 -> config.farmingRngBackground = !config.farmingRngBackground;
+                            case 3 -> config.farmingAnalyticsEnabled = !config.farmingAnalyticsEnabled;
+                            case 4 -> config.farmingSessionRecorderEnabled = !config.farmingSessionRecorderEnabled;
+                            case 5 -> config.farmingPersonalBestEnabled = !config.farmingPersonalBestEnabled;
+                            case 6 -> config.farmingStreakEnabled = !config.farmingStreakEnabled;
+                        }
+                        save();
+                        return true;
                     }
-                    save();
-                    return true;
                 }
             }
         }
 
-        if (page == HUD) {
-            int toggleX = Math.min(width - 100, contentLeft() + 24 + 500);
-            if (x >= toggleX - 8 && x <= toggleX + 62 && y >= 96 && y <= 135) {
-                config.guildLeaderboardHudEnabled = !config.guildLeaderboardHudEnabled;
+        if (page == RNG) {
+            if (x >= 230 && x <= 310 && y >= 120 && y <= 165) {
+                config.farmingRngEnabled = !config.farmingRngEnabled;
                 save();
                 return true;
             }
-        }
-
-        if (page == DISCORD) {
-            if (y >= 90 && y <= 135) {
-                config.discordForumEnabled = !config.discordForumEnabled;
-                save();
-                return true;
-            }
-            if (y >= 375 && y <= 410) {
-                int base = contentLeft() + 24;
-                if (x >= base && x < base + 115) config.discordSendSessions = !config.discordSendSessions;
-                else if (x >= base + 115 && x < base + 195) config.discordSendPersonalBests = !config.discordSendPersonalBests;
-                else if (x >= base + 195 && x < base + 305) config.discordSendStreaks = !config.discordSendStreaks;
-                else if (x >= base + 305 && x < base + 450) config.discordSendAchievements = !config.discordSendAchievements;
+            if (x >= 355 && x <= 440 && y >= 120 && y <= 165) {
+                config.farmingRngBackground = !config.farmingRngBackground;
                 save();
                 return true;
             }
@@ -540,41 +439,25 @@ public final class TastyFishScreen extends Screen {
         return super.mouseClicked(event, doubleClick);
     }
 
-    private int nearestRow(int y, int[] rows) {
-        for (int i = 0; i < rows.length; i++) if (y >= rows[i] - 12 && y <= rows[i] + 30) return i;
-        return -1;
-    }
-
     @Override
     public void onClose() {
-        saveFields();
         save();
         super.onClose();
     }
 
-    private void saveFields() {
-        if (discordChannelBox != null) config.discordChannelId = discordChannelBox.getValue().trim();
-        if (discordForumBox != null) config.discordForumId = discordForumBox.getValue().trim();
-    }
-
     private void save() {
-        Minecraft mc = Minecraft.getInstance();
-        config.save(mc.gameDirectory.toPath().resolve("config").resolve("tastyfish-mod.json"));
+        config.save(Minecraft.getInstance().gameDirectory.toPath()
+            .resolve("config")
+            .resolve("tastyfish-mod.json"));
     }
-
-    private int contentLeft() { return 205; }
-    private int contentWidth() { return Math.max(400, width - contentLeft() - 16); }
 
     private String pageTitle() {
         return switch (page) {
-            case MAIN -> "Dashboard";
+            case HOME -> "Overview";
             case FARMING -> "Farming";
-            case HUD -> "Guild Collection HUD";
-            case SESSION -> "Sessions";
-            case PB -> "Personal Bests";
-            case STREAK -> "Streaks";
-            case ACHIEVEMENTS -> "Achievements";
-            case DISCORD -> "Discord Reports";
+            case RNG -> "RNG Tracker";
+            case SESSIONS -> "Sessions";
+            case NOTES -> "Notes";
             case SETTINGS -> "Settings";
             default -> "TastyFish";
         };
@@ -582,15 +465,12 @@ public final class TastyFishScreen extends Screen {
 
     private String pageSubtitle() {
         return switch (page) {
-            case MAIN -> "Live SkySoft tracking and guild progress";
-            case FARMING -> "Configure farming features without the clutter";
-            case HUD -> "Guild-only collection gap display from tastyfish.org";
-            case SESSION -> "Your locally recorded farming sessions";
-            case PB -> "Rolling one-hour farming records";
-            case STREAK -> "Continuous farming milestones";
-            case ACHIEVEMENTS -> "Milestones unlocked from farming history";
-            case DISCORD -> "Target a Discord channel or forum by ID";
-            case SETTINGS -> "Connection, storage and command information";
+            case HOME -> "Everything important at a glance";
+            case FARMING -> "Control your farming features";
+            case RNG -> "Rare farming drop tracking";
+            case SESSIONS -> "Your locally recorded farming sessions";
+            case NOTES -> "Your persistent in-game notepad";
+            case SETTINGS -> "Connection and storage information";
             default -> "";
         };
     }
@@ -600,14 +480,19 @@ public final class TastyFishScreen extends Screen {
         long count = 0L;
         for (var entry : snapshot.items().entrySet()) {
             long value = entry.getValue() == null ? 0L : entry.getValue();
-            if (value > count) { count = value; best = prettyId(entry.getKey()); }
+            if (value > count) {
+                count = value;
+                best = prettyId(entry.getKey());
+            }
         }
         return best;
     }
 
-    private TastyFishWebsiteClient.Result getGuildResult() {
-        // The HUD owns the cached website result; use the public preview data only when unavailable.
-        return TastyFishGuildLeaderboardHudResultHolder.result();
+    private static String prettyId(String id) {
+        if (id == null || id.isBlank()) return "Unknown";
+        return id.toLowerCase(Locale.ROOT)
+            .replace("minecraft:", "")
+            .replace('_', ' ');
     }
 
     private static long sum(java.util.Map<String, Long> map) {
@@ -617,39 +502,21 @@ public final class TastyFishScreen extends Screen {
         return total;
     }
 
-    private static String prettyId(String id) {
-        if (id == null || id.isBlank()) return "Unknown";
-        return id.toLowerCase(Locale.ROOT).replace("minecraft:", "").replace('_', ' ').replace(" item", "");
+    private static String number(long value) {
+        return String.format(Locale.ROOT, "%,d", value);
     }
 
-    private static String number(long value) { return String.format(Locale.ROOT, "%,d", value); }
-    private static String format(long value) { return String.format(Locale.ROOT, "%,d", Math.max(0L, value)); }
-    private static String coins(double value) { return String.format(Locale.ROOT, "%,.0f coins", value); }
-    private static String coinsDouble(double value) { return String.format(Locale.ROOT, "%,.0f coins", value); }
+    private static String coins(double value) {
+        return String.format(Locale.ROOT, "%,.0f coins", value);
+    }
 
     private static String duration(long millis) {
-        long totalSeconds = Math.max(0L, millis / 1000L);
-        long h = totalSeconds / 3600L;
-        long m = (totalSeconds % 3600L) / 60L;
-        long s = totalSeconds % 60L;
-        return h > 0 ? String.format(Locale.ROOT, "%dh %02dm", h, m) : String.format(Locale.ROOT, "%dm %02ds", m, s);
-    }
-
-    private static String formatEpoch(long millis) {
-        return java.time.Instant.ofEpochMilli(millis).toString().replace('T', ' ').replace('Z', ' ');
-    }
-
-    /** Small bridge to keep the screen independent of the HUD's renderer internals. */
-    private static final class TastyFishGuildLeaderboardHudResultHolder {
-        private static TastyFishWebsiteClient.Result result() {
-            try {
-                java.lang.reflect.Field field = TastyFishGuildLeaderboardHud.class.getDeclaredField("WEBSITE");
-                field.setAccessible(true);
-                TastyFishWebsiteClient client = (TastyFishWebsiteClient) field.get(null);
-                return client.result();
-            } catch (Throwable ignored) {
-                return TastyFishWebsiteClient.Result.empty();
-            }
-        }
+        long seconds = Math.max(0L, millis / 1000L);
+        long hours = seconds / 3600L;
+        long minutes = (seconds % 3600L) / 60L;
+        long remainder = seconds % 60L;
+        return hours > 0
+            ? String.format(Locale.ROOT, "%dh %02dm", hours, minutes)
+            : String.format(Locale.ROOT, "%dm %02ds", minutes, remainder);
     }
 }
