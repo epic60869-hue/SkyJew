@@ -131,7 +131,7 @@ public final class TastyFishScreen extends Screen {
         } else if (inside(event.x(), event.y(), x, right, y + 140)) {
             config.farmingRngBackground = !config.farmingRngBackground;
         } else if (inside(event.x(), event.y(), x, right, y + 185)) {
-            config.farmingRngScale += event.shift() ? -0.1f : 0.1f;
+            config.farmingRngScale += Minecraft.getInstance().hasShiftDown() ? -0.1f : 0.1f;
             config.farmingRngScale = clampScale(config.farmingRngScale);
         } else if (inside(event.x(), event.y(), x, right, y + 270)) {
             config.mouseLockEnabled = !config.mouseLockEnabled;
