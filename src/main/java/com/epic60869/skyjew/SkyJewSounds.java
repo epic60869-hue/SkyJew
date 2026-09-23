@@ -5,7 +5,10 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.RandomSource;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundInstance;
+import net.minecraft.sounds.SoundSource;
 
 public final class SkyJewSounds {
     private static final Identifier FIRST_BOOT_ID =
@@ -18,6 +21,7 @@ public final class SkyJewSounds {
     );
 
     private static boolean firstBootPlayed;
+    private static SimpleSoundInstance firstBootSound;
 
     private SkyJewSounds() {}
 
@@ -27,11 +31,8 @@ public final class SkyJewSounds {
     }
 
     /**
-     * Plays the first-boot audio exactly once.
-     *
-     * The bundled OGG is about 5.07 seconds long. The previous implementation
-     * restarted it every 80 ticks (~4 seconds), which cut the audio off before
-     * it finished. It is now allowed to play naturally to completion.
+     * Plays the first-boot audio and keeps it looping until the user
+     * acknowledges the first-boot screen.
      */
     public static void playFirstBoot() {
         if (firstBootPlayed) {
@@ -40,7 +41,25 @@ public final class SkyJewSounds {
 
         Minecraft mc = Minecraft.getInstance();
         firstBootPlayed = true;
-        mc.getSoundManager().play(SimpleSoundInstance.forUI(FIRST_BOOT_RATTED, 1.0F));
+
+        // This uses the same non-positional/master-style playback as a UI sound,
+        // but enables the SoundInstance loop flag so the OGG repeats indefinitely.
+        firstBootSound = new SimpleSoundInstance(
+            FIRST_BOOT_ID,
+            SoundSource.MASTER,
+            1.0F,
+            1.0F,
+            RandomSource.create(),
+            true,
+            0,
+            SoundInstance.Attenuation.NONE,
+            0.0D,
+            0.0D,
+            0.0D,
+            true
+        );
+
+        mc.getSoundManager().play(firstBootSound);
     }
 
     public static void tickFirstBoot() {
@@ -48,7 +67,9 @@ public final class SkyJewSounds {
     }
 
     public static void stopFirstBoot() {
-        // The first-boot sound is a normal one-shot UI sound. We intentionally
-        // do not restart it or forcibly cut it off while the screen is open.
+        if (firstBootSound != null) {
+            Minecraft.getInstance().getSoundManager().stop(firstBootSound);
+            firstBootSound = null;
+        }
     }
 }

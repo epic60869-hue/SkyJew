@@ -13,8 +13,8 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     private static final int BUTTON_WIDTH = 220;
     private static final int BUTTON_HEIGHT = 32;
-    private static final int IMAGE_TEXTURE_WIDTH = 256;
-    private static final int IMAGE_TEXTURE_HEIGHT = 144;
+    private static final int IMAGE_TEXTURE_WIDTH = 360;
+    private static final int IMAGE_TEXTURE_HEIGHT = 360;
 
     private final SkyJewConfig config;
     private final Screen previousScreen;
@@ -40,18 +40,17 @@ public final class SkyJewFirstBootScreen extends Screen {
 
         graphics.fill(0, 0, width, height, 0xFF000000);
 
-        int imageWidth = Math.min(width - 40, 1024);
-        int imageHeight = imageWidth * IMAGE_TEXTURE_HEIGHT / IMAGE_TEXTURE_WIDTH;
+        int imageWidth = Math.min(width - 40, 360);
+        int imageHeight = imageWidth;
         if (imageHeight > height / 2) {
             imageHeight = height / 2;
-            imageWidth = imageHeight * IMAGE_TEXTURE_WIDTH / IMAGE_TEXTURE_HEIGHT;
+            imageWidth = imageHeight;
         }
 
         int imageX = (width - imageWidth) / 2;
         int imageY = Math.max(20, height / 2 - imageHeight - 95);
 
-        // Full-texture blit using the 26.2 GuiGraphicsExtractor overload.
-        // The source texture is exactly 256x144.
+        // Full-texture blit for the supplied 360x360 transparent PNG.
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             WARNING_TEXTURE,
@@ -97,11 +96,11 @@ public final class SkyJewFirstBootScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return true;
 
-        int imageWidth = Math.min(width - 40, 1024);
-        int imageHeight = imageWidth * IMAGE_TEXTURE_HEIGHT / IMAGE_TEXTURE_WIDTH;
+        int imageWidth = Math.min(width - 40, 360);
+        int imageHeight = imageWidth;
         if (imageHeight > height / 2) {
             imageHeight = height / 2;
-            imageWidth = imageHeight * IMAGE_TEXTURE_WIDTH / IMAGE_TEXTURE_HEIGHT;
+            imageWidth = imageHeight;
         }
 
         int imageY = Math.max(20, height / 2 - imageHeight - 95);
