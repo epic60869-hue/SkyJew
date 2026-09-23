@@ -131,17 +131,30 @@ public final class SkyJewConfig extends Config {
     }
 
     public static final class Pets {
-        @ConfigOption(name = "Pet Display", desc = "Reserved for the SkyJew pet display.")
+        @Expose
+        @ConfigOption(name = "Pet Display", desc = "Show the active pet HUD.")
         @ConfigEditorBoolean
         public boolean display = true;
 
-        @ConfigOption(name = "Overflow Pet Levels", desc = "Reserved for displaying pet XP beyond level 100.")
+        @Expose
+        @ConfigOption(name = "Overflow Pet Levels", desc = "Show pet XP beyond the normal maximum level.")
         @ConfigEditorBoolean
         public boolean overflowLevels = true;
 
+        @Expose
         @ConfigOption(name = "Auto-Pet Display", desc = "Keep the pet display synced with the active pet.")
         @ConfigEditorBoolean
         public boolean autoDisplay = true;
+
+        @Expose
+        public int x = 10;
+
+        @Expose
+        public int y = 10;
+
+        @ConfigOption(name = "Edit Position", desc = "Open the HUD editor and drag the Pet Display.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable editPosition = () -> openHudEditor();
     }
 
     public static final class Experiments {
@@ -254,6 +267,11 @@ public final class SkyJewConfig extends Config {
     private static void openRngEditor() {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> mc.gui.setScreen(new SkyJewRngHudScreen(mc.gui.screen())));
+    }
+
+    private static void openHudEditor() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewHudEditorScreen(mc.gui.screen())));
     }
 
     private static void openNick() {
