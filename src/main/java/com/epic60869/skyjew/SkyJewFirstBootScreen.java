@@ -16,6 +16,7 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     private final SkyJewConfig config;
     private final Screen previousScreen;
+    private boolean audioStarted;
 
     public SkyJewFirstBootScreen(SkyJewConfig config, Screen previousScreen) {
         super(Component.literal("SkyJew"));
@@ -25,7 +26,10 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     @Override
     protected void init() {
-        SkyJewSounds.playFirstBoot();
+        if (!audioStarted) {
+            audioStarted = true;
+            SkyJewSounds.playFirstBoot();
+        }
     }
 
     @Override
