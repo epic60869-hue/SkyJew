@@ -18,25 +18,32 @@ public final class SkyJewChatCompactor {
         return config != null && config.chat != null && config.chat.compactChat;
     }
 
-    public static Component compact(Component incoming) {
-        if (!enabled() || incoming == null) return incoming;
+    /**
+     * Records an incoming message. Returns 1 for a new message, or the
+     * occurrence count when it repeats consecutively within the time window.
+     */
+    public static int nextCount(Component incoming, boolean consecutive) {
+        if (!enabled() || incoming == null) return 1;
 
         String key = incoming.getString();
-        if (key == null || key.isBlank() || isSeparator(key)) return incoming;
+        if (key == null || key.isBlank() || isSeparator(key)) return 1;
 
         long now = System.currentTimeMillis();
         prune(now);
 
         Entry previous = ENTRIES.get(key);
-        if (previous == null || now - previous.lastSeen > WINDOW_MS) {
-            ENTRIES.put(key, new Entry(1, now));
-            return incoming;
+        if (!consecutive || previous == null || now - previous.lastSeen > WINDOW_MS) {
+            ENTRIES.put(key, new Entry(incoming.copy(), 1, now));
+            return 1;
         }
 
-        int count = previous.count + 1;
-        previous.count = count;
+        previous.count++;
         previous.lastSeen = now;
+        return previous.count;
+    }
 
+    public static Component withCount(Component incoming, int count) {
+        if (count <= 1) return incoming;
         MutableComponent result = incoming.copy();
         result.append(Component.literal(" §7(x" + count + ")"));
         return result;
@@ -54,16 +61,18 @@ public final class SkyJewChatCompactor {
     }
 
     private static boolean isSeparator(String text) {
-        String plain = text.replaceAll("\\s", "");
+        String plain = text.replaceAll("\s", "");
         if (plain.length() < 3) return false;
         return plain.matches("[-_=~*•·━─═]+");
     }
 
     private static final class Entry {
+        private final Component original;
         private int count;
         private long lastSeen;
 
-        private Entry(int count, long lastSeen) {
+        private Entry(Component original, int count, long lastSeen) {
+            this.original = original;
             this.count = count;
             this.lastSeen = lastSeen;
         }
