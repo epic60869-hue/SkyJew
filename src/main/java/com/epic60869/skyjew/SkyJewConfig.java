@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.Expose;
 import io.github.notenoughupdates.moulconfig.Config;
 import io.github.notenoughupdates.moulconfig.annotations.Category;
+import io.github.notenoughupdates.moulconfig.annotations.Accordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
@@ -56,19 +57,14 @@ public final class SkyJewConfig extends Config {
     public Visual visual = new Visual();
 
     @Expose
-    @Category(name = "Nickname", desc = "Your SkyJew global-chat nickname and colour.")
-    public Nickname nickname = new Nickname();
+    @Category(name = "Misc", desc = "Nickname and small quality-of-life options.")
+    public Misc misc = new Misc();
 
     @Expose
     @Category(name = "Discord", desc = "Link and use your own Discord account.")
     public Discord discord = new Discord();
 
     public static final class General {
-        @Expose
-        @ConfigOption(name = "Enable SkyJew", desc = "Master switch for SkyJew features.")
-        @ConfigEditorBoolean
-        public boolean enabled = true;
-
         @ConfigOption(name = "Custom Item Editor", desc = "Open the SkyJew custom item editor.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable customItemEditor = () -> openCustom();
@@ -87,43 +83,36 @@ public final class SkyJewConfig extends Config {
 
     public static final class Farming {
         @Expose
-        @ConfigOption(name = "Farming RNG HUD", desc = "Show the farming RNG/progress overlay.")
+        @Accordion
+        @ConfigOption(name = "Farming RNG HUD", desc = "Click to expand the farming RNG HUD options.")
+        public FarmingRng rng = new FarmingRng();
+    }
+
+    public static final class FarmingRng {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show the farming RNG/progress overlay.")
         @ConfigEditorBoolean
-        public boolean rngEnabled = true;
+        public boolean enabled = true;
 
         @Expose
-        @ConfigOption(name = "RNG HUD Background", desc = "Draw a background behind the farming RNG HUD.")
+        @ConfigOption(name = "Background", desc = "Draw a background behind the farming RNG HUD.")
         @ConfigEditorBoolean
-        public boolean rngBackground = false;
+        public boolean background = false;
 
         @Expose
-        @ConfigOption(name = "RNG HUD Scale", desc = "Scale the farming RNG HUD.")
+        @ConfigOption(name = "Scale", desc = "Scale the farming RNG HUD.")
         @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
-        public float rngScale = 1.0f;
+        public float scale = 1.0f;
 
-        @Expose
-        @ConfigOption(name = "RNG HUD X", desc = "Horizontal position of the farming RNG HUD.")
-        @ConfigEditorSlider(minValue = 0, maxValue = 2000, minStep = 1)
-        public int rngX = 8;
-
-        @Expose
-        @ConfigOption(name = "RNG HUD Y", desc = "Vertical position of the farming RNG HUD.")
-        @ConfigEditorSlider(minValue = 0, maxValue = 1200, minStep = 1)
-        public int rngY = 8;
+        @ConfigOption(name = "Edit Position", desc = "Open the SkyJew HUD editor and drag the Farming RNG HUD.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable editPosition = () -> openRngEditor();
     }
 
     public static final class Slayers {
-        @ConfigOption(name = "Kills Since Rare Drop", desc = "SkyJew's Slayer drop counter will appear here.")
+        @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
         @ConfigEditorBoolean
         public boolean killsSinceDrop = true;
-
-        @ConfigOption(name = "Rare Drop Alerts", desc = "Reserved for future configurable Slayer alerts.")
-        @ConfigEditorBoolean
-        public boolean rareDropAlerts = true;
-
-        @ConfigOption(name = "Slayer HUD", desc = "Reserved for the future Slayer HUD.")
-        @ConfigEditorBoolean
-        public boolean hud = true;
     }
 
     public static final class Pets {
@@ -156,10 +145,6 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorBoolean
         public boolean preventMisclicks = true;
 
-        @Expose
-        @ConfigOption(name = "Debug Mode", desc = "Show experiment solver debug information.")
-        @ConfigEditorBoolean
-        public boolean debug = false;
     }
 
     public static final class Visual {
@@ -172,6 +157,40 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Ground Only", desc = "Only apply Mouse Lock while the player is on the ground.")
         @ConfigEditorBoolean
         public boolean mouseLockGroundOnly = true;
+    }
+
+    public static final class Misc {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
+        public Nickname nickname = new Nickname();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mouse Reset", desc = "Reset the mouse cursor when selected SkyBlock menus open.")
+        public MouseReset mouseReset = new MouseReset();
+    }
+
+    public static final class MouseReset {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Enable automatic mouse reset for selected menus.")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "Accessory Bag", desc = "Reset the cursor when the Accessory Bag opens.")
+        @ConfigEditorBoolean
+        public boolean accessoryBag = true;
+
+        @Expose
+        @ConfigOption(name = "Ender Chest", desc = "Reset the cursor when an Ender Chest opens.")
+        @ConfigEditorBoolean
+        public boolean enderChest = true;
+
+        @Expose
+        @ConfigOption(name = "Backpack", desc = "Reset the cursor when a Backpack opens.")
+        @ConfigEditorBoolean
+        public boolean backpack = true;
     }
 
     public static final class Nickname {
@@ -222,6 +241,11 @@ public final class SkyJewConfig extends Config {
         Minecraft mc = Minecraft.getInstance();
         Path dir = mc.gameDirectory.toPath().resolve("config");
         mc.execute(() -> mc.gui.setScreen(new SkyJewCommandKeysScreen(dir)));
+    }
+
+    private static void openRngEditor() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new SkyJewRngHudScreen(mc.gui.screen())));
     }
 
     private static void openDiscord() {
@@ -301,27 +325,24 @@ public final class SkyJewConfig extends Config {
         if (old == null || old.has("general")) return;
 
         SkyJewConfig migrated = new SkyJewConfig();
-        if (old.has("enabled")) migrated.general.enabled = old.get("enabled").getAsBoolean();
+        if (old.has("enabled")) 
         if (old.has("firstBootAcknowledged")) migrated.general.firstBootAcknowledged = old.get("firstBootAcknowledged").getAsBoolean();
 
-        if (old.has("farmingRngEnabled")) migrated.farming.rngEnabled = old.get("farmingRngEnabled").getAsBoolean();
-        if (old.has("farmingRngBackground")) migrated.farming.rngBackground = old.get("farmingRngBackground").getAsBoolean();
-        if (old.has("farmingRngScale")) migrated.farming.rngScale = old.get("farmingRngScale").getAsFloat();
-        if (old.has("farmingRngX")) migrated.farming.rngX = old.get("farmingRngX").getAsInt();
-        if (old.has("farmingRngY")) migrated.farming.rngY = old.get("farmingRngY").getAsInt();
-
+        if (old.has("farmingRngEnabled")) migrated.farming.rng.enabled = old.get("farmingRngEnabled").getAsBoolean();
+        if (old.has("farmingRngBackground")) migrated.farming.rng.background = old.get("farmingRngBackground").getAsBoolean();
+        if (old.has("farmingRngScale")) migrated.farming.rng.scale = old.get("farmingRngScale").getAsFloat();
+        if (old.has("farmingRngX")) 
         if (old.has("mouseLockEnabled")) migrated.visual.mouseLockEnabled = old.get("mouseLockEnabled").getAsBoolean();
         if (old.has("mouseLockGroundOnly")) migrated.visual.mouseLockGroundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
 
         if (old.has("experimentHelperEnabled")) migrated.experiments.enabled = old.get("experimentHelperEnabled").getAsBoolean();
         if (old.has("experimentHelperHighlight")) migrated.experiments.highlight = old.get("experimentHelperHighlight").getAsBoolean();
         if (old.has("experimentHelperPreventMisclicks")) migrated.experiments.preventMisclicks = old.get("experimentHelperPreventMisclicks").getAsBoolean();
-        if (old.has("experimentHelperDebug")) migrated.experiments.debug = old.get("experimentHelperDebug").getAsBoolean();
-
-        if (old.has("nickEnabled")) migrated.nickname.enabled = old.get("nickEnabled").getAsBoolean();
-        if (old.has("nickName")) migrated.nickname.name = old.get("nickName").getAsString();
-        if (old.has("nickMode")) migrated.nickname.style = legacyStyle(old.get("nickMode").getAsString());
-        if (old.has("nickColor")) migrated.nickname.customHex = old.get("nickColor").getAsString();
+        if (old.has("experimentHelperDebug")) 
+        if (old.has("nickEnabled")) migrated.misc.nickname.enabled = old.get("nickEnabled").getAsBoolean();
+        if (old.has("nickName")) migrated.misc.nickname.name = old.get("nickName").getAsString();
+        if (old.has("nickMode")) migrated.misc.nickname.style = legacyStyle(old.get("nickMode").getAsString());
+        if (old.has("nickColor")) migrated.misc.nickname.customHex = old.get("nickColor").getAsString();
 
         Path backup = path.resolveSibling(path.getFileName() + ".legacy-backup");
         Files.move(path, backup, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
