@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
 import java.net.URI;
@@ -53,7 +53,7 @@ public final class SkyJewGlobalChat {
         if (!ws.isInputClosed() && !ws.isOutputClosed()) {
             JsonObject packet = new JsonObject();
             packet.addProperty("type", "message");
-            packet.addProperty("username", username);
+            packet.addProperty("username", username);\n            packet.addProperty("nickname", SkyJewNick.outgoingName());\n            packet.addProperty("nicknameMode", SkyJewNick.mode());
             packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
             ws.sendText(GSON.toJson(packet), true);
         } else {
@@ -224,7 +224,7 @@ public final class SkyJewGlobalChat {
 
                 if (!"message".equals(type)) return;
 
-                String name = packet.has("username") ? packet.get("username").getAsString() : "Unknown";
+                String name = packet.has("username") ? packet.get("username").getAsString() : "Unknown";\n                String displayName = packet.has("nickname") ? packet.get("nickname").getAsString() : name;
                 String message = packet.has("message") ? packet.get("message").getAsString() : "";
                 if (message.isBlank()) return;
 
