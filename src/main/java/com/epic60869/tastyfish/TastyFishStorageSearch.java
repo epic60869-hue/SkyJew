@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.DataComponents;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
@@ -83,9 +83,9 @@ public final class TastyFishStorageSearch {
 
         captureOpenStorage(mc);
 
-        boolean ctrl = GLFW.glfwGetKey(mc.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(mc.getWindow().getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
-        boolean f = GLFW.glfwGetKey(mc.getWindow().getWindow(), GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
+        boolean ctrl = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+        boolean f = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
         boolean open = ctrl && f;
 
         if (open && !previousOpenKey && mc.gui.screen() == null && isHypixel(mc)) {
