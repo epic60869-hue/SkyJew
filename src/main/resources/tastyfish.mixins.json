@@ -1,5 +1,10 @@
 {
   "required": false,
   "package": "com.epic60869.tastyfish.mixin",
-  "compatibilityLevel": "JAVA_25"
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "TastyFishItemStackMixin",
+    "TastyFishDyedItemColorMixin",
+    "TastyFishDataComponentHolderMixin"
+  ]
 }
