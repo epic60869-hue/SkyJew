@@ -27,9 +27,9 @@ public final class SkyJewNick {
     public static void set(String input) {
         String value = input == null ? "" : input.trim();
         if (value.isEmpty() || value.equalsIgnoreCase("off") || value.equalsIgnoreCase("reset")) {
-            config().nickEnabled = false;
-            config().nickName = "";
-            config().nickMode = "plain";
+            config().nickname.enabled = false;
+            config().nickname.name = "";
+            config().nickname.style = "plain";
             save();
             message("Nickname disabled.", 0x55FF55);
             return;
@@ -66,7 +66,7 @@ public final class SkyJewNick {
         config().nickEnabled = true;
         config().nickName = name;
         config().nickMode = mode;
-        config().nickColor = color;
+        config().nickname.customHex = color;
         save();
         message("Nickname set to " + name + (mode.equals("rainbow") ? " (rainbow)" : ""), 0x55FF55);
     }
@@ -82,7 +82,7 @@ public final class SkyJewNick {
     }
 
     public static String outgoingName() {
-        if (!config().nickEnabled || config().nickName == null || config().nickName.isBlank()) {
+        if (!config().nickEnabled || config().nickname.name == null || config().nickname.name.isBlank()) {
             return Minecraft.getInstance().getUser().getName();
         }
         return config().nickName;
