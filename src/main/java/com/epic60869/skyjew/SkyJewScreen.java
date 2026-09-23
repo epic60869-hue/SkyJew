@@ -261,13 +261,13 @@ public final class SkyJewScreen extends Screen {
         Screen current = this;
 
         switch (name) {
-            case "Nickname" -> mc.setScreen(new SkyJewNickScreen(config, current));
+            case "Nickname" -> mc.gui.setScreen(new SkyJewNickScreen(config, current));
             case "Custom item editor" -> SkyJewCustom.open(mc, current);
-            case "Notes" -> mc.setScreen(new SkyJewNotesScreen(
+            case "Notes" -> mc.gui.setScreen(new SkyJewNotesScreen(
                 Minecraft.getInstance().gameDirectory.toPath().resolve("config")));
-            case "Command keys" -> mc.setScreen(new SkyJewCommandKeysScreen(
+            case "Command keys" -> mc.gui.setScreen(new SkyJewCommandKeysScreen(
                 Minecraft.getInstance().gameDirectory.toPath().resolve("config")));
-            case "Discord" -> mc.setScreen(new SkyJewDiscordScreen(current));
+            case "Discord" -> mc.gui.setScreen(new SkyJewDiscordScreen(current));
             case "Global chat" -> mc.gui.setScreen(new SkyJewDiscordScreen(current));
             default -> { }
         }
