@@ -39,7 +39,7 @@ public final class SkyJewRngHudScreen extends Screen {
     }
 
     private boolean enabled() {
-        return SkyJewConfigAccess.config().farming.rng.enabled;
+        return SkyJewConfig.current().farming.rng.enabled;
     }
 
     private boolean background() {
@@ -111,19 +111,4 @@ public final class SkyJewRngHudScreen extends Screen {
         minecraft.gui.setScreen(parent);
     }
 
-    /** Small bridge to the live config without exposing the ManagedConfig internals. */
-    private static final class SkyJewConfigAccess {
-        private static SkyJewConfig config() {
-            try {
-                java.lang.reflect.Field field = SkyJewConfig.class.getDeclaredField("managed");
-                field.setAccessible(true);
-                Object managed = field.get(null);
-                if (managed == null) return new SkyJewConfig();
-                java.lang.reflect.Method method = managed.getClass().getMethod("getInstance");
-                return (SkyJewConfig) method.invoke(managed);
-            } catch (Throwable ignored) {
-                return new SkyJewConfig();
-            }
-        }
-    }
 }
