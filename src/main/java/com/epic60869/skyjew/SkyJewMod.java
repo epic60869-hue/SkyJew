@@ -43,44 +43,29 @@ public final class SkyJewMod implements ClientModInitializer {
 
     private void registerCommands() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            var command = ClientCommands.literal("sj")
-                .executes(context -> openMenu())
-                .then(ClientCommands.literal("notes").executes(context -> openNotes()))
-                .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
-                .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
-                .then(ClientCommands.literal("calc")
-                    .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
-                        .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
-                .then(ClientCommands.literal("chat")
-                    .then(ClientCommands.argument("message", StringArgumentType.greedyString())
-                        .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
-                .then(ClientCommands.literal("nick")
-                    .executes(context -> openNick())
-                    .then(ClientCommands.argument("value", StringArgumentType.greedyString())
-                        .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
-                .then(ClientCommands.literal("discord")
-                    .executes(context -> openDiscord()))
-                .then(customCommand());
-
-            dispatcher.register(command);
-            dispatcher.register(ClientCommands.literal("skyjew")
-                .executes(context -> openMenu())
-                .then(ClientCommands.literal("notes").executes(context -> openNotes()))
-                .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
-                .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
-                .then(ClientCommands.literal("calc")
-                    .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
-                        .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
-                .then(ClientCommands.literal("chat")
-                    .then(ClientCommands.argument("message", StringArgumentType.greedyString())
-                        .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
-                .then(ClientCommands.literal("nick")
-                    .executes(context -> openNick())
-                    .then(ClientCommands.argument("value", StringArgumentType.greedyString())
-                        .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
-                .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
-                .then(customCommand());
+            dispatcher.register(commandTree("sj"));
+            dispatcher.register(commandTree("skyjew"));
         });
+    }
+
+    private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> commandTree(String name) {
+        return ClientCommands.literal(name)
+            .executes(context -> openMenu())
+            .then(ClientCommands.literal("notes").executes(context -> openNotes()))
+            .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
+            .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+            .then(ClientCommands.literal("calc")
+                .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
+                    .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
+            .then(ClientCommands.literal("chat")
+                .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                    .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
+            .then(ClientCommands.literal("nick")
+                .executes(context -> openNick())
+                .then(ClientCommands.argument("value", StringArgumentType.greedyString())
+                    .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
+            .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
+            .then(customCommand());
     }
 
     private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> customCommand() {
