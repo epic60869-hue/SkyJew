@@ -310,9 +310,22 @@ public final class SkyJewCustomScreen extends Screen {
         outline(g, controlsL, controlsT, controlsR, bottom - 15, BORDER);
         g.text(font, itemTab ? "Item Customization" : "Armor Customization",
                 controlsL + 12, controlsT + 12, ACCENT, true);
+        drawControlLabels(g, controlsL, controlsT);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
         if (showColorPicker) drawColorPicker(g);
+    }
+
+    private void drawControlLabels(GuiGraphicsExtractor g, int x, int y) {
+        if (itemTab) {
+            g.text(font, "ITEM NAME", x + 8, y + 39, MUTED, true);
+            g.text(font, "ITEM COLOUR", x + 8, y + 93, MUTED, true);
+        } else {
+            g.text(font, "ITEM NAME", x + 8, y + 16, MUTED, true);
+            g.text(font, "DYE COLOUR", x + 8, y + 91, MUTED, true);
+            g.text(font, "ARMOUR TRIM", x + 8, y + 166, MUTED, true);
+            g.text(font, "ANIMATED DYE", x + 8, y + 254, MUTED, true);
+        }
     }
 
     private void drawArmorPreview(GuiGraphicsExtractor g, int l, int t, int r, int b) {
