@@ -117,7 +117,7 @@ public final class SkyJewChatCompactor {
             this.content = content;
             this.count = count;
             this.lastSeen = lastSeen;
-            this.addedTime = Minecraft.getInstance().gui.getGuiTicks();
+            this.addedTime = Minecraft.getInstance().gui.hud.getGuiTicks();
         }
     }
 
