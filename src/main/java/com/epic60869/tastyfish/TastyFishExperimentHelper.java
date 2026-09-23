@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.MenuAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
@@ -264,10 +263,8 @@ public final class TastyFishExperimentHelper {
     }
 
     private static List<Slot> slots(AbstractContainerScreen<?> screen) {
-        if (!(screen instanceof MenuAccess<?> access) || !(access.getMenu() instanceof net.minecraft.world.inventory.AbstractContainerMenu menu)) {
-            return List.of();
-        }
-        return menu.slots;
+        if (screen == null || screen.getMenu() == null) return List.of();
+        return screen.getMenu().slots;
     }
 
     private static boolean isExperimentTable(AbstractContainerScreen<?> screen) {
