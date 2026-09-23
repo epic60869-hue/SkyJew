@@ -16,12 +16,6 @@ public final class TastyFishConfig {
     public int farmingRngX = 8;
     public int farmingRngY = 8;
     public float farmingRngScale = 1.0f;
-    public boolean guildLeaderboardHudEnabled = true;
-    public String guildLeaderboardWebsite = "https://tastyfish.org";
-    public int guildLeaderboardRefreshSeconds = 30;
-    public int guildLeaderboardHudX = 8;
-    public int guildLeaderboardHudY = 8;
-    public float guildLeaderboardHudScale = 1.0f;
 
     public static TastyFishConfig load(Path path) {
         try {
@@ -37,14 +31,7 @@ public final class TastyFishConfig {
             );
 
             if (c == null) c = new TastyFishConfig();
-
             c.farmingRngScale = Math.max(0.5f, Math.min(3.0f, c.farmingRngScale));
-            if (c.guildLeaderboardRefreshSeconds < 10) {
-                c.guildLeaderboardRefreshSeconds = 10;
-            }
-            c.guildLeaderboardHudScale =
-                Math.max(0.5f, Math.min(3.0f, c.guildLeaderboardHudScale));
-
             return c;
         } catch (Exception e) {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
@@ -55,11 +42,7 @@ public final class TastyFishConfig {
     public void save(Path path) {
         try {
             Files.createDirectories(path.getParent());
-            Files.writeString(
-                path,
-                GSON.toJson(this),
-                StandardCharsets.UTF_8
-            );
+            Files.writeString(path, GSON.toJson(this), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.err.println("[TastyFish] Failed to save config: " + e.getMessage());
         }
