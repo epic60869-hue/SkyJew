@@ -61,7 +61,8 @@ public final class SkyJewNick {
             return;
         }
 
-        name = name.replaceAll("[\\r\\n]", "").substring(0, Math.min(32, name.length()));
+        name = name.replaceAll("[\\r\
+]", "").substring(0, Math.min(32, name.length()));
         config().nickEnabled = true;
         config().nickName = name;
         config().nickMode = mode;
@@ -70,7 +71,17 @@ public final class SkyJewNick {
         message("Nickname set to " + name + (mode.equals("rainbow") ? " (rainbow)" : ""), 0x55FF55);
     }
 
-    public static String mode() { return config().nickMode == null ? "plain" : config().nickMode; }\n\n    public static String outgoingName() {
+    public static String mode() { return config().nickMode == null ? "plain" : config().nickMode; }
+
+    public static void applyGuiName(String name) {
+        String value = name == null ? "" : name.replaceAll("[\\r\\n]", "").trim();
+        if (value.length() > 32) value = value.substring(0, 32);
+        config().nickName = value;
+        config().nickEnabled = !value.isBlank();
+        save();
+    }
+
+    public static String outgoingName() {
         if (!config().nickEnabled || config().nickName == null || config().nickName.isBlank()) {
             return Minecraft.getInstance().getUser().getName();
         }
