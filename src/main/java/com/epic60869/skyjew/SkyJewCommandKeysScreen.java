@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Basic Command Keys editor used by SkyJew. */
+/** Command Keys-style keybind editor used by SkyJew. */
 public final class SkyJewCommandKeysScreen extends Screen {
     private static final int BG = 0xFF080B12;
     private static final int PANEL = 0xFF141B27;
@@ -32,11 +32,11 @@ public final class SkyJewCommandKeysScreen extends Screen {
     private EditBox profileName;
     private EditBox profileMatch;
     private SkyJewCommandKeys.Mode mode = SkyJewCommandKeys.Mode.SEND;
-    private SkyJewCommandKeys.Macro editing;
+    private SkyJewCommandKeys.Keybind editing;
     private boolean pickingKey;
 
     public SkyJewCommandKeysScreen(Path configDir) {
-        super(Component.literal("SkyJew Command Keys"));
+        super(Component.literal("SkyJew Keybinds"));
         this.configDir = configDir;
         if (SkyJewCommandKeys.data().profiles.isEmpty()) {
             SkyJewCommandKeys.data().profiles.add(new SkyJewCommandKeys.Profile());
@@ -47,7 +47,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
         return SkyJewCommandKeys.data().profiles.get(0);
     }
 
-    private List<SkyJewCommandKeys.Macro> macros() {
+    private List<SkyJewCommandKeys.Macro> keybinds() {
         return profile().macros;
     }
 
@@ -63,7 +63,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
         if (selected >= macros().size()) selected = Math.max(0, macros().size() - 1);
         editing = macros().isEmpty() ? null : macros().get(selected);
 
-        addRenderableWidget(Button.builder(Component.literal("+ Add Macro"), b -> addMacro())
+        addRenderableWidget(Button.builder(Component.literal("+ Add Keybind"), b -> addMacro())
                 .bounds(left, height - 46, 125, 24).build());
         addRenderableWidget(Button.builder(Component.literal("Delete"), b -> deleteMacro())
                 .bounds(left + 132, height - 46, 85, 24).build());
@@ -209,7 +209,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
         g.fill(left, 58, listRight, height - 60, PANEL);
         g.fill(right, 58, width - 25, height - 60, PANEL);
 
-        g.text(font, "MACROS", left + 12, 68, CYAN, true);
+        g.text(font, "KEYBINDS", left + 12, 68, CYAN, true);
         int y = 94;
         for (int i = 0; i < macros().size(); i++) {
             SkyJewCommandKeys.Macro m = macros().get(i);
@@ -230,10 +230,10 @@ public final class SkyJewCommandKeysScreen extends Screen {
         if (editing != null) {
             g.text(font, "MACRO", right, 103, CYAN, true);
             g.text(font, "Name", right, 109, MUTED, false);
-            g.text(font, "Commands (one per line)", right, 141, MUTED, false);
+            g.text(font, "Chat / Command (one per line)", right, 141, MUTED, false);
             g.text(font, "Key / delay (ms)", right, 173, MUTED, false);
             g.text(font, "Mode", right, 209, MUTED, false);
-            g.text(font, "Send = all • Cycle = next • Random = random • Repeat = toggle • Type = chat box",
+            g.text(font, "Starts with / = command; otherwise = normal chat message",
                     right, 258, MUTED, false);
         }
 
