@@ -61,6 +61,39 @@ public final class TastyFishGlobalChat {
         }
     }
 
+    public static void sendDiscordDm(String target, String message) {
+        String cleanTarget = String.valueOf(target == null ? "" : target).trim();
+        String cleanMessage = String.valueOf(message == null ? "" : message).trim();
+
+        if (cleanTarget.isEmpty()) {
+            mcMessage(Component.literal("[Mod] Usage: /tf dm <discord-user> <message/link>")
+                .withStyle(Style.EMPTY.withColor(0xFFFF55)));
+            return;
+        }
+
+        if (cleanMessage.isEmpty()) {
+            mcMessage(Component.literal("[Mod] The Discord DM cannot be empty.")
+                .withStyle(Style.EMPTY.withColor(0xFF5555)));
+            return;
+        }
+
+        JsonObject packet = new JsonObject();
+        packet.addProperty("type", "dm");
+        packet.addProperty("username", username);
+        packet.addProperty("target", cleanTarget);
+        packet.addProperty("message", cleanMessage.substring(0, Math.min(cleanMessage.length(), 1900)));
+
+        WebSocket ws = socket;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            connect();
+            mcMessage(Component.literal("[Mod] Discord link is still connecting. Try again in a moment.")
+                .withStyle(Style.EMPTY.withColor(0xFFFF55)));
+            return;
+        }
+
+        ws.sendText(GSON.toJson(packet), true);
+    }
+
     private static void connect() {
         if (!CONNECTING.compareAndSet(false, true)) return;
 
@@ -140,7 +173,24 @@ public final class TastyFishGlobalChat {
         private void handle(String raw) {
             try {
                 JsonObject packet = JsonParser.parseString(raw).getAsJsonObject();
-                if (!"message".equals(packet.get("type").getAsString())) return;
+                String type = packet.has("type") ? packet.get("type").getAsString() : "";
+
+                if ("dmResult".equals(type)) {
+                    boolean ok = packet.has("ok") && packet.get("ok").getAsBoolean();
+                    String target = packet.has("target") ? packet.get("target").getAsString() : "Discord user";
+                    String detail = packet.has("message") ? packet.get("message").getAsString() : "";
+
+                    if (ok) {
+                        mcMessage(Component.literal("[Mod] Discord DM sent to " + target + ".")
+                            .withStyle(Style.EMPTY.withColor(0x55FF55)));
+                    } else {
+                        mcMessage(Component.literal("[Mod] Discord DM failed: " + detail)
+                            .withStyle(Style.EMPTY.withColor(0xFF5555)));
+                    }
+                    return;
+                }
+
+                if (!"message".equals(type)) return;
 
                 String name = packet.has("username") ? packet.get("username").getAsString() : "Unknown";
                 String message = packet.has("message") ? packet.get("message").getAsString() : "";
@@ -149,7 +199,10 @@ public final class TastyFishGlobalChat {
                 name = name.replaceAll("[^A-Za-z0-9_]", "");
                 if (name.isBlank()) name = "Unknown";
 
-                String line = "[Mod] [" + name + "] " + message;
+                String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
+                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[Mod]";
+
+                String line = prefix + " [" + name + "] " + message;
                 mcMessage(Component.literal(line));
             } catch (Exception ignored) {
             }
