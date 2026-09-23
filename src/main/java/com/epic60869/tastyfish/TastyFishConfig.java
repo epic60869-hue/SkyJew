@@ -22,6 +22,7 @@ public final class TastyFishConfig {
     public boolean experimentHelperHighlight = true;
     public boolean experimentHelperPreventMisclicks = true;
     public boolean experimentHelperDebug = false;
+    public boolean firstBootAcknowledged = false;
 
     public static TastyFishConfig load(Path path) {
         try {
@@ -43,6 +44,12 @@ public final class TastyFishConfig {
             System.err.println("[TastyFish] Failed to load config: " + e.getMessage());
             return new TastyFishConfig();
         }
+    }
+
+    public static void saveCurrent(TastyFishConfig config) {
+        Path path = net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath()
+            .resolve("config").resolve("tastyfish-mod.json");
+        config.save(path);
     }
 
     public void save(Path path) {
