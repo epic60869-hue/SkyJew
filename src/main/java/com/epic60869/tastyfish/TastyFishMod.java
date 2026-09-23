@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.commands.arguments.StringArgumentType;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ public final class TastyFishMod implements ClientModInitializer {
         TastyFishRngHud.register(config);
         TastyFishCommandKeys.init(configDir);
         TastyFishStorageSearch.init(configDir);
+        TastyFishCustom.init(configDir);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         startGameSession(minecraft);
@@ -51,7 +53,40 @@ public final class TastyFishMod implements ClientModInitializer {
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
                 .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
-                .then(ClientCommands.literal("search").executes(context -> openStorageSearch())));
+                .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+                .then(ClientCommands.literal("custom")
+                    .executes(context -> openCustom())
+                    .then(ClientCommands.literal("renameItem")
+                        .then(ClientCommands.argument("name", StringArgumentType.greedyString())
+                            .executes(context -> customRename(StringArgumentType.getString(context, "name")))))
+                    .then(ClientCommands.literal("dyeColor")
+                        .then(ClientCommands.argument("hex", StringArgumentType.word())
+                            .executes(context -> customDye(StringArgumentType.getString(context, "hex"))))
+                        .executes(context -> customDye("")))
+                    .then(ClientCommands.literal("armorTrim")
+                        .then(ClientCommands.argument("material", StringArgumentType.word())
+                            .then(ClientCommands.argument("pattern", StringArgumentType.word())
+                                .executes(context -> customTrim(
+                                    StringArgumentType.getString(context, "material"),
+                                    StringArgumentType.getString(context, "pattern")))))
+                        .executes(context -> customTrim("", "")))
+                    .then(ClientCommands.literal("animatedDye")
+                        .then(ClientCommands.argument("hex1", StringArgumentType.word())
+                            .then(ClientCommands.argument("hex2", StringArgumentType.word())
+                                .then(ClientCommands.argument("duration", StringArgumentType.word())
+                                    .then(ClientCommands.argument("cycleBack", StringArgumentType.word())
+                                        .then(ClientCommands.argument("delay", StringArgumentType.word())
+                                            .executes(context -> customAnimated(
+                                                StringArgumentType.getString(context, "hex1"),
+                                                StringArgumentType.getString(context, "hex2"),
+                                                StringArgumentType.getString(context, "duration"),
+                                                StringArgumentType.getString(context, "cycleBack"),
+                                                StringArgumentType.getString(context, "delay"))))
+                                        .executes(context -> customAnimated(
+                                            StringArgumentType.getString(context, "hex1"),
+                                            StringArgumentType.getString(context, "hex2"),
+                                            StringArgumentType.getString(context, "duration"),
+                                            StringArgumentType.getString(context, "cycleBack"), "0"))))))));
         });
     }
 
@@ -65,6 +100,42 @@ public final class TastyFishMod implements ClientModInitializer {
         Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
         Minecraft.getInstance().execute(() ->
             Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir)));
+        return 1;
+    }
+
+    private int openCustom() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> TastyFishCustom.open(mc, mc.gui.screen()));
+        return 1;
+    }
+
+    private int customRename(String value) {
+        Minecraft mc = Minecraft.getInstance();
+        TastyFishCustom.setName(TastyFishCustom.held(mc), value);
+        return 1;
+    }
+
+    private int customDye(String value) {
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            TastyFishCustom.setDye(TastyFishCustom.held(mc), value.isBlank() ? null : TastyFishCustom.parseHex(value));
+        } catch (Exception ignored) {}
+        return 1;
+    }
+
+    private int customTrim(String material, String pattern) {
+        Minecraft mc = Minecraft.getInstance();
+        TastyFishCustom.setTrim(TastyFishCustom.held(mc), material, pattern);
+        return 1;
+    }
+
+    private int customAnimated(String a, String b, String duration, String cycleBack, String delay) {
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            TastyFishCustom.setAnimatedDye(TastyFishCustom.held(mc),
+                TastyFishCustom.parseHex(a), TastyFishCustom.parseHex(b),
+                Float.parseFloat(duration), Boolean.parseBoolean(cycleBack), Float.parseFloat(delay));
+        } catch (Exception ignored) {}
         return 1;
     }
 
@@ -100,6 +171,7 @@ public final class TastyFishMod implements ClientModInitializer {
         long now = System.currentTimeMillis();
         TastyFishCommandKeys.tick(minecraft);
         TastyFishStorageSearch.tick(minecraft);
+        TastyFishCustom.tick(minecraft);
         if (!gameSessionStarted || minecraft.player == null) return;
 
         if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) {
