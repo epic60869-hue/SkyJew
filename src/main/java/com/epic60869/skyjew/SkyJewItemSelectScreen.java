@@ -89,7 +89,7 @@ public final class SkyJewItemSelectScreen extends Screen {
         if (col >= 0 && col < columns && row >= 0 && index < slots.size()
                 && event.x() >= gridLeft && event.y() >= gridTop) {
             Minecraft mc = Minecraft.getInstance();
-            ItemStack stack = mc.player.getInventory().getItem(slots.get(index)).copy();
+            ItemStack stack = mc.player.getInventory().getItem(slots.get(index));
             callback.accept(stack);
             mc.gui.setScreen(parent);
             return true;
