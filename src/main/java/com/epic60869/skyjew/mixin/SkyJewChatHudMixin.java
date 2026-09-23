@@ -10,6 +10,8 @@ import net.minecraft.client.multiplayer.chat.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -18,6 +20,10 @@ import java.util.List;
 
 @Mixin(ChatComponent.class)
 public abstract class SkyJewChatHudMixin {
+    @Shadow @Final private List<GuiMessage> allMessages;
+
+    @Shadow
+    private void refreshTrimmedMessages() {}
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
         at = @At("HEAD"),
@@ -35,8 +41,7 @@ public abstract class SkyJewChatHudMixin {
             return;
         }
 
-        SkyJewChatComponentAccessor accessor = (SkyJewChatComponentAccessor) this;
-        List<GuiMessage> all = accessor.skyjew$getAllMessages();
+        List<GuiMessage> all = allMessages;
 
         boolean consecutive = !all.isEmpty()
             && all.get(0).content().getString().replaceAll(" §7\\(x\\d+\\)$", "").equals(replaced.getString());
@@ -56,7 +61,7 @@ public abstract class SkyJewChatHudMixin {
                 previous.source(),
                 previous.tag()
             ));
-            accessor.skyjew$refreshTrimmedMessages();
+            refreshTrimmedMessages();
         }
 
         ci.cancel();
