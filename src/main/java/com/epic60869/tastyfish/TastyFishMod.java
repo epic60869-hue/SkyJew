@@ -47,6 +47,8 @@ public final class TastyFishMod implements ClientModInitializer {
                 .then(ClientCommands.literal("chat")
                     .then(ClientCommands.argument("message", StringArgumentType.greedyString())
                         .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
+                .then(ClientCommands.literal("discord")
+                    .executes(context -> openDiscord()))
                 .then(ClientCommands.literal("dm")
                     .then(ClientCommands.argument("user", StringArgumentType.word())
                         .then(ClientCommands.argument("message", StringArgumentType.greedyString())
@@ -149,6 +151,12 @@ public final class TastyFishMod implements ClientModInitializer {
 
     private int sendGlobalChat(String message) {
         TastyFishGlobalChat.send(message);
+        return 1;
+    }
+
+    private int openDiscord() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.gui.setScreen(new TastyFishDiscordScreen(mc.gui.screen())));
         return 1;
     }
 
