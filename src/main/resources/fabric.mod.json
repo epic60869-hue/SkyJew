@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "skyjew-mod",
+  "id": "skyjew",
   "version": "${version}",
   "name": "SkyJew Mod",
   "description": "SkyJew utilities and SkySoft farming leaderboard uploader.",
