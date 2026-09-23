@@ -38,7 +38,7 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: tastyfish-mod
+          name: skyjew-mod
           path: build/libs/*.jar
 
       - name: Create GitHub Release
@@ -54,5 +54,5 @@ jobs:
           fi
 
           gh release create "v${VERSION}" "$JAR" \
-            --title "TastyFish Mod v${VERSION}" \
+            --title "SkyJew Mod v${VERSION}" \
             --generate-notes
