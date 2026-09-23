@@ -56,7 +56,9 @@ public final class SkyJewItemSelectScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        rebuildItems(search == null ? "" : search.getValue());
+
+        String query = search == null ? "" : search.getValue();
+        rebuildItems(query);
 
         int panelW = 9 * CELL + 24;
         int panelH = Math.min(300, height - 20);
@@ -66,7 +68,7 @@ public final class SkyJewItemSelectScreen extends Screen {
         gridBottom = top + panelH - 30;
 
         search = new EditBox(font, left + 12, top + 12, panelW - 24, 22, Component.literal("Search"));
-        search.setValue(search == null ? "" : search.getValue());
+        search.setValue(query);
         search.setHint(Component.literal("Search inventory..."));
         search.setResponder(value -> {
             scroll = 0;
