@@ -24,7 +24,7 @@ public final class SkyJewCalculator {
         }
         return String.format(Locale.ROOT, "%,.10f", value)
             .replaceAll("0+$", "")
-            .replaceAll("\.$", "");
+            .replaceAll("\\.$", "");
     }
 
     private static final class Parser {
