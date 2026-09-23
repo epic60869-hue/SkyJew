@@ -5,10 +5,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,30 +16,36 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * Skyblocker-style item picker used by /sj custom.
+ * Skyblocker-style item selection popup adapted to SkyJew.
  *
- * It intentionally resembles the vanilla/Skyblocker item browser:
- * search field at the top, dense item grid, hover highlighting and scrolling.
+ * Unlike the old registry browser, this shows the player's real inventory
+ * stacks so Hypixel UUID/customization data is preserved when an item is
+ * selected.
+ *
+ * Source inspiration: SkyblockerMod/Skyblocker
+ * https://github.com/SkyblockerMod/Skyblocker
+ * Skyblocker's source is licensed under LGPL-3.0.
  */
 public final class SkyJewItemSelectScreen extends Screen {
-    private static final int PANEL = 0xFF111318;
-    private static final int PANEL_2 = 0xFF1A1D23;
-    private static final int CELL = 32;
-    private static final int COLUMNS = 16;
-    private static final int GRID_W = COLUMNS * CELL;
-    private static final int ACCENT = 0xFFD7D7D7;
+    private static final int PANEL = 0xFF2B2D31;
+    private static final int INNER = 0xFF313338;
+    private static final int BORDER = 0xFF4A4D52;
     private static final int TEXT = 0xFFF2F3F5;
     private static final int MUTED = 0xFFB5BAC1;
-    private static final int HOVER = 0xFF3F4147;
-    private static final int SELECTED = 0xFF5865F2;
+    private static final int HOVER = 0x3333AAFF;
+    private static final int CELL = 24;
+    private static final int COLUMNS = 9;
 
     private final Screen parent;
     private final Consumer<ItemStack> callback;
-    private final List<Item> items = new ArrayList<>();
+    private final List<ItemStack> stacks = new ArrayList<>();
 
     private EditBox search;
     private int scroll;
-    private ItemStack hovered = ItemStack.EMPTY;
+    private int left;
+    private int top;
+    private int gridTop;
+    private int gridBottom;
 
     public SkyJewItemSelectScreen(Screen parent, Consumer<ItemStack> callback) {
         super(Component.literal("Select Item"));
@@ -50,23 +56,18 @@ public final class SkyJewItemSelectScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        items.clear();
+        rebuildItems(search == null ? "" : search.getValue());
 
-        String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
-        for (Item item : BuiltInRegistries.ITEM) {
-            if (query.isEmpty()
-                    || new ItemStack(item).getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
-                items.add(item);
-            }
-        }
+        int panelW = 9 * CELL + 24;
+        int panelH = Math.min(300, height - 20);
+        left = (width - panelW) / 2;
+        top = (height - panelH) / 2;
+        gridTop = top + 50;
+        gridBottom = top + panelH - 30;
 
-        int panelW = Math.min(GRID_W + 24, width - 30);
-        int left = (width - panelW) / 2;
-        int top = Math.max(20, (height - Math.min(560, height - 20)) / 2);
-
-        search = new EditBox(font, left + 12, top + 12, panelW - 24, 24, Component.literal("Search items"));
-        search.setValue(query);
-        search.setHint(Component.literal("Search items..."));
+        search = new EditBox(font, left + 12, top + 12, panelW - 24, 22, Component.literal("Search"));
+        search.setValue(search == null ? "" : search.getValue());
+        search.setHint(Component.literal("Search inventory..."));
         search.setResponder(value -> {
             scroll = 0;
             rebuildItems(value);
@@ -75,83 +76,94 @@ public final class SkyJewItemSelectScreen extends Screen {
     }
 
     private void rebuildItems(String value) {
-        items.clear();
-        String query = value.trim().toLowerCase(Locale.ROOT);
-        for (Item item : BuiltInRegistries.ITEM) {
-            if (query.isEmpty()
-                    || new ItemStack(item).getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
-                items.add(item);
-            }
+        stacks.clear();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        String query = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+
+        addIfMatches(mc.player.getItemBySlot(EquipmentSlot.HEAD), query);
+        addIfMatches(mc.player.getItemBySlot(EquipmentSlot.CHEST), query);
+        addIfMatches(mc.player.getItemBySlot(EquipmentSlot.LEGS), query);
+        addIfMatches(mc.player.getItemBySlot(EquipmentSlot.FEET), query);
+
+        for (ItemStack stack : mc.player.getInventory()) {
+            addIfMatches(stack, query);
+        }
+    }
+
+    private void addIfMatches(ItemStack stack, String query) {
+        if (stack == null || stack.isEmpty()) return;
+        if (query.isEmpty() || stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
+            stacks.add(stack);
         }
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int panelW = Math.min(GRID_W + 24, width - 30);
-        int panelH = Math.min(560, height - 20);
-        int left = (width - panelW) / 2;
-        int top = (height - panelH) / 2;
-        int right = left + panelW;
-        int bottom = top + panelH;
+        int panelW = 9 * CELL + 24;
+        int panelH = Math.min(300, height - 20);
+        left = (width - panelW) / 2;
+        top = (height - panelH) / 2;
+        gridTop = top + 50;
+        gridBottom = top + panelH - 30;
 
         g.fill(0, 0, width, height, 0x99000000);
-        g.fill(left, top, right, bottom, PANEL);
-        outline(g, left, top, right, bottom, 0xFF44474E);
-
+        g.fill(left, top, left + panelW, top + panelH, PANEL);
+        outline(g, left, top, left + panelW, top + panelH, BORDER);
         g.text(font, "Select Item", left + 12, top - 14, TEXT, true);
 
-        int gridTop = top + 48;
-        int gridBottom = bottom - 28;
-        int rows = Math.max(1, (items.size() + COLUMNS - 1) / COLUMNS);
+        int rows = Math.max(1, (stacks.size() + COLUMNS - 1) / COLUMNS);
         int visibleRows = Math.max(1, (gridBottom - gridTop) / CELL);
         int maxScroll = Math.max(0, rows - visibleRows);
         scroll = Math.max(0, Math.min(scroll, maxScroll));
 
-        hovered = ItemStack.EMPTY;
+        ItemStack hovered = ItemStack.EMPTY;
 
-        for (int i = 0; i < items.size(); i++) {
+        for (int i = 0; i < stacks.size(); i++) {
             int row = i / COLUMNS;
             int col = i % COLUMNS;
             int x = left + 12 + col * CELL;
             int y = gridTop + (row - scroll) * CELL;
-
             if (y < gridTop || y + CELL > gridBottom) continue;
 
+            ItemStack stack = stacks.get(i);
             boolean hover = mouseX >= x && mouseX < x + CELL && mouseY >= y && mouseY < y + CELL;
             if (hover) {
                 g.fill(x, y, x + CELL, y + CELL, HOVER);
-                hovered = new ItemStack(items.get(i));
+                hovered = stack;
             }
 
-            ItemStack stack = new ItemStack(items.get(i));
-            g.item(stack, x + 8, y + 8);
+            g.item(stack, x + 4, y + 4);
+            if (!SkyJewCustom.hasUuid(stack)) {
+                g.item(new ItemStack(Items.BARRIER), x + 4, y + 4);
+            }
         }
 
         if (!hovered.isEmpty()) {
             String name = hovered.getHoverName().getString();
-            int tooltipW = Math.min(300, font.width(name) + 16);
-            int tx = Math.min(mouseX + 10, width - tooltipW - 4);
-            int ty = Math.min(mouseY + 10, height - 24);
-            g.fill(tx, ty, tx + tooltipW, ty + 18, 0xF0101012);
+            String status = SkyJewCustom.hasUuid(hovered) ? "Customizable" : "No Hypixel UUID";
+            int w = Math.min(300, Math.max(font.width(name), font.width(status)) + 18);
+            int tx = Math.min(mouseX + 10, width - w - 4);
+            int ty = Math.min(mouseY + 10, height - 42);
+            g.fill(tx, ty, tx + w, ty + 32, 0xF0101012);
             g.text(font, name, tx + 8, ty + 5, TEXT, false);
+            g.text(font, status, tx + 8, ty + 18, SkyJewCustom.hasUuid(hovered) ? 0xFF57F287 : 0xFFFF6B6B, false);
         }
 
-        g.text(font, items.size() + " items  •  Scroll to browse  •  Click to select",
-                left + 12, bottom - 18, MUTED, false);
+        g.text(font, stacks.size() + " items  •  Click an item to customize it",
+                left + 12, top + panelH - 18, MUTED, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        int panelH = Math.min(560, height - 20);
-        int top = (height - panelH) / 2;
-        int gridTop = top + 48;
-        int gridBottom = top + panelH - 28;
-        int visibleRows = Math.max(1, (gridBottom - gridTop) / CELL);
-        int rows = Math.max(1, (items.size() + COLUMNS - 1) / COLUMNS);
+        int panelH = Math.min(300, height - 20);
+        int visibleRows = Math.max(1, (panelH - 80) / CELL);
+        int rows = Math.max(1, (stacks.size() + COLUMNS - 1) / COLUMNS);
         int maxScroll = Math.max(0, rows - visibleRows);
-        scroll = Math.max(0, Math.min(maxScroll, scroll - (int)Math.signum(scrollY)));
+        scroll = Math.max(0, Math.min(maxScroll, scroll - (int) Math.signum(scrollY)));
         return true;
     }
 
@@ -159,28 +171,20 @@ public final class SkyJewItemSelectScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
 
-        int panelW = Math.min(GRID_W + 24, width - 30);
-        int panelH = Math.min(560, height - 20);
-        int left = (width - panelW) / 2;
-        int top = (height - panelH) / 2;
-        int gridTop = top + 48;
-        int gridBottom = top + panelH - 28;
+        if (event.x() >= left + 12 && event.x() < left + 12 + COLUMNS * CELL
+                && event.y() >= gridTop && event.y() < gridBottom) {
+            int col = (int) ((event.x() - (left + 12)) / CELL);
+            int row = (int) ((event.y() - gridTop) / CELL) + scroll;
+            int index = row * COLUMNS + col;
 
-        if (event.x() < left + 12 || event.x() >= left + 12 + GRID_W
-                || event.y() < gridTop || event.y() >= gridBottom) {
-            return super.mouseClicked(event, doubleClick);
-        }
-
-        int col = (int)((event.x() - (left + 12)) / CELL);
-        int row = (int)((event.y() - gridTop) / CELL) + scroll;
-        int index = row * COLUMNS + col;
-
-        if (col >= 0 && col < COLUMNS && index >= 0 && index < items.size()) {
-            Minecraft mc = Minecraft.getInstance();
-            ItemStack stack = new ItemStack(items.get(index));
-            callback.accept(stack);
-            mc.gui.setScreen(parent);
-            return true;
+            if (col >= 0 && col < COLUMNS && index >= 0 && index < stacks.size()) {
+                ItemStack stack = stacks.get(index);
+                if (SkyJewCustom.hasUuid(stack)) {
+                    callback.accept(stack);
+                    minecraft.gui.setScreen(parent);
+                }
+                return true;
+            }
         }
 
         return super.mouseClicked(event, doubleClick);
