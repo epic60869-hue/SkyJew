@@ -40,7 +40,7 @@ public final class TastyFishScreen extends Screen {
         int left = (width - panelWidth) / 2;
         int top = Math.max(45, (height - 260) / 2);
 
-        panel(g, left, top, left + panelWidth, top + 260);
+        panel(g, left, top, left + panelWidth, top + 310);
 
         g.text(font, "✦", left + 24, top + 22, CYAN, true);
         g.text(font, "TastyFish", left + 50, top + 18, YELLOW, true);
@@ -53,18 +53,27 @@ public final class TastyFishScreen extends Screen {
 
         int buttonLeft = left + 24;
         int buttonRight = left + panelWidth - 24;
-        int buttonTop = top + 174;
-        boolean hover = mouseX >= buttonLeft && mouseX <= buttonRight
+        int buttonTop = top + 158;
+        boolean notesHover = mouseX >= buttonLeft && mouseX <= buttonRight
             && mouseY >= buttonTop && mouseY <= buttonTop + 42;
+        boolean keysHover = mouseX >= buttonLeft && mouseX <= buttonRight
+            && mouseY >= buttonTop + 50 && mouseY <= buttonTop + 92;
 
         g.fill(buttonLeft, buttonTop, buttonRight, buttonTop + 42,
-            hover ? 0xFF5B3FC0 : 0xFF5136A8);
+            notesHover ? 0xFF5B3FC0 : 0xFF5136A8);
         outline(g, buttonLeft, buttonTop, buttonRight, buttonTop + 42, CYAN);
         g.text(font, "✎", buttonLeft + 18, buttonTop + 12, TEXT, true);
         g.text(font, "Notes", buttonLeft + 45, buttonTop + 8, TEXT, true);
         g.text(font, "/tf notes", buttonLeft + 45, buttonTop + 24, MUTED, false);
 
-        g.text(font, "ESC to close", left + 24, top + 239, MUTED, false);
+        g.fill(buttonLeft, buttonTop + 50, buttonRight, buttonTop + 92,
+            keysHover ? 0xFF5B3FC0 : 0xFF5136A8);
+        outline(g, buttonLeft, buttonTop + 50, buttonRight, buttonTop + 92, PURPLE);
+        g.text(font, "⌨", buttonLeft + 18, buttonTop + 62, TEXT, true);
+        g.text(font, "Command Keys", buttonLeft + 45, buttonTop + 58, TEXT, true);
+        g.text(font, "/tf keys", buttonLeft + 45, buttonTop + 74, MUTED, false);
+
+        g.text(font, "ESC to close", left + 24, top + 289, MUTED, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
