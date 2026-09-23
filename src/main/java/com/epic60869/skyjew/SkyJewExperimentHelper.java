@@ -51,7 +51,7 @@ public final class SkyJewExperimentHelper {
     }
 
     public static void tick(Minecraft mc) {
-        if (config == null || !config.experimentHelperEnabled) {
+        if (config == null || !config.experiments.enabled) {
             resetIfNeeded();
             return;
         }
@@ -67,7 +67,7 @@ public final class SkyJewExperimentHelper {
     public static void render(GuiGraphicsExtractor g, AbstractContainerScreen<?> screen) {
         if (config == null || !config.experimentHelperEnabled || !isExperimentTable(screen)) return;
 
-        if (config.experimentHelperHighlight) {
+        if (config.experiments.highlight) {
             if (phase == Phase.REPLICATE) {
                 if (isChronomatron(screen)) {
                     highlightChron(g, screen);
@@ -78,7 +78,7 @@ public final class SkyJewExperimentHelper {
         }
 
         int round = Math.max(lastRound, lastUltraCount);
-        if (config.experimentHelperDebug && round >= 0) {
+        if (config.experiments.debug && round >= 0) {
             g.text(Minecraft.getInstance().font,
                 "TF Exp: " + phase + "  round=" + round
                     + "  progress=" + (isUltrasequencer(screen) ? ultraProgress : chronProgress),
@@ -98,7 +98,7 @@ public final class SkyJewExperimentHelper {
             if (expected == null) return false;
             String clicked = colorName(slot.getItem());
             if (clicked == null) return false;
-            if (!expected.equals(clicked)) return config.experimentHelperPreventMisclicks;
+            if (!expected.equals(clicked)) return config.experiments.preventMisclicks;
             chronProgress++;
             return false;
         }
