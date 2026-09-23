@@ -60,7 +60,7 @@ public final class SkyJewMod implements ClientModInitializer {
                         .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
                 .then(ClientCommands.literal("discord")
                     .executes(context -> openDiscord()))
-                .then(customCommand()));
+                .then(customCommand());
 
             dispatcher.register(command);
             dispatcher.register(ClientCommands.literal("skyjew")
@@ -79,7 +79,7 @@ public final class SkyJewMod implements ClientModInitializer {
                     .then(ClientCommands.argument("value", StringArgumentType.greedyString())
                         .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
                 .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
-                .then(customCommand()));
+                .then(customCommand());
         });
     }
 
