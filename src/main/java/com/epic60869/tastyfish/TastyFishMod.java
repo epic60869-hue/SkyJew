@@ -35,6 +35,7 @@ public final class TastyFishMod implements ClientModInitializer {
         FarmingRngTracker.get().register();
         TastyFishRngHud.register(config);
         TastyFishCommandKeys.init(configDir);
+        TastyFishStorageSearch.init(configDir);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         startGameSession(minecraft);
@@ -49,7 +50,8 @@ public final class TastyFishMod implements ClientModInitializer {
             dispatcher.register(ClientCommands.literal("tf")
                 .executes(context -> openMenu())
                 .then(ClientCommands.literal("notes").executes(context -> openNotes()))
-                .then(ClientCommands.literal("keys").executes(context -> openCommandKeys())));
+                .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
+                .then(ClientCommands.literal("search").executes(context -> openStorageSearch())));
         });
     }
 
@@ -59,7 +61,20 @@ public final class TastyFishMod implements ClientModInitializer {
         return 1;
     }
 
-    private int openCommandKeys() {\n        Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");\n        Minecraft.getInstance().execute(() ->\n            Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir)));\n        return 1;\n    }\n\n    private int openNotes() {
+    private int openCommandKeys() {
+        Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+        Minecraft.getInstance().execute(() ->
+            Minecraft.getInstance().gui.setScreen(new TastyFishCommandKeysScreen(configDir)));
+        return 1;
+    }
+
+    private int openStorageSearch() {
+        Minecraft.getInstance().execute(() ->
+            TastyFishStorageSearch.open(Minecraft.getInstance(), ""));
+        return 1;
+    }
+
+    private int openNotes() {
         Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
         Minecraft.getInstance().execute(() ->
             Minecraft.getInstance().gui.setScreen(new TastyFishNotesScreen(configDir)));
@@ -84,6 +99,7 @@ public final class TastyFishMod implements ClientModInitializer {
     private void tick(Minecraft minecraft) {
         long now = System.currentTimeMillis();
         TastyFishCommandKeys.tick(minecraft);
+        TastyFishStorageSearch.tick(minecraft);
         if (!gameSessionStarted || minecraft.player == null) return;
 
         if (now - lastUploadMillis < config.uploadIntervalSeconds * 1000L) {
