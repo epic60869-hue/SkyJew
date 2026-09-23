@@ -3,18 +3,11 @@ package com.epic60869.skyjew;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 
 public final class SkyJewFirstBootScreen extends Screen {
-    private static final Identifier WARNING_TEXTURE =
-        Identifier.fromNamespaceAndPath("skyjew", "textures/gui/first_boot_ratted.png");
-
     private static final int BUTTON_WIDTH = 220;
     private static final int BUTTON_HEIGHT = 32;
-    private static final int IMAGE_TEXTURE_WIDTH = 360;
-    private static final int IMAGE_TEXTURE_HEIGHT = 360;
 
     private final SkyJewConfig config;
     private final Screen previousScreen;
@@ -27,9 +20,8 @@ public final class SkyJewFirstBootScreen extends Screen {
 
     @Override
     protected void init() {
-        // Sound is deliberately started from the client tick after this screen
-        // has actually replaced the title screen. This avoids starting audio
-        // during screen/resource transitions.
+        // Audio is started by the client tick after this screen replaces the
+        // previous screen, so resource/screen transitions cannot interrupt it.
     }
 
     @Override
@@ -38,36 +30,13 @@ public final class SkyJewFirstBootScreen extends Screen {
     ) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
+        // Solid black screen only. No texture is loaded or rendered.
         graphics.fill(0, 0, width, height, 0xFF000000);
-
-        int imageWidth = Math.min(width - 40, 360);
-        int imageHeight = imageWidth;
-        if (imageHeight > height / 2) {
-            imageHeight = height / 2;
-            imageWidth = imageHeight;
-        }
-
-        int imageX = (width - imageWidth) / 2;
-        int imageY = Math.max(20, height / 2 - imageHeight - 95);
-
-        // Full-texture blit for the supplied 360x360 transparent PNG.
-        graphics.blit(
-            RenderPipelines.GUI_TEXTURED,
-            WARNING_TEXTURE,
-            imageX,
-            imageY,
-            0,
-            0,
-            imageWidth,
-            imageHeight,
-            IMAGE_TEXTURE_WIDTH,
-            IMAGE_TEXTURE_HEIGHT
-        );
 
         Component warning = Component.literal("YOU HAVE BEEN RATTED LOL");
         int warningWidth = font.width(warning);
         int warningX = (width - warningWidth) / 2;
-        int warningY = imageY + imageHeight + 18;
+        int warningY = height / 2 - 38;
 
         graphics.text(font, warning, warningX, warningY, 0xFFFFFFFF, true);
 
@@ -96,21 +65,12 @@ public final class SkyJewFirstBootScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return true;
 
-        int imageWidth = Math.min(width - 40, 360);
-        int imageHeight = imageWidth;
-        if (imageHeight > height / 2) {
-            imageHeight = height / 2;
-            imageWidth = imageHeight;
-        }
-
-        int imageY = Math.max(20, height / 2 - imageHeight - 95);
-        int warningY = imageY + imageHeight + 18;
+        int warningY = height / 2 - 38;
         int buttonX = (width - BUTTON_WIDTH) / 2;
         int buttonY = warningY + 38;
 
         if (event.x() >= buttonX && event.x() < buttonX + BUTTON_WIDTH
             && event.y() >= buttonY && event.y() < buttonY + BUTTON_HEIGHT) {
-
             SkyJewSounds.stopFirstBoot();
             config.general.firstBootAcknowledged = true;
             SkyJewConfig.saveCurrent(config);
