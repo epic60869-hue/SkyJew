@@ -252,8 +252,11 @@ public final class SkyJewNickScreen extends Screen {
                 config.misc.nickname.customHex = hexBox.getValue().toUpperCase(Locale.ROOT);
                 if (!"Rainbow".equals(config.misc.nickname.style)) config.misc.nickname.style = "Plain";
             }
-            config.misc.nickname.enabled = !config.misc.nickname.name.isBlank();
+            if (config.misc.nickname.name.isBlank()) {
+                config.misc.nickname.enabled = false;
+            }
             SkyJewConfig.saveCurrent(config);
+            SkyJewGlobalChat.sendNicknameUpdate();
         }
         minecraft.gui.setScreen(parent);
     }
