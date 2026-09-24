@@ -25,6 +25,7 @@ public final class SkyJewMod implements ClientModInitializer {
 
         FarmingRngTracker.get().register();
         SkyJewRngHud.register(config);
+        SkyJewCommissionHud.register(config);
         SkyJewCommandKeys.init(configDir);
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
