@@ -184,7 +184,10 @@ public final class SkyJewNopoFeatures {
 
         // Minecraft 26.2 exposes the live TAB entries through the connection.
         // Keep the raw component rows so Nopo's indented Pet widget can be parsed.
-        List<PlayerInfo> orderedPlayers = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
+        // Port of Nopo's HypixelUtils: use the same vanilla TAB comparator and
+        // the live online player list, then feed the resulting components to the
+        // Pet: widget parser.
+        List<PlayerInfo> orderedPlayers = new ArrayList<>(mc.getConnection().getOnlinePlayers());
         try {
             orderedPlayers.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
         } catch (Throwable ignored) {
