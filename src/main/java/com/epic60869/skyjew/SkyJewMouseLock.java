@@ -33,8 +33,8 @@ public final class SkyJewMouseLock {
     }
 
     public static void tick(Minecraft mc) {
-        boolean shouldLock = config != null && config.visual.mouseLockEnabled && mc.player != null
-            && (!config.visual.mouseLockGroundOnly || mc.player.onGround())
+        boolean shouldLock = config != null && config.farming.mouseLock.enabled && mc.player != null
+            && (!config.farming.mouseLock.groundOnly || mc.player.onGround())
             && isFarmingTool(mc.player.getMainHandItem());
 
         locked = shouldLock;
