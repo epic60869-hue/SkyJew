@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import net.minecraft.util.ARGB;
+import net.minecraft.resources.Identifier;
 
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
