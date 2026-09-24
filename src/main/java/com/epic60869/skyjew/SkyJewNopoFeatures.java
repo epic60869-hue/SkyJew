@@ -50,6 +50,7 @@ public final class SkyJewNopoFeatures {
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([A-Za-z0-9_+\\-]+):");
     private static final Map<String, String> EMOJI_SYMBOLS = new LinkedHashMap<>();
     private static final Map<String, String> EMOJI_CANONICAL = new HashMap<>();
+    private static final Map<String, String> EMOJI_UNICODE = new HashMap<>();
     private static final Map<String, SlayerData> SLAYERS = new LinkedHashMap<>();
     private static final Map<String, List<Long>> CROP_TIMES = new LinkedHashMap<>();
     private static String currentSlayer = null;
@@ -87,6 +88,7 @@ public final class SkyJewNopoFeatures {
         loadJson();
         loadDefaultEmojiSymbols();
         loadEmojis();
+        loadBuiltInEmojiAliases();
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
         registerOverflowPets();
         registerPetHud();
@@ -516,6 +518,28 @@ public final class SkyJewNopoFeatures {
         }
     }
 
+    private static void loadBuiltInEmojiAliases() {
+        String[][] aliases = {
+            {"tada","🎉"},{"rocket","🚀"},{"100","💯"},{"broken_heart","💔"},
+            {"orange_heart","🧡"},{"yellow_heart","💛"},{"green_heart","💚"},{"blue_heart","💙"},
+            {"purple_heart","💜"},{"black_heart","🖤"},{"white_heart","🤍"},{"sparkles","✨"},
+            {"star","⭐"},{"zap","⚡"},{"raised_hand","✋"},{"point_up","☝️"},{"muscle","💪"},
+            {"smile","😄"},{"grin","😁"},{"joy","😂"},{"angry","😠"},{"rage","😡"},
+            {"confused","😕"},{"neutral_face","😐"},{"sweat","😓"},{"scream","😱"},{"skull","💀"},
+            {"poop","💩"},{"ghost","👻"},{"dog","🐶"},{"cat","🐱"},{"fox_face","🦊"},
+            {"bee","🐝"},{"butterfly","🦋"},{"fish","🐟"},{"sunny","☀️"},{"cloud","☁️"},
+            {"snowflake","❄️"},{"coffee","☕"},{"pizza","🍕"},{"hamburger","🍔"},{"cake","🍰"},
+            {"gift","🎁"},{"moneybag","💰"},{"gem","💎"},{"warning","⚠️"},{"x","❌"},
+            {"white_check_mark","✅"},{"question","❓"},{"exclamation","❗"},{"heavy_check_mark","✔️"}
+        };
+        for (String[] pair : aliases) {
+            EMOJIS.add(pair[0]);
+            EMOJI_CANONICAL.put(pair[0], pair[0]);
+            EMOJI_UNICODE.put(pair[0], pair[1]);
+        }
+        for (var e : EMOJI_SYMBOLS.entrySet()) EMOJI_UNICODE.putIfAbsent(e.getKey(), e.getValue());
+    }
+
     private static void addDefaultEmoji(String name, String symbol) {
         EMOJIS.add(name);
         EMOJI_SYMBOLS.put(name, symbol);
@@ -567,10 +591,10 @@ public final class SkyJewNopoFeatures {
                     // Nopo's implementation uses the vanilla GUI atlas. SkyJew
                     // ships the same sprites under its own namespace, so aliases
                     // resolve to the canonical sprite without a Nopo dependency.
-                    out.append(Component.object(new AtlasSprite(
-                        Identifier.withDefaultNamespace("gui"),
-                        Identifier.fromNamespaceAndPath("skyjew", canonical)
-                    )).withStyle(style));
+                    String unicode = EMOJI_UNICODE.get(canonical);
+                    if (unicode == null) unicode = EMOJI_SYMBOLS.get(canonical);
+                    if (unicode == null) unicode = "❔";
+                    out.append(Component.literal(unicode).withStyle(style.withColor(ChatFormatting.WHITE)));
                 } else {
                     out.append(Component.literal(matcher.group()).withStyle(style));
                 }
