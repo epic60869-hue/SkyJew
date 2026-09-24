@@ -249,6 +249,11 @@ public final class SkyJewConfig extends Config {
 
     public static final class Misc {
         @Expose
+        @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
+        @ConfigEditorBoolean
+        public boolean calendarTimeToRealTime = true;
+
+        @Expose
         @Accordion
         @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
         public Nickname nickname = new Nickname();
