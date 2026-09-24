@@ -50,7 +50,7 @@ public final class SkyJewPlayerWidget extends AbstractWidget {
             -yRotation * Mth.DEG_TO_RAD,
             FLIP_ROTATION
         );
-        EntityRenderState state = SkyJewInventoryScreenInvoker.invokeExtractRenderState(player);
+        EntityRenderState state = com.epic60869.skyjew.mixin.SkyJewInventoryScreenInvoker.invokeExtractRenderState(player);
         graphics.entity(state, size, translation, rotation, null, getX(), getY(), getRight(), getBottom());
     }
 
