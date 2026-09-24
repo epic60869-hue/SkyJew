@@ -109,6 +109,36 @@ public final class SkyJewNick {
         return config().misc.nickname.name;
     }
 
+    public static Component tabDisplayName(Component original, UUID uuid) {
+        if (original == null) return null;
+        String actualName = Minecraft.getInstance().getUser().getName();
+        String displayed = original.getString();
+        RemoteNick remote = uuid == null ? null : REMOTE_NICKS.get(uuid);
+        boolean local = uuid != null && uuid.equals(Minecraft.getInstance().getUser().profileId());
+        String nickName = null;
+        String nickMode = null;
+        String nickHex = null;
+        if (remote != null && remote.enabled && !remote.name.isBlank()) {
+            nickName = remote.name;
+            nickMode = remote.mode;
+            nickHex = remote.customHex;
+        } else if (local && config().misc.nickname.enabled && config().misc.nickname.name != null && !config().misc.nickname.name.isBlank()) {
+            nickName = config().misc.nickname.name;
+            nickMode = config().misc.nickname.style;
+            nickHex = config().misc.nickname.customHex;
+        }
+        if (nickName == null) return original;
+        int index = displayed.lastIndexOf(actualName);
+        if (index < 0) return original;
+        String prefix = displayed.substring(0, index);
+        String suffix = displayed.substring(index + actualName.length());
+        MutableComponent result = Component.empty();
+        if (!prefix.isEmpty()) result.append(Component.literal(prefix).withStyle(original.getStyle()));
+        result.append(styled(nickName, nickMode, nickHex));
+        if (!suffix.isEmpty()) result.append(Component.literal(suffix).withStyle(original.getStyle()));
+        return result;
+    }
+
     public static Component displayName(String actualName) {
         if (!config().misc.nickname.enabled
             || !actualName.equals(Minecraft.getInstance().getUser().getName())
