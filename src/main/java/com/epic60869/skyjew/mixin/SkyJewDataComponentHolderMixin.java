@@ -16,10 +16,21 @@ public interface SkyJewDataComponentHolderMixin {
     @Inject(method = "get", at = @At("RETURN"), cancellable = true)
     private <T> void skyjew$customTrim(DataComponentType<? extends T> type,
                                            CallbackInfoReturnable<T> cir) {
-        if (type == DataComponents.TRIM && (Object)this instanceof ItemStack stack) {
-            @SuppressWarnings("unchecked")
-            T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
-            cir.setReturnValue(custom);
+        if ((Object)this instanceof ItemStack stack) {
+            if (type == DataComponents.TRIM) {
+                @SuppressWarnings("unchecked")
+                T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
+                cir.setReturnValue(custom);
+            } else if (type == DataComponents.ITEM_MODEL) {
+                String model = SkyJewCustom.getItemModel(stack);
+                if (model != null && !model.isBlank()) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        T custom = (T) net.minecraft.resources.Identifier.parse(model);
+                        cir.setReturnValue(custom);
+                    } catch (Throwable ignored) {}
+                }
+            }
         }
     }
 }
