@@ -371,8 +371,11 @@ public final class SkyJewCustom {
             if (cached != null) return cached;
             try {
                 com.mojang.authlib.GameProfile profile = new com.mojang.authlib.GameProfile(
-                    UUID.nameUUIDFromBytes(texture.getBytes(StandardCharsets.UTF_8)), "skyjew");
-                profile.getProperties().put("textures", new com.mojang.authlib.properties.Property("textures", texture));
+                    UUID.nameUUIDFromBytes(texture.getBytes(StandardCharsets.UTF_8)), "skyjew",
+                    net.minecraft.util.ExtraCodecs.PROPERTY_MAP.parse(
+                        com.mojang.serialization.JsonOps.INSTANCE,
+                        JsonParser.parseString("[{\"name\":\"textures\",\"value\":\"" + texture + "\"}]")
+                    ).getOrThrow());
                 net.minecraft.world.item.component.ResolvableProfile resolved =
                     net.minecraft.world.item.component.ResolvableProfile.createResolved(profile);
                 HELMET_PROFILE_CACHE.put(texture, resolved);
