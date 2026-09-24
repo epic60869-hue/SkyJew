@@ -68,6 +68,7 @@ public final class SkyJewCommandKeys {
     private static String lastCommand = "";
     private static String lastPrivateSender = "";
     private static String editValue = "";
+    private static final java.util.Map<Integer, Boolean> previousModifierStates = new java.util.HashMap<>();
 
     private SkyJewCommandKeys() {}
 
@@ -166,6 +167,7 @@ public final class SkyJewCommandKeys {
             boolean down = isDown(window, macro.keyCode);
             boolean wasDown = previousKeys.contains(macro.keyCode);
             if (down && !wasDown) {
+                if (macro.conflict == Conflict.AVOID) continue;
                 if (macro.mode == Mode.REPEAT) {
                     macro.repeating = !macro.repeating;
                     if (macro.repeating) {
@@ -243,13 +245,22 @@ public final class SkyJewCommandKeys {
 
     private static void send(Minecraft mc, String text) {
         if (text == null || text.isBlank() || mc.player == null) return;
-        if (text.startsWith("/")) mc.player.connection.sendCommand(text.substring(1));
-        else mc.player.connection.sendChat(text);
+        lastSent = text;
+        if (text.startsWith("/")) {
+            lastCommand = text;
+            mc.player.connection.sendCommand(text.substring(1));
+        } else {
+            mc.player.connection.sendChat(text);
+        }
     }
 
     public static String expand(String input, Minecraft mc) {
         if (input == null) return "";
-        String s = input.replace("%myname%", mc.getUser().getName());
+        String s = input
+            .replace("%myname%", mc.getUser().getName())
+            .replace("%lastsent%", lastSent == null ? "" : lastSent)
+            .replace("%lastcmd%", lastCommand == null ? "" : lastCommand)
+            .replace("%pmsender%", lastPrivateSender == null ? "" : lastPrivateSender);
         if (mc.player != null) {
             int x = (int)Math.floor(mc.player.getX());
             int y = (int)Math.floor(mc.player.getY());
