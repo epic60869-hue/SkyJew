@@ -107,10 +107,6 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Mouse Lock", desc = "Reduce camera sensitivity while using supported farming tools.")
         public MouseLock mouseLock = new MouseLock();
 
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mining Commissions HUD", desc = "Show Dwarven Mines, Crystal Hollows, and Glacite commission progress read from the Hypixel tab list.")
-        public MiningCommissions commissions = new MiningCommissions();
     }
 
     public static final class Mining {
