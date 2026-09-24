@@ -38,7 +38,12 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
-            int px = config.pets.x;
+            int cx = SkyJewCommissionHud.x();
+        int cy = SkyJewCommissionHud.y();
+        SkyJewCommissionHud.renderPreview(g, cx, cy);
+        g.text(font, Component.literal("Mining Commissions"), cx, cy - 16, 0xFFFFFFFF, true);
+
+        int px = config.pets.x;
             int py = config.pets.y;
             SkyJewNopoFeatures.renderPetHudPreview(g, px, py);
             g.text(font, Component.literal("Pet Display"), px, py - 16, 0xFFFFFFFF, true);
@@ -46,6 +51,7 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         g.text(font, Component.literal("Farming RNG: " + rx + ", " + ry), 20, height - 42, 0xFF9AA4B2, false);
         if (config != null) {
+            g.text(font, Component.literal("Mining Commissions: " + SkyJewCommissionHud.x() + ", " + SkyJewCommissionHud.y()), 20, height - 42, 0xFF9AA4B2, false);
             g.text(font, Component.literal("Pet Display: " + config.pets.x + ", " + config.pets.y), 20, height - 26, 0xFF9AA4B2, false);
         }
         super.extractRenderState(g, mouseX, mouseY, delta);
@@ -69,6 +75,16 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
+            int cx = SkyJewCommissionHud.x();
+            int cy = SkyJewCommissionHud.y();
+            if (mx >= cx - 10 && mx <= cx + SkyJewCommissionHud.width() + 10
+                    && my >= cy - 20 && my <= cy + SkyJewCommissionHud.height() + 10) {
+                dragging = "commissions";
+                dragOffsetX = mx - cx;
+                dragOffsetY = my - cy;
+                return true;
+            }
+
             int px = config.pets.x;
             int py = config.pets.y;
             if (mx >= px - 10 && mx <= px + 260 && my >= py - 20 && my <= py + 45) {
@@ -89,6 +105,8 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         if (dragging.equals("rng")) {
             SkyJewRngHud.setPosition(x, y);
+        } else if (dragging.equals("commissions")) {
+            SkyJewCommissionHud.setPosition(x, y);
         } else {
             SkyJewConfig config = SkyJewConfig.current();
             if (config != null) {
