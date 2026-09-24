@@ -152,10 +152,17 @@ public final class SkyJewCustomScreen extends Screen {
             rebuild();
         }).bounds(x + 130, y + 28, 125, 22).build());
 
-        itemModel = addBox("Item model identifier", x, y + 65, 270, "");
+        Boolean glint = SkyJewCustom.getGlint(selected);
+        addRenderableWidget(Button.builder(Component.literal("Glint: " + glintLabel(glint)), b -> {
+            Boolean current = SkyJewCustom.getGlint(selected);
+            SkyJewCustom.setGlint(selected, current == null ? Boolean.TRUE : current ? Boolean.FALSE : null);
+            rebuild();
+        }).bounds(x, y + 65, 120, 22).build());
+
+        itemModel = addBox("Item model identifier", x, y + 95, 270, "");
         addRenderableWidget(Button.builder(Component.literal("Apply Model"), b ->
             SkyJewCustom.setItemModel(selected, itemModel.getValue()))
-            .bounds(x, y + 93, 120, 22).build());
+            .bounds(x, y + 123, 120, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Reset Model"), b -> {
             SkyJewCustom.setItemModel(selected, null);
@@ -199,6 +206,10 @@ public final class SkyJewCustomScreen extends Screen {
     private String currentTrimPattern(ItemStack stack) {
         SkyJewCustom.TrimId id = SkyJewCustom.getTrim(stack);
         return id == null ? "" : id.pattern();
+    }
+
+    private static String glintLabel(Boolean value) {
+        return value == null ? "DEFAULT" : value ? "ON" : "OFF";
     }
 
     private void applyDye(ItemStack stack) {
