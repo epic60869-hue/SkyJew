@@ -168,6 +168,7 @@ public final class SkyJewCommandKeys {
             boolean wasDown = previousKeys.contains(macro.keyCode);
             if (down && !wasDown) {
                 if (macro.conflict == Conflict.AVOID) continue;
+                if (macro.conflict == Conflict.AVOID) continue;
                 if (macro.mode == Mode.REPEAT) {
                     macro.repeating = !macro.repeating;
                     if (macro.repeating) {
