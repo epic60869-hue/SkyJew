@@ -44,8 +44,6 @@ public final class SkyJewCustom {
     private static final Map<String, Integer> DYE_COLORS = new LinkedHashMap<>();
     private static final Map<String, TrimId> ARMOR_TRIMS = new LinkedHashMap<>();
     private static final Map<String, AnimatedDye> ANIMATED_DYES = new LinkedHashMap<>();
-    private static final Map<String, Boolean> GLINT = new LinkedHashMap<>();
-    private static final Map<String, String> ITEM_MODELS = new LinkedHashMap<>();
     private static final Map<String, String> ITEM_MODELS = new LinkedHashMap<>();
     private static final Map<String, Boolean> ITEM_GLINTS = new LinkedHashMap<>();
 
@@ -327,7 +325,7 @@ public final class SkyJewCustom {
             });
             if (root.has("itemModels")) root.getAsJsonObject("itemModels").entrySet().forEach(e -> ITEM_MODELS.put(e.getKey(), e.getValue().getAsString()));
             if (root.has("itemGlints")) root.getAsJsonObject("itemGlints").entrySet().forEach(e -> ITEM_GLINTS.put(e.getKey(), e.getValue().getAsBoolean()));
-            if (root.has("glint")) root.getAsJsonObject("glint").entrySet().forEach(e -> GLINT.put(e.getKey(), e.getValue().getAsBoolean()));\n            if (root.has("itemModels")) root.getAsJsonObject("itemModels").entrySet().forEach(e -> ITEM_MODELS.put(e.getKey(), e.getValue().getAsString()));\n            if (root.has("animatedDyes")) root.getAsJsonObject("animatedDyes").entrySet().forEach(e -> {
+            if (root.has("animatedDyes")) root.getAsJsonObject("animatedDyes").entrySet().forEach(e -> {
                 JsonObject v = e.getValue().getAsJsonObject();
                 JsonObject a = v.getAsJsonObject("first");
                 JsonObject b = v.getAsJsonObject("second");
@@ -373,7 +371,7 @@ public final class SkyJewCustom {
                 o.addProperty("delay",v.delay());
                 animated.add(k,o);
             });
-            root.add("animatedDyes", animated);\n            JsonObject glint = new JsonObject(); GLINT.forEach(glint::addProperty); root.add("glint", glint);\n            JsonObject itemModels = new JsonObject(); ITEM_MODELS.forEach(itemModels::addProperty); root.add("itemModels", itemModels);
+            root.add("animatedDyes", animated);
             JsonObject models = new JsonObject();
             ITEM_MODELS.forEach(models::addProperty);
             root.add("itemModels", models);
@@ -400,7 +398,7 @@ public final class SkyJewCustom {
     public static void clearAll(ItemStack stack) {
         String id = uuid(stack);
         if (id.isBlank()) return;
-        ITEM_NAMES.remove(id); DYE_COLORS.remove(id); ARMOR_TRIMS.remove(id); ANIMATED_DYES.remove(id); GLINT.remove(id); ITEM_MODELS.remove(id);
+        ITEM_NAMES.remove(id); DYE_COLORS.remove(id); ARMOR_TRIMS.remove(id); ANIMATED_DYES.remove(id); ITEM_GLINTS.remove(id); ITEM_MODELS.remove(id);
         save();
     }
 }
