@@ -3,7 +3,7 @@ package com.epic60869.skyjew;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.texture.HttpTexture;
+import net.minecraft.client.renderer.texture.SimpleTexture;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
@@ -61,7 +61,7 @@ public final class SkyJewImagePreview {
             File file = cacheDir.resolve(hash + ".img").toFile();
             Identifier id = Identifier.fromNamespaceAndPath("skyjew", "chat_preview/" + hash);
 
-            HttpTexture texture = new HttpTexture(file, url, id, false, () -> {});
+            SimpleTexture texture = new SimpleTexture(id, file);
             mc.getTextureManager().register(id, texture);
             TEXTURES.put(url, id);
             return id;
