@@ -75,7 +75,7 @@ public final class SkyJewItemIconSelectScreen extends Screen {
 
         // Then every normal Minecraft registry item.
         for (var entry : BuiltInRegistries.ITEM.entrySet()) {
-            String id = entry.getKey().identifier().toString();
+            String id = entry.getKey().toString();
             String name = new ItemStack(entry.getValue()).getHoverName().getString();
             if (!query.isEmpty()
                     && !name.toLowerCase(Locale.ROOT).contains(query)
@@ -84,8 +84,8 @@ public final class SkyJewItemIconSelectScreen extends Screen {
             }
 
             Identifier model = Identifier.fromNamespaceAndPath(
-                entry.getKey().identifier().getNamespace(),
-                entry.getKey().identifier().getPath()
+                entry.getKey().getNamespace(),
+                entry.getKey().getPath()
             );
             options.add(new ItemOption(new ItemStack(entry.getValue()), model, name, id));
         }
@@ -94,7 +94,7 @@ public final class SkyJewItemIconSelectScreen extends Screen {
     private void addStackOption(ItemStack stack, String query) {
         if (stack == null || stack.isEmpty()) return;
         String name = stack.getHoverName().getString();
-        String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).identifier().toString();
+        String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         Identifier model = stack.get(DataComponents.ITEM_MODEL);
         if (model == null) {
             model = Identifier.parse(id);
