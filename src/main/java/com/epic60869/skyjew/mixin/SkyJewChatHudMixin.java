@@ -17,97 +17,65 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
 import java.util.List;
 
 @Mixin(ChatComponent.class)
 public abstract class SkyJewChatHudMixin {
     @Shadow @Final private List<GuiMessage> allMessages;
+    @Shadow private void refreshTrimmedMessages() {}
 
-    @Shadow
-    private void refreshTrimmedMessages() {}
     @ModifyArgs(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
-        at = @At(value = "HEAD")
+        at = @At("HEAD")
     )
-    private void skyjew$replaceEmojiArgs(Args args) {
+    private void skyjew$modifyIncoming(Args args) {
         if (args.size() > 0 && args.get(0) instanceof Component message) {
             args.set(0, SkyJewNopoFeatures.replaceChatEmojis(message));
         }
     }
 
-
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
         at = @At("HEAD"),
         cancellable = true
     )
-    private void skyjew$hideOtherCommandOutput(
-        Component message,
-        MessageSignature signature,
-        GuiMessageSource source,
-        GuiMessageTag tag,
-        CallbackInfo ci
-    ) {
+    private void skyjew$hideOtherCommandOutput(Component message, MessageSignature signature,
+                                                 GuiMessageSource source, GuiMessageTag tag, CallbackInfo ci) {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.chat.customChat.hideOtherCommands) return;
-
         String text = message.getString();
-        java.util.regex.Matcher matcher = java.util.regex.Pattern
-            .compile("(?i)\\[SJ\\] \\[[^]]+\\] ([A-Za-z0-9_]{1,16})['’]s ")
-            .matcher(text);
-        if (!matcher.find()) return;
-
-        String owner = matcher.group(1);
-        String self = net.minecraft.client.Minecraft.getInstance().getUser().getName();
-        if (!owner.equalsIgnoreCase(self)) {
-            ci.cancel();
+        var matcher = java.util.regex.Pattern.compile("(?i)\\[SJ\\] \\[[^]]+\\] ([A-Za-z0-9_]{1,16})['’]s ").matcher(text);
+        if (matcher.find()) {
+            String owner = matcher.group(1);
+            String self = net.minecraft.client.Minecraft.getInstance().getUser().getName();
+            if (!owner.equalsIgnoreCase(self)) ci.cancel();
         }
     }
 
+    /**
+     * Compact after vanilla has inserted the message. This avoids relying on
+     * the internal insertion order at HEAD, which changed between 26.x builds.
+     */
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
-        at = @At("HEAD"),
-        cancellable = true
+        at = @At("TAIL")
     )
-    private void skyjew$compact(
-        Component message,
-        MessageSignature signature,
-        GuiMessageSource source,
-        GuiMessageTag tag,
-        CallbackInfo ci
-    ) {
-        Component replaced = SkyJewNopoFeatures.replaceChatEmojis(message);
-        if (!SkyJewChatCompactor.enabled()) {
-            return;
-        }
+    private void skyjew$compact(Component message, MessageSignature signature,
+                                GuiMessageSource source, GuiMessageTag tag, CallbackInfo ci) {
+        if (!SkyJewChatCompactor.enabled() || allMessages.size() < 2) return;
 
-        List<GuiMessage> all = allMessages;
-        if (all.isEmpty()) return;
+        GuiMessage newest = allMessages.get(0);
+        GuiMessage previous = allMessages.get(1);
+        if (!SkyJewChatCompactor.same(newest.content(), previous.content())) return;
 
-        GuiMessage previous = all.get(0);
-        String previousText = previous.content().getString().replaceFirst("\\s+\\(x\\d+\\)$", "");
-        if (!previousText.equals(replaced.getString())) return;
+        int count = SkyJewChatCompactor.record(newest.content());
+        if (count < 2) return;
 
-        int count = 2;
-        java.util.regex.Matcher countMatcher = java.util.regex.Pattern
-            .compile("\\s+\\(x(\\d+)\\)$")
-            .matcher(previous.content().getString());
-        if (countMatcher.find()) {
-            try {
-                count = Integer.parseInt(countMatcher.group(1)) + 1;
-            } catch (NumberFormatException ignored) {}
-        }
-
-        Component compacted = SkyJewChatCompactor.withCount(replaced, count);
-        all.set(0, new GuiMessage(
-            previous.addedTime(),
-            compacted,
-            previous.signature(),
-            previous.source(),
-            previous.tag()
+        Component compacted = SkyJewChatCompactor.withCount(previous.content(), count);
+        allMessages.set(0, new GuiMessage(
+            newest.addedTime(), compacted, newest.signature(), newest.source(), newest.tag()
         ));
+        allMessages.remove(1);
         refreshTrimmedMessages();
-        ci.cancel();
     }
 }
