@@ -42,7 +42,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
     protected void init() {
         waitingForSkins = !SkyJewCustom.helmetSkinDataLoaded();
         rebuildEntries();
-        rebuildWidgets();
+        rebuildSkinWidgets();
     }
 
     private void rebuildEntries() {
@@ -62,7 +62,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
         }
     }
 
-    private void rebuildWidgets() {
+    private void rebuildSkinWidgets() {
         clearWidgets();
 
         left = Math.max(10, (width - PANEL_W) / 2);
@@ -73,7 +73,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
         search.setResponder(value -> {
             scroll = 0;
             rebuildEntries();
-            rebuildWidgets();
+            rebuildSkinWidgets();
         });
         addRenderableWidget(search);
 
@@ -120,7 +120,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
         if (waitingForSkins && SkyJewCustom.helmetSkinDataLoaded()) {
             waitingForSkins = false;
             rebuildEntries();
-            rebuildWidgets();
+            rebuildSkinWidgets();
         }
     }
 
@@ -151,7 +151,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
         int next = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.signum(scrollY)));
         if (next != scroll) {
             scroll = next;
-            rebuildWidgets();
+            rebuildSkinWidgets();
         }
         return true;
     }
