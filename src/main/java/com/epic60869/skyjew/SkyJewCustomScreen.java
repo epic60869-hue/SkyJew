@@ -112,7 +112,7 @@ public final class SkyJewCustomScreen extends Screen {
                 selectedItem = stack.copy();
                 showDyes = false;
                 rebuild();
-            })).bounds(left + 18, panelY + 130, 120, 25).build());
+            }))).bounds(left + 18, panelY + 130, 120, 25).build());
 
         ItemStack selected = selectedStack();
         if (selected.isEmpty()) return;
@@ -179,7 +179,7 @@ public final class SkyJewCustomScreen extends Screen {
             b -> minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                 selectedItem = stack.copy();
                 rebuild();
-            })).bounds(left + 18, y, 120, 25).build());
+            }))).bounds(left + 18, y, 120, 25).build());
 
         ItemStack selected = selectedItem.isEmpty()
             ? (Minecraft.getInstance().player == null ? ItemStack.EMPTY
