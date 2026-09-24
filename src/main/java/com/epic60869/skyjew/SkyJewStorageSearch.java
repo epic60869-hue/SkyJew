@@ -56,11 +56,14 @@ public final class SkyJewStorageSearch {
 
     private static final long CAPTURE_INTERVAL_MS = 400L;
     private static final long SAVE_INTERVAL_MS = 1200L;
+    private static final long INVENTORY_CAPTURE_INTERVAL_MS = 500L;
 
     private static final Map<String, Page> pages = new LinkedHashMap<>();
+    private static final Map<String, Page> inventoryPages = new LinkedHashMap<>();
     private static Path configDir;
     private static boolean initialized;
     private static long lastCapture;
+    private static long lastInventoryCapture;
     private static long lastSave;
     private static boolean dirty;
     private static boolean previousOpenKey;
@@ -83,6 +86,7 @@ public final class SkyJewStorageSearch {
         if (!initialized || mc.player == null) return;
 
         captureOpenStorage(mc);
+        capturePlayerInventory(mc);
         applyPendingHighlight(mc);
 
         boolean ctrl = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
@@ -145,22 +149,22 @@ public final class SkyJewStorageSearch {
             }
         }
 
-        if (inventory && mc.player != null) {
-            var inv = mc.player.getInventory();
-            for (int i = 0; i < inv.getContainerSize(); i++) {
-                ItemStack stack = inv.getItem(i);
-                if (stack == null || stack.isEmpty()) continue;
-
-                SearchText text = searchable(stack);
-                if (!q.isEmpty()
-                        && !text.name().contains(q)
-                        && !text.id().contains(q)
-                        && (!lore || !text.lore().contains(q))) {
-                    continue;
+        if (inventory) {
+            for (Map.Entry<String, Page> entry : inventoryPages.entrySet()) {
+                Page page = entry.getValue();
+                List<ItemStack> contents = decode(page.blob());
+                if (contents == null) continue;
+                for (int i = 0; i < contents.size(); i++) {
+                    ItemStack stack = contents.get(i);
+                    if (stack == null || stack.isEmpty()) continue;
+                    SearchText text = searchable(stack);
+                    if (!q.isEmpty()
+                            && !text.name().contains(q)
+                            && !text.id().contains(q)
+                            && (!lore || !text.lore().contains(q))) continue;
+                    results.add(new Result(stack.copy(), text.displayName(), text.id(), text.lore(),
+                            page.label() + " · " + inventoryLocation(i), entry.getKey(), "INVENTORY", 0, i));
                 }
-
-                results.add(new Result(stack.copy(), text.displayName(), text.id(), text.lore(),
-                        inventoryLocation(i), "inventory", "INVENTORY", 0, i));
             }
         }
 
@@ -206,6 +210,24 @@ public final class SkyJewStorageSearch {
         }
     }
 
+    public static boolean shouldHighlight(ItemStack stack) {
+        if (pendingHighlight == null || stack == null || stack.isEmpty()) return false;
+        return sameSearchItem(stack, pendingHighlight.stack());
+    }
+
+    public static void consumeHighlight() {
+        pendingHighlight = null;
+    }
+
+    private static boolean sameSearchItem(ItemStack a, ItemStack b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
+        SearchText aa = searchable(a);
+        SearchText bb = searchable(b);
+        return aa.id().equals(bb.id())
+                && aa.name().equals(bb.name())
+                && aa.lore().equals(bb.lore());
+    }
+
     private static void applyPendingHighlight(Minecraft mc) {
         // Do not move the native GLFW cursor here. On 26.2 that can race the
         // container's input/render path and crash when another mod replaces the
@@ -214,9 +236,6 @@ public final class SkyJewStorageSearch {
         if (pendingHighlight == null || mc.gui.screen() == null) return;
         Result result = pendingHighlight;
         if ("INVENTORY".equals(result.type())) {
-            if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
-                pendingHighlight = null;
-            }
             return;
         }
         if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
@@ -231,6 +250,37 @@ public final class SkyJewStorageSearch {
         return title.replaceAll("§[0-9A-FK-ORa-fk-or]", "")
             .replaceAll("\\s+", " ")
             .trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static void capturePlayerInventory(Minecraft mc) {
+        if (!isHypixel(mc) || mc.player == null) return;
+        long now = System.currentTimeMillis();
+        if (now - lastInventoryCapture < INVENTORY_CAPTURE_INTERVAL_MS) return;
+        lastInventoryCapture = now;
+        List<ItemStack> contents = new ArrayList<>(mc.player.getInventory().getContainerSize());
+        for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = mc.player.getInventory().getItem(i);
+            contents.add(stack == null ? ItemStack.EMPTY : stack.copy());
+        }
+        String key = inventoryCacheKey(mc);
+        String blob = encode(contents);
+        if (blob == null) return;
+        Page old = inventoryPages.get(key);
+        if (old == null || !old.blob().equals(blob)) {
+            inventoryPages.put(key, new Page("INVENTORY", 0, "Your Inventory", blob, now));
+            dirty = true;
+        }
+    }
+
+    private static String inventoryCacheKey(Minecraft mc) {
+        String server = "unknown";
+        try {
+            if (mc.getCurrentServer() != null && mc.getCurrentServer().ip != null) {
+                server = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
+            }
+        } catch (Throwable ignored) {}
+        String uuid = mc.player == null ? "unknown" : mc.player.getUUID().toString();
+        return server + "|INVENTORY|" + uuid;
     }
 
     private static void captureOpenStorage(Minecraft mc) {
@@ -367,11 +417,11 @@ public final class SkyJewStorageSearch {
                 || name.equals("back")
                 || name.equals("close")
                 || name.equals("exit")
-                || name.equals("previous page")
+                || name.equals("first page") || name.equals("last page") || name.equals("previous page")
                 || name.equals("next page")
                 || name.equals("previous")
                 || name.equals("next")
-                || name.startsWith("previous page")
+                || name.startsWith("first page") || name.startsWith("last page") || name.startsWith("previous page")
                 || name.startsWith("next page")
                 || name.startsWith("page ")
                 || name.matches("page\\s*\\d+")
@@ -379,7 +429,7 @@ public final class SkyJewStorageSearch {
                 || name.contains("click to go back")
                 || name.contains("click to close")
                 || name.contains("click to view")
-                || name.contains("open previous")
+                || name.contains("open first") || name.contains("open last") || name.contains("open previous")
                 || name.contains("open next"));
     }
 
@@ -402,6 +452,7 @@ public final class SkyJewStorageSearch {
 
         try {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+            inventoryPages.clear();
             for (String key : root.keySet()) {
                 JsonObject obj = root.getAsJsonObject(key);
                 if (obj == null || !obj.has("blob")) continue;
@@ -409,7 +460,9 @@ public final class SkyJewStorageSearch {
                 int number = obj.has("number") ? obj.get("number").getAsInt() : 0;
                 String label = obj.has("label") ? obj.get("label").getAsString() : type + " #" + number;
                 long updated = obj.has("updated") ? obj.get("updated").getAsLong() : 0L;
-                pages.put(key, new Page(type, number, label, obj.get("blob").getAsString(), updated));
+                Page page = new Page(type, number, label, obj.get("blob").getAsString(), updated);
+                if ("INVENTORY".equals(type)) inventoryPages.put(key, page);
+                else pages.put(key, page);
             }
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to load storage search cache: " + e.getMessage());
@@ -423,6 +476,16 @@ public final class SkyJewStorageSearch {
             Files.createDirectories(configDir);
             JsonObject root = new JsonObject();
             for (Map.Entry<String, Page> entry : pages.entrySet()) {
+                Page page = entry.getValue();
+                JsonObject obj = new JsonObject();
+                obj.addProperty("type", page.type());
+                obj.addProperty("number", page.number());
+                obj.addProperty("label", page.label());
+                obj.addProperty("updated", page.updatedMs());
+                obj.addProperty("blob", page.blob());
+                root.add(entry.getKey(), obj);
+            }
+            for (Map.Entry<String, Page> entry : inventoryPages.entrySet()) {
                 Page page = entry.getValue();
                 JsonObject obj = new JsonObject();
                 obj.addProperty("type", page.type());
