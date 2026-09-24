@@ -25,8 +25,17 @@ import java.util.concurrent.CompletableFuture;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
+/**
+ * SkyOcean-style recipe command.
+ *
+ * Uses the public Hypixel item list for autocomplete and the public
+ * NotEnoughUpdates repository for recipe layouts. The recipe is rendered
+ * locally instead of sending /viewrecipe to Hypixel, avoiding server GUI
+ * crashes and allowing the requested amount to be shown.
+ */
 public final class SkyJewRecipeCommand {
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+        .connectTimeout(java.time.Duration.ofSeconds(5)).build();
     private static final List<ItemEntry> ITEMS = new ArrayList<>();
     private static volatile boolean loaded;
 
@@ -42,34 +51,34 @@ public final class SkyJewRecipeCommand {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.hypixel.net/v2/resources/skyblock/items"))
+                .timeout(java.time.Duration.ofSeconds(10))
+                .header("User-Agent", "SkyJew/1.0")
                 .GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                System.err.println("[SkyJew] Failed to load Hypixel item list: HTTP " + response.statusCode());
-                return;
-            }
+            if (response.statusCode() != 200) return;
+
             JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
             JsonArray items = root.getAsJsonArray("items");
             if (items == null) return;
 
-            List<ItemEntry> loadedItems = new ArrayList<>();
+            List<ItemEntry> next = new ArrayList<>();
             for (JsonElement element : items) {
                 if (!element.isJsonObject()) continue;
                 JsonObject item = element.getAsJsonObject();
                 if (!item.has("id") || !item.has("name")) continue;
                 String id = item.get("id").getAsString().trim();
                 String name = item.get("name").getAsString().trim();
-                if (!id.isEmpty() && !name.isEmpty()) loadedItems.add(new ItemEntry(id, name));
+                if (!id.isEmpty() && !name.isEmpty()) next.add(new ItemEntry(id, name));
             }
-            loadedItems.sort(Comparator.comparing(ItemEntry::name, String.CASE_INSENSITIVE_ORDER));
+            next.sort(Comparator.comparing(ItemEntry::name, String.CASE_INSENSITIVE_ORDER));
             synchronized (ITEMS) {
                 ITEMS.clear();
-                ITEMS.addAll(loadedItems);
+                ITEMS.addAll(next);
             }
             loaded = true;
-            System.out.println("[SkyJew] Loaded " + loadedItems.size() + " Hypixel SkyBlock items for /sj recipe autocomplete.");
+            System.out.println("[SkyJew] Loaded " + next.size() + " Hypixel items for recipe autocomplete.");
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load Hypixel item list: " + e.getMessage());
+            System.err.println("[SkyJew] Recipe item list load failed: " + e.getMessage());
         }
     }
 
@@ -77,14 +86,16 @@ public final class SkyJewRecipeCommand {
         return literal("recipe")
             .then(argument("item", StringArgumentType.greedyString())
                 .suggests(SkyJewRecipeCommand::suggestItems)
-                .executes(context -> run(context)));
+                .executes(SkyJewRecipeCommand::run));
     }
 
-    private static CompletableFuture<Suggestions> suggestItems(CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
+    private static CompletableFuture<Suggestions> suggestItems(
+        CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
         String input = builder.getRemaining().toLowerCase(Locale.ROOT);
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) {
-                if (item.name().toLowerCase(Locale.ROOT).contains(input) || item.id().toLowerCase(Locale.ROOT).contains(input)) {
+                if (item.name().toLowerCase(Locale.ROOT).contains(input)
+                    || item.id().toLowerCase(Locale.ROOT).contains(input)) {
                     builder.suggest(item.id(), Component.literal(item.name()));
                 }
             }
@@ -96,22 +107,89 @@ public final class SkyJewRecipeCommand {
         String raw = StringArgumentType.getString(context, "item").trim();
         int amount = 1;
         String input = raw;
-        String last = raw.substring(raw.lastIndexOf(' ') + 1);
-        try {
-            if (raw.contains(" ") && Integer.parseInt(last) > 0) {
-                amount = Integer.parseInt(last);
-                input = raw.substring(0, raw.lastIndexOf(' ')).trim();
-            }
-        } catch (NumberFormatException ignored) {}
+
+        int split = raw.lastIndexOf(' ');
+        if (split > 0) {
+            try {
+                int parsed = Integer.parseInt(raw.substring(split + 1));
+                if (parsed > 0) {
+                    amount = parsed;
+                    input = raw.substring(0, split).trim();
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+
         String id = resolveId(input);
         Minecraft mc = Minecraft.getInstance();
         if (id == null || mc.player == null) {
-            if (mc.player != null) mc.player.sendSystemMessage(Component.literal("§c[SkyJew] Unknown SkyBlock item: §f" + input));
+            if (mc.player != null) {
+                mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
+                    "§c[SkyJew] Unknown SkyBlock item: §f" + input));
+            }
             return 0;
         }
-        mc.player.connection.sendCommand("viewrecipe " + id);
-        if (amount > 1) mc.player.sendSystemMessage(Component.literal("§6[SkyJew] Recipe amount: §f" + amount + "x §7" + displayName(id)));
+
+        final int finalAmount = amount;
+        final String finalId = id;
+        CompletableFuture.runAsync(() -> loadRecipe(finalId))
+            .thenAccept(recipe -> mc.execute(() -> {
+                if (recipe == null || recipe.isEmpty()) {
+                    mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
+                        "§c[SkyJew] No recipe data found for §f" + displayName(finalId)
+                            + "§c. The item may not be craftable."));
+                    return;
+                }
+                mc.gui.setScreen(new SkyJewRecipeScreen(mc.gui.screen(), finalId, displayName(finalId),
+                    finalAmount, recipe));
+            }));
         return 1;
+    }
+
+    private static RecipeData loadRecipe(String id) {
+        try {
+            String url = "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/"
+                + java.net.URLEncoder.encode(id.toUpperCase(Locale.ROOT), java.nio.charset.StandardCharsets.UTF_8)
+                    .replace("+", "%20") + ".json";
+            HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
+                .timeout(java.time.Duration.ofSeconds(8)).header("User-Agent", "SkyJew/1.0").GET().build();
+            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) return null;
+
+            JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+            JsonObject recipe = root.getAsJsonObject("recipe");
+            if (recipe == null) {
+                JsonArray recipes = root.getAsJsonArray("recipes");
+                if (recipes != null && !recipes.isEmpty() && recipes.get(0).isJsonObject()) {
+                    recipe = recipes.get(0).getAsJsonObject();
+                }
+            }
+            if (recipe == null) return null;
+
+            List<Ingredient> ingredients = new ArrayList<>();
+            for (String row : new String[]{"A","B","C"}) {
+                for (String col : new String[]{"1","2","3"}) {
+                    String key = row + col;
+                    if (!recipe.has(key)) continue;
+                    String value = recipe.get(key).getAsString().trim();
+                    ingredients.add(parseIngredient(key, value));
+                }
+            }
+            return new RecipeData(ingredients);
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Recipe load failed for " + id + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static Ingredient parseIngredient(String slot, String value) {
+        if (value.isBlank()) return new Ingredient(slot, "", 0);
+        int split = value.lastIndexOf(':');
+        if (split > 0) {
+            try {
+                return new Ingredient(slot, value.substring(0, split), Integer.parseInt(value.substring(split + 1)));
+            } catch (NumberFormatException ignored) {}
+        }
+        return new Ingredient(slot, value, 1);
     }
 
     private static String resolveId(String input) {
@@ -124,10 +202,17 @@ public final class SkyJewRecipeCommand {
         return input.matches("[A-Za-z0-9_:.\\-]+") ? input.toUpperCase(Locale.ROOT) : null;
     }
 
-    private static String displayName(String id) {
+    public static String displayName(String id) {
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(id)) return item.name();
         }
-        return id;
+        return id.replace('_', ' ');
+    }
+
+    public record Ingredient(String slot, String id, int amount) {}
+    public record RecipeData(List<Ingredient> ingredients) {
+        public boolean isEmpty() {
+            return ingredients == null || ingredients.stream().noneMatch(i -> i.amount() > 0);
+        }
     }
 }
