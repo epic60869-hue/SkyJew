@@ -99,7 +99,7 @@ public final class SkyJewTabWidgetManager {
         public static final Widget EMPTY = new Widget(Component.empty(), List.of(), List.of());
         public Widget {
             detail = detail == null ? Component.empty() : detail.copy();
-            lines = lines == null ? List.of() : lines.stream().map(Component::copy).toList();
+            lines = lines == null ? List.of() : lines.stream().map(c -> (Component) c.copy()).toList();
             playerListEntries = playerListEntries == null ? List.of() : List.copyOf(playerListEntries);
         }
     }
