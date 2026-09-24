@@ -70,6 +70,11 @@ public final class SkyJewCustom {
         mc.gui.setScreen(new SkyJewCustomScreen(parent));
     }
 
+    /** Opens the alternate Skyblocker-style customization screen for side-by-side testing. */
+    public static void openSkyblocker(Minecraft mc, Screen parent) {
+        mc.gui.setScreen(new SkyJewSkyblockerCustomScreen(parent));
+    }
+
     public static boolean isHypixel(Minecraft mc) {
         try {
             if (mc.getCurrentServer() == null || mc.getCurrentServer().ip == null) return false;
