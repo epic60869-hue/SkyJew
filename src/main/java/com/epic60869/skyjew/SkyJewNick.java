@@ -134,6 +134,10 @@ public final class SkyJewNick {
 
         if (nickName == null) return original;
 
+        final String finalNickName = nickName;
+        final String finalNickMode = nickMode;
+        final String finalNickHex = nickHex;
+
         MutableComponent result = Component.empty();
         final boolean[] replaced = {false};
 
@@ -148,7 +152,7 @@ public final class SkyJewNick {
                     if (at > 0) {
                         result.append(Component.literal(value.substring(0, at)).setStyle(style));
                     }
-                    result.append(styled(nickName, nickMode, nickHex));
+                    result.append(styled(finalNickName, finalNickMode, finalNickHex));
                     if (at + actualName.length() < value.length()) {
                         result.append(Component.literal(value.substring(at + actualName.length())).setStyle(style));
                     }
