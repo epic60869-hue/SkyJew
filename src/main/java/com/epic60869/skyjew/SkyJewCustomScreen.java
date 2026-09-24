@@ -212,6 +212,16 @@ public final class SkyJewCustomScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Apply model"),
             b -> { SkyJewCustom.setItemModel(selected, itemModel.getValue()); rebuild(); })
             .bounds(x + 286, y + 105, 110, 25).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Select Item Icon"),
+            b -> minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
+                SkyJewCustom.setItemModel(selected, identifier.toString());
+                rebuild();
+            })).bounds(x, y + 136, 150, 25).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Reset Item Icon"),
+            b -> { SkyJewCustom.setItemModel(selected, null); rebuild(); })
+            .bounds(x + 156, y + 136, 140, 25).build());
     }
 
     private EditBox box(String hint, int x, int y, int w, String value) {
