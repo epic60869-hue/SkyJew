@@ -27,6 +27,15 @@ public interface SkyJewDataComponentHolderMixin {
             }
         }
 
+        if (type == DataComponents.PROFILE && stack.is(net.minecraft.world.item.Items.PLAYER_HEAD)) {
+            var profile = SkyJewCustom.helmetSkinProfile(stack);
+            if (profile != null) {
+                @SuppressWarnings("unchecked") T custom = (T) profile;
+                cir.setReturnValue(custom);
+                return;
+            }
+        }
+
         if (type == DataComponents.TRIM) {
             @SuppressWarnings("unchecked")
             T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
