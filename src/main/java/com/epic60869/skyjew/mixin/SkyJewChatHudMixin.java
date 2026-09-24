@@ -35,6 +35,35 @@ public abstract class SkyJewChatHudMixin {
         }
     }
 
+
+    @Inject(
+        method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+        at = @At("HEAD"),
+        cancellable = true
+    )
+    private void skyjew$hideOtherCommandOutput(
+        Component message,
+        MessageSignature signature,
+        GuiMessageSource source,
+        GuiMessageTag tag,
+        CallbackInfo ci
+    ) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null || !config.chat.customChat.hideOtherCommands) return;
+
+        String text = message.getString();
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+            .compile("(?i)\\[SJ\\] \\[[^]]+\\] ([A-Za-z0-9_]{1,16})['’]s ")
+            .matcher(text);
+        if (!matcher.find()) return;
+
+        String owner = matcher.group(1);
+        String self = net.minecraft.client.Minecraft.getInstance().getUser().getName();
+        if (!owner.equalsIgnoreCase(self)) {
+            ci.cancel();
+        }
+    }
+
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
         at = @At("HEAD"),
