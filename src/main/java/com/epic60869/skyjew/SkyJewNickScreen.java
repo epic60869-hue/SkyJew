@@ -2,25 +2,20 @@ package com.epic60869.skyjew;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-import java.awt.Color;
 import java.util.Locale;
 
 public final class SkyJewNickScreen extends Screen {
     private final Screen parent;
-    private EditBox nameBox;
-    private EditBox hexBox;
-    private float hue = 0.78f;
-    private float saturation = 1.0f;
-    private float brightness = 1.0f;
-    private boolean draggingWheel;
+    private EditBox nameBox, hexBox;
+    private Checkbox enabledBox;
 
     public SkyJewNickScreen(Screen parent) {
-        super(Component.literal("SJ Nickname"));
+        super(Component.literal("SkyJew Nick"));
         this.parent = parent;
     }
 
@@ -30,240 +25,82 @@ public final class SkyJewNickScreen extends Screen {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null) return;
 
-        nameBox = new EditBox(font, width / 2 - 110, height / 2 - 105, 300, 24, Component.literal("Nickname"));
+        int left = width / 2 - 250;
+        int top = height / 2 - 145;
+
+        nameBox = new EditBox(font, left + 22, top + 68, 300, 24, Component.literal("Nickname"));
         nameBox.setValue(config.misc.nickname.name == null ? "" : config.misc.nickname.name);
         nameBox.setMaxLength(32);
         addRenderableWidget(nameBox);
 
+        enabledBox = Checkbox.builder(Component.literal("Enable nickname in TAB"), font)
+            .pos(left + 22, top + 100).selected(config.misc.nickname.enabled).build();
+        addRenderableWidget(enabledBox);
+
+        addRenderableWidget(Button.builder(Component.literal("Plain"), b -> setStyle("Plain"))
+            .bounds(left + 22, top + 132, 72, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Rainbow"), b -> setStyle("Rainbow"))
+            .bounds(left + 100, top + 132, 90, 22).build());
+
+        hexBox = new EditBox(font, left + 200, top + 132, 122, 22, Component.literal("#RRGGBB"));
         String hex = config.misc.nickname.customHex;
-        if (hex == null || !hex.matches("#[0-9a-fA-F]{6}")) hex = "#FFFFFF";
-        hexBox = new EditBox(font, width / 2 - 110, height / 2 + 66, 100, 24, Component.literal("Hex"));
-        hexBox.setValue(hex.toUpperCase(Locale.ROOT));
+        hexBox.setValue(hex != null && hex.matches("#[0-9a-fA-F]{6}") ? hex.toUpperCase(Locale.ROOT) : "#FFFFFF");
         hexBox.setMaxLength(7);
-        hexBox.setResponder(this::applyHex);
         addRenderableWidget(hexBox);
 
-        addRenderableWidget(Button.builder(
-            Component.literal("Enabled: " + (config.misc.nickname.enabled ? "ON" : "OFF")),
-            b -> {
-                config.misc.nickname.enabled = !config.misc.nickname.enabled;
-                b.setMessage(Component.literal("Enabled: " + (config.misc.nickname.enabled ? "ON" : "OFF")));
-                SkyJewConfig.saveCurrent(config);
-            }).bounds(width / 2 + 5, height / 2 + 66, 115, 24).build());
+        addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
+            nameBox.setValue("");
+            enabledBox.selected = false;
+        }).bounds(left + 22, top + 165, 72, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Rainbow"),
-            b -> {
-                config.misc.nickname.style = "Rainbow";
-                SkyJewConfig.saveCurrent(config);
-            }).bounds(width / 2 + 125, height / 2 + 66, 90, 24).build());
-
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> saveAndClose())
-            .bounds(width / 2 - 45, height / 2 + 130, 90, 24).build());
-
-        syncFromHex(hex);
+        addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveAndClose())
+            .bounds(left + 232, top + 165, 90, 22).build());
     }
 
-    private void applyHex(String value) {
-        if (value == null) return;
-        String clean = value.trim();
-        if (!clean.startsWith("#")) clean = "#" + clean;
-        if (!clean.matches("#[0-9a-fA-F]{6}")) return;
+    private void setStyle(String style) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null) return;
-        config.misc.nickname.customHex = clean.toUpperCase(Locale.ROOT);
-        config.misc.nickname.style = "Plain";
-        syncFromHex(clean);
-    }
-
-    private void syncFromHex(String hex) {
-        try {
-            int rgb = Integer.parseInt(hex.substring(1), 16);
-            float[] hsb = Color.RGBtoHSB((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255, null);
-            hue = hsb[0];
-            saturation = hsb[1];
-            brightness = hsb[2];
-        } catch (Exception ignored) {}
-    }
-
-    private int rgb() {
-        return Color.HSBtoRGB(hue, saturation, brightness) & 0xFFFFFF;
-    }
-
-    private void updateHex() {
-        if (hexBox != null) {
-            hexBox.setValue(String.format("#%06X", rgb()));
-        }
-        SkyJewConfig config = SkyJewConfig.current();
-        if (config != null) {
-            config.misc.nickname.customHex = String.format("#%06X", rgb());
-            config.misc.nickname.style = "Plain";
-        }
+        if (config != null) config.misc.nickname.style = style;
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xFF0B0C10);
+        g.fill(0, 0, width, height, 0xFF080A0E);
+        int w = 500, h = 300, left = (width - w) / 2, top = (height - h) / 2;
+        g.fill(left, top, left + w, top + h, 0xFF171A20);
+        g.fill(left, top, left + w, top + 2, 0xFF55FFFF);
 
-        int w = 560;
-        int h = 340;
-        int left = (width - w) / 2;
-        int top = (height - h) / 2;
+        g.text(font, Component.literal("SkyJew Nick"), left + 22, top + 18, 0xFFFFFFFF, true);
+        g.text(font, Component.literal("Your Hypixel rank stays intact; only your username text is replaced."),
+            left + 22, top + 38, 0xFF9EA5B2, false);
+        g.text(font, Component.literal("Nickname"), left + 22, top + 55, 0xFFE5E7EB, true);
 
-        g.fill(left, top, left + w, top + h, 0xFF181A20);
-        g.fill(left, top, left + w, top + 1, 0xFF3A3D46);
-        g.fill(left, top + h - 1, left + w, top + h, 0xFF3A3D46);
+        SkyJewConfig config = SkyJewConfig.current();
+        String preview = config == null || config.misc.nickname.name == null || config.misc.nickname.name.isBlank()
+            ? "2m3s" : config.misc.nickname.name;
+        Component previewComp = SkyJewNick.styled(preview,
+            config == null ? "Plain" : config.misc.nickname.style,
+            config == null ? "" : config.misc.nickname.customHex);
 
-        g.text(font, Component.literal("SkyJew Nickname"), left + 20, top + 18, 0xFFFFFFFF, true);
-        g.text(font, Component.literal("Customize how your name appears locally."), left + 20, top + 38, 0xFF9DA3AE, false);
-        g.text(font, Component.literal("Nickname"), left + 20, top + 58, 0xFFE5E7EB, true);
-
-        int wheelX = left + 20;
-        int wheelY = top + 100;
-        int wheelSize = 140;
-        drawWheel(g, wheelX, wheelY, wheelSize);
-
-        int markerX = wheelX + (int)((0.5 + Math.cos(hue * Math.PI * 2) * saturation * 0.5) * wheelSize);
-        int markerY = wheelY + (int)((0.5 - Math.sin(hue * Math.PI * 2) * saturation * 0.5) * wheelSize);
-        g.fill(markerX - 4, markerY - 4, markerX + 4, markerY + 4, 0xFFFFFFFF);
-        g.fill(markerX - 2, markerY - 2, markerX + 2, markerY + 2, 0xFF222222);
-
-        int barX = wheelX + wheelSize + 10;
-        drawHueBar(g, barX, wheelY, 18, wheelSize);
-        drawBrightnessBar(g, barX + 28, wheelY, 18, wheelSize);
-
-        g.fill(left + 20, top + 236, left + 48, top + 264, 0xFF000000 | rgb());
-        g.text(font, Component.literal(String.format("#%06X", rgb())), left + 55, top + 245, 0xFFFFFFFF, false);
-
-        g.text(font, Component.literal("Pick a color"), left + 210, top + 94, 0xFFF2F3F5, true);
-        g.text(font, Component.literal("Wheel: hue + saturation"), left + 210, top + 116, 0xFFB5BAC1, false);
-        g.text(font, Component.literal("Bars: hue + brightness"), left + 210, top + 132, 0xFFB5BAC1, false);
-        g.text(font, Component.literal("Your Hypixel rank stays visible in TAB."), left + 260, top + 270, 0xFF55FF55, false);
+        g.text(font, Component.literal("TAB preview"), left + 350, top + 72, 0xFFB8C0CC, true);
+        g.text(font, Component.literal("[MVP++] "), left + 350, top + 100, 0xFF55FFFF, false);
+        g.text(font, previewComp, left + 405, top + 100, 0xFFFFFFFF, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
-    }
-
-    private void drawWheel(GuiGraphicsExtractor g, int x, int y, int size) {
-        int step = 4;
-        double center = size / 2.0;
-        double radius = center - 2;
-        for (int py = 0; py < size; py += step) {
-            for (int px = 0; px < size; px += step) {
-                double dx = px + step / 2.0 - center;
-                double dy = py + step / 2.0 - center;
-                double dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > radius) continue;
-                float sat = (float)(dist / radius);
-                float h = (float)((Math.atan2(-dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
-                int color = Color.HSBtoRGB(h, sat, 1.0f);
-                g.fill(x + px, y + py, x + Math.min(px + step, size), y + Math.min(py + step, size),
-                    0xFF000000 | (color & 0xFFFFFF));
-            }
-        }
-    }
-
-    private void drawHueBar(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        for (int i = 0; i < h; i += 3) {
-            float value = 1.0f - i / (float)h;
-            int color = Color.HSBtoRGB(value, 1.0f, 1.0f);
-            g.fill(x, y + i, x + w, y + Math.min(i + 3, h), 0xFF000000 | (color & 0xFFFFFF));
-        }
-    }
-
-    private void drawBrightnessBar(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        for (int i = 0; i < h; i += 3) {
-            float value = 1.0f - i / (float)h;
-            int color = Color.HSBtoRGB(hue, saturation, value);
-            g.fill(x, y + i, x + w, y + Math.min(i + 3, h), 0xFF000000 | (color & 0xFFFFFF));
-        }
-    }
-
-    @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
-        int w = 500;
-        int h = 340;
-        int left = (width - w) / 2;
-        int top = (height - h) / 2;
-        int wx = left + 20;
-        int wy = top + 100;
-        int ws = 140;
-
-        if (inside(event.x(), event.y(), wx, wy, ws, ws)) {
-            draggingWheel = true;
-            updateWheel(event.x(), event.y(), wx, wy, ws);
-            return true;
-        }
-
-        int bx = wx + ws + 10;
-        if (inside(event.x(), event.y(), bx, wy, 18, ws)) {
-            hue = clamp((float)((event.y() - wy) / ws), 0, 1);
-            updateHex();
-            return true;
-        }
-
-        if (inside(event.x(), event.y(), bx + 28, wy, 18, ws)) {
-            brightness = clamp(1.0f - (float)((event.y() - wy) / ws), 0, 1);
-            updateHex();
-            return true;
-        }
-
-        return super.mouseClicked(event, doubleClick);
-    }
-
-    @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (!draggingWheel) return super.mouseDragged(event, dx, dy);
-        int w = 500;
-        int h = 300;
-        int left = (width - w) / 2;
-        int top = (height - h) / 2;
-        updateWheel(event.x(), event.y(), left + 20, top + 82, 140);
-        return true;
-    }
-
-    @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0) draggingWheel = false;
-        return super.mouseReleased(event);
-    }
-
-    private void updateWheel(double mx, double my, int x, int y, int size) {
-        double dx = mx - (x + size / 2.0);
-        double dy = my - (y + size / 2.0);
-        double radius = size / 2.0 - 2;
-        double dist = Math.min(radius, Math.sqrt(dx * dx + dy * dy));
-        saturation = (float)(dist / radius);
-        hue = (float)((Math.atan2(-dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
-        updateHex();
-    }
-
-    private static boolean inside(double mx, double my, int x, int y, int w, int h) {
-        return mx >= x && mx < x + w && my >= y && my < y + h;
-    }
-
-    private static float clamp(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
     }
 
     private void saveAndClose() {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
-            if (nameBox != null) config.misc.nickname.name = nameBox.getValue().trim();
-            if (hexBox != null && hexBox.getValue().matches("#[0-9a-fA-F]{6}")) {
-                config.misc.nickname.customHex = hexBox.getValue().toUpperCase(Locale.ROOT);
-                if (!"Rainbow".equals(config.misc.nickname.style)) config.misc.nickname.style = "Plain";
-            }
-            if (config.misc.nickname.name.isBlank()) {
-                config.misc.nickname.enabled = false;
-            }
+            config.misc.nickname.name = nameBox.getValue().trim();
+            config.misc.nickname.enabled = enabledBox.selected && !config.misc.nickname.name.isBlank();
+            String hex = hexBox.getValue().trim();
+            if (!hex.startsWith("#")) hex = "#" + hex;
+            if (hex.matches("#[0-9a-fA-F]{6}")) config.misc.nickname.customHex = hex.toUpperCase(Locale.ROOT);
             SkyJewConfig.saveCurrent(config);
             SkyJewGlobalChat.sendNicknameUpdate();
         }
         minecraft.gui.setScreen(parent);
     }
 
-    @Override
-    public void onClose() {
-        saveAndClose();
-    }
+    @Override public void onClose() { saveAndClose(); }
 }
