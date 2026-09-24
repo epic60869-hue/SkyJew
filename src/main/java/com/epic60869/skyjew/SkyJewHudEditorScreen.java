@@ -50,8 +50,8 @@ public final class SkyJewHudEditorScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, 0xFF15171C);
-        g.fill(width / 2 - 1, 0, width / 2 + 1, height, 0x182FFFFFF);
-        g.fill(0, height / 2 - 1, width, height / 2 + 1, 0x182FFFFFF);
+        g.fill(width / 2 - 1, 0, width / 2 + 1, height, 0x18FFFFFF);
+        g.fill(0, height / 2 - 1, width, height / 2 + 1, 0x18FFFFFF);
 
         g.text(font, Component.literal("SkyJew Position Editor"), 18, 18, 0xFFFFFFFF, true);
         g.text(font, Component.literal("Drag to move • Scroll to resize • Arrow keys move • Shift + arrows = 10px"), 18, 36, 0xFFB8BEC9, false);
