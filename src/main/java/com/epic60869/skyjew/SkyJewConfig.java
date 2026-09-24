@@ -340,6 +340,7 @@ public final class SkyJewConfig extends Config {
     public static SkyJewConfig load(Path path) {
         try {
             migrateLegacy(path);
+            migrateConfigShape(path);
         } catch (Exception e) {
             System.err.println("[SkyJew] Legacy config migration failed: " + e.getMessage());
         }
@@ -435,6 +436,52 @@ public final class SkyJewConfig extends Config {
         // Write the migrated object as ordinary JSON. ManagedConfig will load it
         // immediately on the next line.
         Files.writeString(path, LEGACY_GSON.toJson(migrated), StandardCharsets.UTF_8);
+    }
+
+    private static void migrateConfigShape(Path path) throws IOException {
+        if (Files.notExists(path)) return;
+        JsonObject root = LEGACY_GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), JsonObject.class);
+        if (root == null) return;
+        boolean changed = false;
+
+        if (root.has("pets") && root.get("pets").isJsonObject()) {
+            JsonObject pets = root.getAsJsonObject("pets");
+            if (pets.has("display") && pets.get("display").isJsonPrimitive()) {
+                JsonObject display = new JsonObject();
+                display.addProperty("enabled", pets.get("display").getAsBoolean());
+                if (pets.has("overflowLevels")) display.add("overflowLevels", pets.remove("overflowLevels"));
+                if (pets.has("autoDisplay")) display.add("autoDisplay", pets.remove("autoDisplay"));
+                if (pets.has("x")) display.add("x", pets.remove("x"));
+                if (pets.has("y")) display.add("y", pets.remove("y"));
+                pets.add("display", display);
+                changed = true;
+            }
+        }
+
+        if (root.has("experiments") && root.get("experiments").isJsonObject()) {
+            JsonObject experiments = root.getAsJsonObject("experiments");
+            if (experiments.has("enabled") && experiments.get("enabled").isJsonPrimitive()) {
+                JsonObject table = new JsonObject();
+                table.add("enabled", experiments.remove("enabled"));
+                if (experiments.has("highlight")) table.add("highlight", experiments.remove("highlight"));
+                if (experiments.has("preventMisclicks")) table.add("preventMisclicks", experiments.remove("preventMisclicks"));
+                experiments.add("table", table);
+                changed = true;
+            }
+        }
+
+        if (root.has("farming") && root.get("farming").isJsonObject()) {
+            JsonObject farming = root.getAsJsonObject("farming");
+            if (farming.has("commissions")) {
+                JsonObject mining = root.has("mining") && root.get("mining").isJsonObject()
+                    ? root.getAsJsonObject("mining") : new JsonObject();
+                if (!mining.has("commissions")) mining.add("commissions", farming.remove("commissions"));
+                root.add("mining", mining);
+                changed = true;
+            }
+        }
+
+        if (changed) Files.writeString(path, LEGACY_GSON.toJson(root), StandardCharsets.UTF_8);
     }
 
     private static String legacyStyle(String style) {
