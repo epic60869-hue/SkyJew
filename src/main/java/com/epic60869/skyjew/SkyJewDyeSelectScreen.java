@@ -31,6 +31,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
     private Button close;
     private Button applyColor;
     private EditBox hex;
+    private boolean waitingForDyes;
 
     public SkyJewDyeSelectScreen(Screen parent, net.minecraft.world.item.ItemStack item) {
         super(Component.literal("SkyJew Dye Selection"));
@@ -40,6 +41,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
 
     @Override
     protected void init() {
+        waitingForDyes = !SkyJewCustom.dyeDataLoaded();
         hex = new EditBox(font, 0, 0, 150, 20, Component.literal("Any HEX colour"));
         hex.setHint(Component.literal("#RRGGBB"));
         hex.setMaxLength(7);
@@ -81,6 +83,15 @@ public final class SkyJewDyeSelectScreen extends Screen {
         addRenderableWidget(close = Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).width(75).build());
 
         repositionElements();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (waitingForDyes && SkyJewCustom.dyeDataLoaded()) {
+            waitingForDyes = false;
+            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(parent, item));
+        }
     }
 
     private void applyCustom() {
