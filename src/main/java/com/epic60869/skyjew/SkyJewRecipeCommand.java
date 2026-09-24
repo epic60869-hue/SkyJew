@@ -131,7 +131,7 @@ public final class SkyJewRecipeCommand {
 
         final int finalAmount = amount;
         final String finalId = id;
-        CompletableFuture.runAsync(() -> loadRecipe(finalId))
+        CompletableFuture.supplyAsync(() -> loadRecipe(finalId))
             .thenAccept(recipe -> mc.execute(() -> {
                 if (recipe == null || recipe.isEmpty()) {
                     mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
