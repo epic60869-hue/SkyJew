@@ -192,14 +192,14 @@ public final class SkyJewStorageSearch {
         if (result.type().equals("ENDER_CHEST") && result.number() > 0) {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
-                mc.player.connection.sendCommand("enderchest " + result.number());
+                mc.player.connection.sendCommand("ec " + result.number());
             } else {
                 pendingHighlight = null;
             }
         } else if (result.type().equals("BACKPACK") && result.number() > 0) {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
-                mc.player.connection.sendCommand("backpack " + result.number());
+                mc.player.connection.sendCommand("bp " + result.number());
             } else {
                 pendingHighlight = null;
             }
@@ -257,7 +257,7 @@ public final class SkyJewStorageSearch {
     private static void captureOpenStorage(Minecraft mc) {
         if (!isHypixel(mc)) return;
         if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> container)) return;
-        if (!(container.getMenu() instanceof ChestMenu)) return;
+        if (container.getMenu().slots.size() <= 36) return;
 
         long now = System.currentTimeMillis();
         if (now - lastCapture < CAPTURE_INTERVAL_MS) return;
