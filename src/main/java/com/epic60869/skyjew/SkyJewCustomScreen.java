@@ -308,7 +308,8 @@ public final class SkyJewCustomScreen extends Screen {
             g.text(font, "PLAYER", left + 10, top + 10, TEXT, true);
             g.text(font, "Drag the player preview to rotate it.", left + 10, top + 180, MUTED, false);
             ItemStack target = currentArmor();
-            g.text(font, target.isEmpty() ? "No armor selected" : target.getHoverName(), left + 10, top + 238, target.isEmpty() ? RED : GREEN, false);
+            Component targetName = target.isEmpty() ? Component.literal("No armor selected") : target.getHoverName();
+            g.text(font, targetName, left + 10, top + 238, target.isEmpty() ? RED : GREEN, false);
             if (!target.isEmpty()) g.text(font, "UUID: " + shortUuid(SkyJewCustom.uuid(target)), left + 10, top + 255, MUTED, false);
             g.text(font, "ARMOUR CUSTOMIZATION", right + 10, top + 10, TEXT, true);
         }
