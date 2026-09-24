@@ -38,6 +38,8 @@ public final class SkyJewExperimentHelper {
     private static int ultraProgress;
     private static int lastRound = -1;
     private static int lastUltraCount = -1;
+    private static int chronRound = -1;
+    private static long lastChronReadChange;
     private static int lastReadRound = -1;
     private static String lastPhaseText = "";
     private static long lastStateChange;
@@ -83,21 +85,25 @@ public final class SkyJewExperimentHelper {
         if (phase != Phase.REPLICATE || !isExperimentTable(screen)) return false;
 
         Slot slot = findSlot(screen, mouseX, mouseY);
-        if (slot == null || slot.getItem().isEmpty()) return false;
+        if (slot == null) return false;
+
+        // Never interfere with the player inventory/hotbar. Only clicks in the
+        // experiment board are validated.
+        if (slot.index >= 54) return false;
 
         if (isChronomatron(screen)) {
             String expected = chronSequence.size() > chronProgress ? chronSequence.get(chronProgress) : null;
-            if (expected == null) return false;
             String clicked = colorName(slot.getItem());
-            if (clicked == null) return false;
-            if (!expected.equals(clicked)) return config.experiments.table.preventMisclicks;
+            boolean correct = expected != null && clicked != null && expected.equals(clicked);
+            if (!correct) return config.experiments.table.preventMisclicks;
             chronProgress++;
             return false;
         }
 
         if (isUltrasequencer(screen)) {
             if (ultraProgress >= ultraSequence.size()) return false;
-            if (slot.index != ultraSequence.get(ultraProgress)) return config.experiments.table.preventMisclicks;
+            boolean correct = slot.index == ultraSequence.get(ultraProgress);
+            if (!correct) return config.experiments.table.preventMisclicks;
             ultraProgress++;
             return false;
         }
@@ -159,20 +165,38 @@ public final class SkyJewExperimentHelper {
     }
 
     private static void readChronomatron(AbstractContainerScreen<?> screen) {
-        Set<String> visible = new LinkedHashSet<>();
-        for (Slot slot : slots(screen)) {
-            String color = colorName(slot.getItem());
-            if (color != null) visible.add(color);
+        int round = readRound(screen);
+        if (round >= 0 && round != chronRound) {
+            chronRound = round;
+            chronSequence.clear();
+            chronProgress = 0;
+            lastReadRound = -1;
+            lastReadChronColors.clear();
+            lastStateChange = System.currentTimeMillis();
         }
 
+        Set<String> active = new LinkedHashSet<>();
+        for (Slot slot : slots(screen)) {
+            if (slot.index >= 54) continue;
+            String color = colorName(slot.getItem());
+            if (color != null) active.add(color);
+        }
+
+        // Hypixel reveals one dye, clears the board, then reveals the next dye.
+        // Capture the first active colour after every empty-board transition.
         if (phase == Phase.READ) {
-            int round = readRound(screen);
-            if (visible.size() == 1 && round >= 0 && round != lastReadRound) {
-                chronSequence.add(visible.iterator().next());
-                lastReadRound = round;
-                lastStateChange = System.currentTimeMillis();
+            if (active.isEmpty()) {
+                lastReadChronColors.clear();
+                return;
             }
-            if (visible.isEmpty()) lastReadChronColors.clear();
+            String revealed = active.iterator().next();
+            if (lastReadChronColors.isEmpty() && chronSequence.size() < Math.max(1, round)) {
+                chronSequence.add(revealed);
+                lastReadRound = round;
+                lastChronReadChange = System.currentTimeMillis();
+            }
+            lastReadChronColors.clear();
+            lastReadChronColors.addAll(active);
         }
     }
 
@@ -229,7 +253,7 @@ public final class SkyJewExperimentHelper {
         if (ultraProgress >= ultraSequence.size()) return;
         int expected = ultraSequence.get(ultraProgress);
         for (Slot slot : slots(screen)) {
-            if (slot.getContainerSlot() == expected) {
+            if (slot.index == expected) {
                 fillSlot(g, screen, slot, 0x6655FF55);
                 break;
             }
