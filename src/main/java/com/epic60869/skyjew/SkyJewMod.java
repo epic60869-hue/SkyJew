@@ -59,6 +59,8 @@ public final class SkyJewMod implements ClientModInitializer {
                 .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
                     .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
             .then(ClientCommands.literal("chat")
+                .executes(context -> enterSkyJewChat())
+                .then(ClientCommands.literal("leave").executes(context -> leaveSkyJewChat()))
                 .then(ClientCommands.argument("message", StringArgumentType.greedyString())
                     .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))))
             .then(ClientCommands.literal("nick")
@@ -157,6 +159,16 @@ public final class SkyJewMod implements ClientModInitializer {
                 SkyJewCustom.parseHex(a), SkyJewCustom.parseHex(b),
                 Float.parseFloat(duration), Boolean.parseBoolean(cycleBack), Float.parseFloat(delay));
         } catch (Exception ignored) {}
+        return 1;
+    }
+
+    private int enterSkyJewChat() {
+        SkyJewGlobalChat.enterSkyJewChannel();
+        return 1;
+    }
+
+    private int leaveSkyJewChat() {
+        SkyJewGlobalChat.leaveSkyJewChannel();
         return 1;
     }
 
