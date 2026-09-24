@@ -87,7 +87,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         try {
             int color = SkyJewCustom.parseHex(hex.getValue());
             SkyJewCustom.setDye(item, color);
-            SkyJewCustom.setAnimatedDye(item, null, null, 1f, false, 0f);
+            SkyJewCustom.setAnimatedDye(item, (Integer) null, (Integer) null, 1f, false, 0f);
             onClose();
         } catch (IllegalArgumentException ignored) {
             hex.setValue("#FF00FF");
