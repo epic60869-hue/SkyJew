@@ -62,14 +62,13 @@ public abstract class SkyJewChatHudMixin {
     )
     private void skyjew$compact(Component message, MessageSignature signature,
                                 GuiMessageSource source, GuiMessageTag tag, CallbackInfo ci) {
-        if (!SkyJewChatCompactor.enabled() || allMessages.size() < 2) return;
+        if (!SkyJewChatCompactor.enabled() || allMessages.isEmpty()) return;
 
         GuiMessage newest = allMessages.get(0);
+        int count = SkyJewChatCompactor.record(newest.content());
+        if (allMessages.size() < 2 || count < 2) return;
         GuiMessage previous = allMessages.get(1);
         if (!SkyJewChatCompactor.same(newest.content(), previous.content())) return;
-
-        int count = SkyJewChatCompactor.record(newest.content());
-        if (count < 2) return;
 
         Component compacted = SkyJewChatCompactor.withCount(previous.content(), count);
         allMessages.set(0, new GuiMessage(
