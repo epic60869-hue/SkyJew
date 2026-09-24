@@ -27,14 +27,14 @@ public final class SkyJewCommissionHud {
 
     public static int x() { return config == null ? 8 : config.mining.commissions.x; }
     public static int y() { return config == null ? 80 : config.mining.commissions.y; }
-    public static float scale() { return config == null ? 1.0f : config.farming.commissions.scale; }
+    public static float scale() { return config == null ? 1.0f : config.mining.commissions.scale; }
     public static int width() { return 290; }
     public static int height() { return Math.max(24, 18 + commissions.size() * 18); }
 
     public static void setPosition(int x, int y) {
         if (config == null) return;
-        config.farming.commissions.x = Math.max(0, x);
-        config.farming.commissions.y = Math.max(0, y);
+        config.mining.commissions.x = Math.max(0, x);
+        config.mining.commissions.y = Math.max(0, y);
         save();
     }
 
@@ -47,7 +47,7 @@ public final class SkyJewCommissionHud {
 
     private static void extract(GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
-        if (config == null || !config.farming.commissions.enabled || mc.player == null) return;
+        if (config == null || !config.mining.commissions.enabled || mc.player == null) return;
 
         updateFromTab(mc);
         if (commissions.isEmpty()) return;
@@ -102,7 +102,7 @@ public final class SkyJewCommissionHud {
         g.pose().scale(scale, scale);
 
         int contentHeight = 18 + list.size() * 18;
-        if (config != null && config.farming.commissions.background) {
+        if (config != null && config.mining.commissions.background) {
             g.fill(-5, -4, width() + 5, contentHeight + 4, 0xB0000000);
         }
 
