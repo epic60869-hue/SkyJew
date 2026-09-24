@@ -214,7 +214,10 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
+        // Nopo's TabWidget always keeps the "Pet:" header as the first line.
+        // Start with it so the rebuilt HUD has the same three-line structure.
         List<Component> display = new ArrayList<>();
+        display.add(petLines.get(0));
         int level = -1;
         int overflowLevel = -1;
         String name = "";
@@ -268,11 +271,9 @@ public final class SkyJewNopoFeatures {
                 continue;
             }
 
-            // Keep the header. The normal pet-name row is inserted below after
-            // we have calculated its overflow level.
-            if (display.isEmpty()) {
-                display.add(line);
-            }
+            // The normal pet-name row is rebuilt below after we have calculated
+            // its overflow level. Other indented rows are intentionally ignored,
+            // matching NopoMod's PetDisplay behaviour.
         }
 
         if (level < 0 || name.isBlank()) {
@@ -292,10 +293,6 @@ public final class SkyJewNopoFeatures {
         levelLine.append(Component.literal("] "));
         levelLine.append(nameComponent);
 
-        if (display.isEmpty()) {
-            display.add(Component.literal("Pet:")
-                .withStyle(style -> style.withColor(ChatFormatting.YELLOW).withBold(true)));
-        }
         display.add(1, levelLine);
 
         if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel
