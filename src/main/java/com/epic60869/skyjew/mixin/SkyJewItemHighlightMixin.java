@@ -5,8 +5,6 @@ import com.epic60869.skyjew.SkyJewStorageSearch;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.component.DataComponents;
@@ -34,11 +32,19 @@ public abstract class SkyJewItemHighlightMixin {
 
         GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
         try {
-            TextureAtlasSprite sprite = Minecraft.getInstance()
-                .getAtlasManager()
-                .getAtlasOrThrow(AtlasIds.GUI)
-                .getSprite(Identifier.fromNamespaceAndPath("skyjew", "item_background_circular"));
-            self.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 16, 16, ARGB.color(128, rgb));
+            // Draw the circle as a normal GUI texture, exactly like NoammAddons.
+            // Do not use the GUI atlas here: a normal texture cannot become a
+            // missing-texture sprite if another inventory renderer changes the atlas.
+            Identifier circleTexture = Identifier.fromNamespaceAndPath(
+                "skyjew", "textures/gui/item_background_circular.png");
+            self.blit(
+                RenderPipelines.GUI_TEXTURED,
+                circleTexture,
+                x, y,
+                0, 0,
+                16, 16,
+                16, 16,
+                ARGB.color(128, rgb));
         } catch (Throwable ignored) {
             // The GUI atlas is loaded asynchronously during resource reload.
         }
