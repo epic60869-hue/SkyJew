@@ -2,12 +2,18 @@ package com.epic60869.skyjew.mixin;
 
 import com.epic60869.skyjew.SkyJewConfig;
 import com.epic60869.skyjew.SkyJewStorageSearch;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import net.minecraft.util.ARGB;
 
 import net.minecraft.world.item.ItemStack;
@@ -24,34 +30,66 @@ public abstract class SkyJewItemHighlightMixin {
         if (config == null || !config.misc.itemRarityBackground || stack == null || stack.isEmpty()) return;
 
         int rgb = rarityColor(stack);
-        if (rgb < 0 || !isSkyBlockRarityColor(rgb)) return;
+        if (rgb < 0) return;
 
         GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
-
-        // Do not rely on the GUI texture atlas here. Custom textures are not
-        // guaranteed to be present in the atlas on every resource-pack setup.
-        // Draw a small anti-aliased-looking circle from horizontal strips so
-        // the rarity background works in every inventory/GUI render path.
-        int color = ARGB.color(150, rgb);
-        self.fill(x + 5, y + 1, x + 11, y + 2, color);
-        self.fill(x + 3, y + 2, x + 13, y + 3, color);
-        self.fill(x + 2, y + 3, x + 14, y + 5, color);
-        self.fill(x + 1, y + 5, x + 15, y + 11, color);
-        self.fill(x + 2, y + 11, x + 14, y + 13, color);
-        self.fill(x + 3, y + 13, x + 13, y + 14, color);
-        self.fill(x + 5, y + 14, x + 11, y + 15, color);
+        try {
+            TextureAtlasSprite sprite = Minecraft.getInstance()
+                .getAtlasManager()
+                .getAtlasOrThrow(AtlasIds.GUI)
+                .getSprite(Identifier.fromNamespaceAndPath("skyjew", "item_background_circular"));
+            self.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 16, 16, ARGB.color(128, rgb));
+        } catch (Throwable ignored) {
+            // The GUI atlas is loaded asynchronously during resource reload.
+        }
     }
 
     private static int rarityColor(ItemStack stack) {
+        // Match Skyblocker's approach: SkyBlock rarity is primarily encoded
+        // in the lore, not merely in the first component of the display name.
+        List<Component> lore = new java.util.ArrayList<>();
+        var loreData = stack.get(DataComponents.LORE);
+        if (loreData != null) lore.addAll(loreData.lines());
+
+        for (int i = lore.size() - 1; i >= 0; i--) {
+            String line = lore.get(i).getString().toUpperCase(Locale.ROOT);
+            int color = rarityNameColor(line);
+            if (color >= 0) return color;
+        }
+
+        int tooltipStyleColor = tooltipStyleColor(stack);
+        if (tooltipStyleColor >= 0) return tooltipStyleColor;
+
         final int[] found = {-1};
         stack.getHoverName().visit((style, value) -> {
             if (found[0] < 0 && style.getColor() != null) {
                 int rgb = style.getColor().getValue() & 0xFFFFFF;
                 if (isSkyBlockRarityColor(rgb)) found[0] = rgb;
             }
-            return java.util.Optional.empty();
+            return Optional.empty();
         }, net.minecraft.network.chat.Style.EMPTY);
         return found[0];
+    }
+
+    private static int rarityNameColor(String line) {
+        if (line.contains("VERY SPECIAL")) return 0xFF5555;
+        if (line.contains("SPECIAL")) return 0xFF5555;
+        if (line.contains("ULTIMATE")) return 0xAA0000;
+        if (line.contains("ADMIN")) return 0xAA0000;
+        if (line.contains("DIVINE")) return 0x55FFFF;
+        if (line.contains("MYTHIC")) return 0xFF55FF;
+        if (line.contains("LEGENDARY")) return 0xFFAA00;
+        if (line.contains("EPIC")) return 0xAA00AA;
+        if (line.contains("RARE")) return 0x5555FF;
+        if (line.contains("UNCOMMON")) return 0x55FF55;
+        if (line.contains("COMMON")) return 0xFFFFFF;
+        return -1;
+    }
+
+    private static int tooltipStyleColor(ItemStack stack) {
+        Identifier style = stack.get(DataComponents.TOOLTIP_STYLE);
+        if (style == null || !style.getNamespace().equals("skyblock")) return -1;
+        return rarityNameColor(style.getPath().toUpperCase(Locale.ROOT));
     }
 
     private static boolean isSkyBlockRarityColor(int rgb) {
