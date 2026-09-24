@@ -110,33 +110,49 @@ public final class SkyJewNick {
     }
 
     public static Component tabDisplayName(Component original, UUID uuid) {
-        if (original == null) return null;
-        String actualName = Minecraft.getInstance().getUser().getName();
-        String displayed = original.getString();
-        RemoteNick remote = uuid == null ? null : REMOTE_NICKS.get(uuid);
-        boolean local = uuid != null && uuid.equals(Minecraft.getInstance().getUser().profileId());
+        if (original == null || uuid == null) return original;
+
+        RemoteNick remote = REMOTE_NICKS.get(uuid);
+        boolean local = uuid.equals(Minecraft.getInstance().getUser().profileId());
+
         String nickName = null;
         String nickMode = null;
         String nickHex = null;
+
         if (remote != null && remote.enabled && !remote.name.isBlank()) {
             nickName = remote.name;
             nickMode = remote.mode;
             nickHex = remote.customHex;
-        } else if (local && config().misc.nickname.enabled && config().misc.nickname.name != null && !config().misc.nickname.name.isBlank()) {
+        } else if (local
+                && config().misc.nickname.enabled
+                && config().misc.nickname.name != null
+                && !config().misc.nickname.name.isBlank()) {
             nickName = config().misc.nickname.name;
             nickMode = config().misc.nickname.style;
             nickHex = config().misc.nickname.customHex;
         }
+
         if (nickName == null) return original;
-        int index = displayed.lastIndexOf(actualName);
-        if (index < 0) return original;
-        String prefix = displayed.substring(0, index);
-        String suffix = displayed.substring(index + actualName.length());
+
+        String actualName = Minecraft.getInstance().getUser().getName();
         MutableComponent result = Component.empty();
-        if (!prefix.isEmpty()) result.append(Component.literal(prefix).withStyle(original.getStyle()));
-        result.append(styled(nickName, nickMode, nickHex));
-        if (!suffix.isEmpty()) result.append(Component.literal(suffix).withStyle(original.getStyle()));
-        return result;
+        boolean replaced = false;
+
+        // Hypixel's rank/name is made from multiple styled components. Rebuilding
+        // the whole string as literals destroys those per-component styles and is
+        // what caused rank text to turn white. Flatten the component tree instead
+        // and keep every original component's style.
+        for (Component part : original.toFlatList()) {
+            String text = part.getString();
+            if (!replaced && text.equals(actualName)) {
+                result.append(styled(nickName, nickMode, nickHex));
+                replaced = true;
+            } else {
+                result.append(part.copy());
+            }
+        }
+
+        return replaced ? result : original;
     }
 
     public static Component displayName(String actualName) {
