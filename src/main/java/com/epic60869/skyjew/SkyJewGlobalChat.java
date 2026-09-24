@@ -112,7 +112,7 @@ public final class SkyJewGlobalChat {
         packet.addProperty("username", username);
         packet.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
         packet.addProperty("nickname", SkyJewNick.outgoingName());
-        packet.addProperty("nicknameEnabled", !SkyJewNick.outgoingName().equals(username));
+        packet.addProperty("nicknameEnabled", SkyJewNick.enabled());
         packet.addProperty("nicknameMode", SkyJewNick.mode());
         packet.addProperty("nicknameHex", SkyJewNick.customHex());
         packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
