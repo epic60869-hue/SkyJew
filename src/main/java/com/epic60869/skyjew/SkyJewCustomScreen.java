@@ -103,7 +103,7 @@ public final class SkyJewCustomScreen extends Screen {
                 minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                     selectedItem = stack.copy();
                     rebuild();
-                }))
+                })))
             .bounds(sideX, sideY + 140, 165, 26).build());
 
         if (selected.isEmpty()) return;
