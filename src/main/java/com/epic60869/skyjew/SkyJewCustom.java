@@ -66,12 +66,8 @@ public final class SkyJewCustom {
         animationTicks++;
     }
 
+    /** Opens Skyblocker's actual customization screen. SkyJew no longer maintains a separate imitation. */
     public static void open(Minecraft mc, Screen parent) {
-        mc.gui.setScreen(new SkyJewCustomScreen(parent));
-    }
-
-    /** Opens the alternate Skyblocker-style customization screen for side-by-side testing. */
-    public static void openSkyblocker(Minecraft mc, Screen parent) {
         // Use Skyblocker's actual CustomizeScreen when Skyblocker is installed.
         // This gives /sj custom the same tabs, item selector, armour preview,
         // dye/trim controls, model selector, glint controls and persistence as
@@ -90,7 +86,7 @@ public final class SkyJewCustom {
             } catch (Throwable error) {
                 System.err.println("[SkyJew] Could not open Skyblocker's real CustomizeScreen: "
                     + error.getClass().getSimpleName() + ": " + error.getMessage());
-                mc.gui.setScreen(new SkyJewSkyblockerCustomScreen(parent));
+                mc.player.sendSystemMessage(Component.literal("[SkyJew] Skyblocker is required for /sj custom."));
             }
         };
 
