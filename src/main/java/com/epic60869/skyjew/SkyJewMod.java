@@ -133,13 +133,13 @@ public final class SkyJewMod implements ClientModInitializer {
 
     private int openCustom() {
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> SkyJewCustom.openSkyblocker(mc, mc.gui.screen()));
+        mc.execute(() -> SkyJewCustom.open(mc, mc.gui.screen()));
         return 1;
     }
 
     private int openSkyblockerCustom() {
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> SkyJewCustom.openSkyblocker(mc, mc.gui.screen()));
+        mc.execute(() -> SkyJewCustom.open(mc, mc.gui.screen()));
         return 1;
     }
 
