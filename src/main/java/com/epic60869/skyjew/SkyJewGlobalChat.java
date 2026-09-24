@@ -204,6 +204,33 @@ public final class SkyJewGlobalChat {
         }
     }
 
+    private static Component linkify(String text) {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("https?://\\S+");
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        MutableComponent result = Component.empty();
+        int last = 0;
+        while (matcher.find()) {
+            if (matcher.start() > last) result.append(Component.literal(text.substring(last, matcher.start())));
+            String url = matcher.group();
+            while (url.length() > 1 && ")]>.".indexOf(url.charAt(url.length() - 1)) >= 0) {
+                url = url.substring(0, url.length() - 1);
+            }
+            try {
+                result.append(Component.literal(url).withStyle(Style.EMPTY
+                    .withUnderlined(true)
+                    .withColor(0x55AAFF)
+                    .withClickEvent(new ClickEvent.OpenUrl(java.net.URI.create(url)))
+                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
+                        Component.literal("Open link\\n" + url)))));
+            } catch (Exception ignored) {
+                result.append(Component.literal(url));
+            }
+            last = matcher.end();
+        }
+        if (last < text.length()) result.append(Component.literal(text.substring(last)));
+        return result;
+    }
+
     private static void mcMessage(Component message) {
         Minecraft.getInstance().execute(() -> {
             Minecraft mc = Minecraft.getInstance();
