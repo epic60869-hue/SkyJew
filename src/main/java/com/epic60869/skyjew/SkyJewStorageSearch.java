@@ -246,7 +246,8 @@ public final class SkyJewStorageSearch {
         if (target == null) return;
 
         List<Slot> slots = container.getMenu().slots;
-        int count = Math.max(0, slots.size() - 36);\n        if (count == 0) count = Math.min(54, slots.size());
+        int count = Math.max(0, slots.size() - 36);
+        if (count == 0) count = Math.min(54, slots.size());
         if (count <= 0) return;
 
         List<ItemStack> contents = new ArrayList<>(count);
