@@ -2,9 +2,8 @@ package com.epic60869.skyjew.mixin;
 
 import com.epic60869.skyjew.SkyJewConfig;
 import com.epic60869.skyjew.SkyJewSkyblockTime;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.network.chat.ChatFormatting;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
