@@ -54,7 +54,7 @@ public abstract class SkyJewCalendarTooltipMixin {
                 append(text, line);
             }
         }
-        Matcher matcher = DATE_PATTERN.matcher(text.toString().replace('\\n', ' '));
+        Matcher matcher = DATE_PATTERN.matcher(text.toString().replace('\n', ' '));
         if (!matcher.find()) return null;
         int monthIndex = monthIndex(matcher.group(1));
         try {
