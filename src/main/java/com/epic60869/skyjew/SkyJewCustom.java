@@ -56,6 +56,10 @@ public final class SkyJewCustom {
     private static volatile boolean dyeDataLoaded;
     private static final Map<String, String> ITEM_MODELS = new LinkedHashMap<>();
     private static final Map<String, Boolean> ITEM_GLINTS = new LinkedHashMap<>();
+    private static final Map<String, String> HELMET_SKINS = new LinkedHashMap<>();
+    private static final List<HelmetSkin> AVAILABLE_HELMET_SKINS = new ArrayList<>();
+    private static final Map<String, net.minecraft.world.item.component.ResolvableProfile> HELMET_PROFILE_CACHE = new LinkedHashMap<>();
+    private static volatile boolean helmetSkinDataLoaded;
 
     private static Path configDir;
     private static boolean initialized;
@@ -66,11 +70,13 @@ public final class SkyJewCustom {
     public record TrimId(String material, String pattern) {}
     public record Keyframe(int color, float time) {}
     public record AnimatedDye(List<Keyframe> keyframes, boolean cycleBack, float duration, float delay) {}
+    public record HelmetSkin(String id, String name, String texture) {}
 
     public static void init(Path dir) {
         configDir = dir;
         load();
         loadHypixelDyes();
+        loadHelmetSkins();
         initialized = true;
     }
 
@@ -327,9 +333,111 @@ public final class SkyJewCustom {
 
     public static int customDye(ItemStack stack, int original) {
         AnimatedDye animated = getAnimatedDye(stack);
-        if (animated != null) return animate(animated);
+        if (animated != null) return 0xFF000000 | (animate(animated) & 0xFFFFFF);
         Integer color = getDye(stack);
-        return color == null ? original : color;
+        return color == null ? original : 0xFF000000 | (color & 0xFFFFFF);
+    }
+
+    public static void setHelmetSkin(ItemStack stack, String texture) {
+        String id = uuid(stack);
+        if (id.isBlank()) return;
+        if (texture == null || texture.isBlank()) HELMET_SKINS.remove(id);
+        else HELMET_SKINS.put(id, texture);
+        save();
+    }
+
+    public static String getHelmetSkin(ItemStack stack) {
+        return HELMET_SKINS.get(uuid(stack));
+    }
+
+    public static boolean helmetSkinDataLoaded() {
+        return helmetSkinDataLoaded;
+    }
+
+    public static List<HelmetSkin> helmetSkins() {
+        synchronized (AVAILABLE_HELMET_SKINS) {
+            return List.copyOf(AVAILABLE_HELMET_SKINS);
+        }
+    }
+
+    public static net.minecraft.world.item.component.ResolvableProfile helmetSkinProfile(ItemStack stack) {
+        return helmetSkinProfile(getHelmetSkin(stack));
+    }
+
+    public static net.minecraft.world.item.component.ResolvableProfile helmetSkinProfile(String texture) {
+        if (texture == null || texture.isBlank()) return null;
+        synchronized (HELMET_PROFILE_CACHE) {
+            net.minecraft.world.item.component.ResolvableProfile cached = HELMET_PROFILE_CACHE.get(texture);
+            if (cached != null) return cached;
+            try {
+                com.mojang.authlib.GameProfile profile = new com.mojang.authlib.GameProfile(
+                    UUID.nameUUIDFromBytes(texture.getBytes(StandardCharsets.UTF_8)), "skyjew");
+                profile.getProperties().put("textures", new com.mojang.authlib.properties.Property("textures", texture));
+                net.minecraft.world.item.component.ResolvableProfile resolved =
+                    net.minecraft.world.item.component.ResolvableProfile.createResolved(profile);
+                HELMET_PROFILE_CACHE.put(texture, resolved);
+                return resolved;
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+    }
+
+    public static ItemStack createHelmetSkinStack(String texture) {
+        ItemStack stack = new ItemStack(net.minecraft.world.item.Items.PLAYER_HEAD);
+        net.minecraft.world.item.component.ResolvableProfile profile = helmetSkinProfile(texture);
+        if (profile != null) stack.set(DataComponents.PROFILE, profile);
+        return stack;
+    }
+
+    private static void loadHelmetSkins() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(5)).build();
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.hypixel.net/v2/resources/skyblock/items"))
+                    .timeout(java.time.Duration.ofSeconds(15))
+                    .header("User-Agent", "SkyJew/1.0 (helmet skin selector)")
+                    .GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) return;
+
+                JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+                if (!root.has("items") || !root.get("items").isJsonArray()) return;
+
+                Map<String, HelmetSkin> found = new LinkedHashMap<>();
+                root.getAsJsonArray("items").forEach(element -> {
+                    if (!element.isJsonObject()) return;
+                    JsonObject item = element.getAsJsonObject();
+                    String material = item.has("material") ? item.get("material").getAsString() : "";
+                    String texture = item.has("skin") ? item.get("skin").getAsString() : "";
+                    String category = item.has("category") ? item.get("category").getAsString() : "";
+                    String id = item.has("id") ? item.get("id").getAsString() : "";
+                    String name = item.has("name") ? item.get("name").getAsString() : id;
+
+                    boolean skull = material.equalsIgnoreCase("SKULL_ITEM")
+                        || material.equalsIgnoreCase("PLAYER_HEAD");
+                    String upperCategory = category.toUpperCase(Locale.ROOT);
+                    boolean helmetLike = upperCategory.contains("HELMET")
+                        || upperCategory.equals("HAT")
+                        || upperCategory.equals("MASK")
+                        || upperCategory.equals("HEAD");
+                    if (!skull || texture.isBlank() || !helmetLike) return;
+
+                    found.putIfAbsent(texture, new HelmetSkin(id, name, texture));
+                });
+
+                List<HelmetSkin> sorted = new ArrayList<>(found.values());
+                sorted.sort(java.util.Comparator.comparing(HelmetSkin::name, String.CASE_INSENSITIVE_ORDER));
+                synchronized (AVAILABLE_HELMET_SKINS) {
+                    AVAILABLE_HELMET_SKINS.clear();
+                    AVAILABLE_HELMET_SKINS.addAll(sorted);
+                }
+                helmetSkinDataLoaded = true;
+            } catch (Exception e) {
+                System.err.println("[SkyJew] Failed to load Hypixel helmet skins: " + e.getMessage());
+            }
+        });
     }
 
     public static ArmorTrim customTrim(ItemStack stack, ArmorTrim original) {
@@ -443,7 +551,7 @@ public final class SkyJewCustom {
     }
 
     private static void load() {
-        ITEM_NAMES.clear(); DYE_COLORS.clear(); ARMOR_TRIMS.clear(); ANIMATED_DYES.clear(); ITEM_MODELS.clear(); ITEM_GLINTS.clear();
+        ITEM_NAMES.clear(); DYE_COLORS.clear(); ARMOR_TRIMS.clear(); ANIMATED_DYES.clear(); ITEM_MODELS.clear(); ITEM_GLINTS.clear(); HELMET_SKINS.clear();
         if (configDir == null) return;
         Path file = configDir.resolve(FILE_NAME);
         if (!Files.exists(file)) return;
@@ -458,6 +566,7 @@ public final class SkyJewCustom {
             });
             if (root.has("itemModels")) root.getAsJsonObject("itemModels").entrySet().forEach(e -> ITEM_MODELS.put(e.getKey(), e.getValue().getAsString()));
             if (root.has("itemGlints")) root.getAsJsonObject("itemGlints").entrySet().forEach(e -> ITEM_GLINTS.put(e.getKey(), e.getValue().getAsBoolean()));
+            if (root.has("helmetSkins")) root.getAsJsonObject("helmetSkins").entrySet().forEach(e -> HELMET_SKINS.put(e.getKey(), e.getValue().getAsString()));
             if (root.has("animatedDyes")) root.getAsJsonObject("animatedDyes").entrySet().forEach(e -> {
                 JsonObject v = e.getValue().getAsJsonObject();
                 List<Keyframe> frames = new ArrayList<>();
@@ -526,6 +635,9 @@ public final class SkyJewCustom {
             JsonObject glints = new JsonObject();
             ITEM_GLINTS.forEach(glints::addProperty);
             root.add("itemGlints", glints);
+            JsonObject helmetSkins = new JsonObject();
+            HELMET_SKINS.forEach(helmetSkins::addProperty);
+            root.add("helmetSkins", helmetSkins);
             Files.writeString(configDir.resolve(FILE_NAME), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.err.println("[SkyJew] Failed to save custom config: " + e.getMessage());
@@ -546,7 +658,7 @@ public final class SkyJewCustom {
     public static void clearAll(ItemStack stack) {
         String id = uuid(stack);
         if (id.isBlank()) return;
-        ITEM_NAMES.remove(id); DYE_COLORS.remove(id); ARMOR_TRIMS.remove(id); ANIMATED_DYES.remove(id); ITEM_GLINTS.remove(id); ITEM_MODELS.remove(id);
+        ITEM_NAMES.remove(id); DYE_COLORS.remove(id); ARMOR_TRIMS.remove(id); ANIMATED_DYES.remove(id); ITEM_GLINTS.remove(id); ITEM_MODELS.remove(id); HELMET_SKINS.remove(id);
         save();
     }
 }
