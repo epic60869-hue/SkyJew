@@ -185,39 +185,29 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        // Minecraft 26.2 exposes the live TAB entries through the connection.
-        // Keep the raw component rows so Nopo's indented Pet widget can be parsed.
-        // Port of Nopo's HypixelUtils: use the same vanilla TAB comparator and
-        // the live online player list, then feed the resulting components to the
-        // Pet: widget parser.
-        List<PlayerInfo> orderedPlayers = new ArrayList<>(mc.getConnection().getOnlinePlayers());
-        try {
-            orderedPlayers.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
-        } catch (Throwable ignored) {
-        }
-        List<Component> tab = orderedPlayers.stream()
-            .map(PlayerInfo::getTabListDisplayName)
-            .filter(Objects::nonNull)
-            .toList();
-
+        // Direct port of Nopo's TabWidget.PET source: use the standalone
+        // Skyblocker-style TAB cache, preserving the real Component styling.
         List<Component> petLines = new ArrayList<>();
-        boolean inPetWidget = false;
-        for (Component line : tab) {
-            String text = line.getString();
-            if (!inPetWidget) {
-                if (text.trim().equalsIgnoreCase("Pet:") || text.trim().startsWith("Pet:")) {
-                    inPetWidget = true;
-                    petLines.add(line);
+        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Pet");
+        if (!widget.lines().isEmpty()) {
+            petLines.add(Component.literal("Pet:"));
+            petLines.addAll(widget.lines());
+        } else {
+            // Some Hypixel layouts expose "Pet:" without being classified by the
+            // generic colon parser; scan the cached raw entries as a fallback.
+            for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
+                Component c = info.getTabListDisplayName();
+                if (c == null) continue;
+                String s = c.getString();
+                if (s.strip().equalsIgnoreCase("Pet:")) {
+                    petLines.clear();
+                    petLines.add(c);
+                    continue;
                 }
-                continue;
-            }
-
-            // TabWidget.PET keeps every following indented line until the next
-            // non-indented row. This is the important part of Nopo's parser.
-            if (!text.isEmpty() && text.charAt(0) == ' ') {
-                petLines.add(line);
-            } else {
-                break;
+                if (!petLines.isEmpty()) {
+                    if (s.startsWith(" ")) petLines.add(c);
+                    else break;
+                }
             }
         }
 
@@ -226,8 +216,6 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        // Nopo's TabWidget always keeps the "Pet:" header as the first line.
-        // Start with it so the rebuilt HUD has the same three-line structure.
         List<Component> display = new ArrayList<>();
         display.add(petLines.get(0));
         int level = -1;
@@ -236,56 +224,33 @@ public final class SkyJewNopoFeatures {
         int rarityOffset = 20;
         boolean maxLevel = false;
 
-        Pattern petNameRegex = Pattern.compile("^ +\\[Lvl (?<level>\\d+)] (?<name>.*)$");
-        Pattern overflowXpRegex = Pattern.compile("^ +\\+(?<xp>[\\d,.]+) XP$");
+        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl (?<level>\\d+)] (?<name>.*)$");
+        Pattern overflowXpRegex = Pattern.compile("^\\s*\\+(?<xp>[\\d,.]+) XP$");
 
         for (Component line : petLines) {
             String text = line.getString();
-
             Matcher petMatch = petNameRegex.matcher(text);
             if (petMatch.matches()) {
                 level = Integer.parseInt(petMatch.group("level"));
                 overflowLevel = level;
                 name = petMatch.group("name");
-                String rarityName = name.replace("✦", "").trim();
-                rarityOffset = rarityOffsetFromComponent(line, rarityName);
-
-                // Preserve the original Pet: header and any other widget rows,
-                // then replace the normal [Lvl ...] row below.
+                rarityOffset = rarityOffsetFromComponent(line, name.replace("✦", "").trim());
                 continue;
             }
-
             Matcher xpMatch = overflowXpRegex.matcher(text);
             if (xpMatch.matches() && level >= 0) {
                 maxLevel = true;
-                float currentXp = (float) parseDouble(xpMatch.group("xp"));
-
-                // Match NopoMod's behaviour: add the XP already earned through
-                // the real pet level using that pet's rarity, then calculate the
-                // overflow level on the legendary curve.
-                float totalXp = currentXp + calculativeXpForLevel(level, rarityOffset);
+                float totalXp = (float) parseDouble(xpMatch.group("xp")) + calculativeXpForLevel(level, rarityOffset);
                 overflowLevel = calcLevel(totalXp);
                 if (level == 200) overflowLevel--;
-
                 float progressXp = leftoverXp(totalXp);
                 int nextOffset = (rarityOffset < 20 && overflowLevel < 100) ? 1 : 0;
-                int xpForNextLevel = getXpForLevel(
-                    Math.max(0, overflowLevel - nextOffset), 20
-                );
-                double percent = xpForNextLevel <= 0
-                    ? 0
-                    : (progressXp / xpForNextLevel) * 100.0;
-
-                display.add(Component.literal(
-                    " " + formatNumber(progressXp) + "/" + formatCompact(xpForNextLevel)
-                        + " XP (" + String.format(Locale.US, "%.1f", percent) + "%)"
-                ).withStyle(style -> style.withColor(ChatFormatting.YELLOW)));
-                continue;
+                int xpForNextLevel = getXpForLevel(Math.max(0, overflowLevel - nextOffset), 20);
+                double percent = xpForNextLevel <= 0 ? 0 : (progressXp / xpForNextLevel) * 100.0;
+                display.add(Component.literal(" " + formatNumber(progressXp) + "/" + formatCompact(xpForNextLevel)
+                    + " XP (" + String.format(Locale.US, "%.1f", percent) + "%)")
+                    .withStyle(s -> s.withColor(ChatFormatting.YELLOW)));
             }
-
-            // The normal pet-name row is rebuilt below after we have calculated
-            // its overflow level. Other indented rows are intentionally ignored,
-            // matching NopoMod's PetDisplay behaviour.
         }
 
         if (level < 0 || name.isBlank()) {
@@ -294,29 +259,20 @@ public final class SkyJewNopoFeatures {
         }
 
         Component nameComponent = findComponentText(petLines.get(1), name);
-        if (nameComponent == null) {
-            nameComponent = Component.literal(name);
-        }
+        if (nameComponent == null) nameComponent = Component.literal(name);
 
         MutableComponent levelLine = Component.literal(" [Lvl " + overflowLevel);
-        if (rarityOffset < 20 && level != overflowLevel && overflowLevel < 100) {
+        if (rarityOffset < 20 && level != overflowLevel && overflowLevel < 100)
             levelLine.append(Component.literal(" (" + level + ")"));
-        }
-        levelLine.append(Component.literal("] "));
-        levelLine.append(nameComponent);
-
+        levelLine.append(Component.literal("] ")).append(nameComponent);
         display.add(1, levelLine);
 
-        if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel
-                && mc.player != null) {
-            mc.player.sendSystemMessage(Component.literal("Your ")
-                .append(nameComponent)
+        if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel && mc.player != null) {
+            mc.player.sendSystemMessage(Component.literal("Your ").append(nameComponent)
                 .append(Component.literal(" leveled up to level "))
-                .append(Component.literal(Integer.toString(overflowLevel))
-                    .withStyle(style -> style.withColor(ChatFormatting.BLUE)))
+                .append(Component.literal(Integer.toString(overflowLevel)).withStyle(s -> s.withColor(ChatFormatting.BLUE)))
                 .append("!"));
         }
-
         petDisplay = display;
         currentPet = name;
         currentOverflowLevel = overflowLevel;
