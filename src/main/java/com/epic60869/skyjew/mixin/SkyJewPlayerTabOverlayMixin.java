@@ -18,11 +18,8 @@ public class SkyJewPlayerTabOverlayMixin {
         if (profile == null) return;
 
         Component original = cir.getReturnValue();
-        Component replacement = SkyJewNick.displayName(profile.id(), original.getString());
-        // Do not replace the vanilla component when there is no nickname.
-        // Returning a new literal here strips Hypixel's formatting and can make
-        // the entire tab overlay appear white.
-        if (!replacement.getString().equals(original.getString())) {
+        Component replacement = SkyJewNick.tabDisplayName(original, profile.id());
+        if (replacement != null && !replacement.getString().equals(original.getString())) {
             cir.setReturnValue(replacement);
         }
     }
