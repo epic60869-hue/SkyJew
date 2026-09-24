@@ -173,7 +173,11 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private int sendGlobalChat(String message) {
-        SkyJewGlobalChat.send(message);
+        if (message != null && message.trim().startsWith("!")) {
+            SkyJewGlobalChat.sendBotCommand(message);
+        } else {
+            SkyJewGlobalChat.send(message);
+        }
         return 1;
     }
 
