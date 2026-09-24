@@ -10,6 +10,9 @@ import java.util.Map;
 public final class SkyJewChatCompactor {
     private static final long WINDOW_MS = 5_000L;
     private static final Map<String, Entry> ENTRIES = new HashMap<>();
+    private static String lastMessageKey;
+    private static long lastMessageAt;
+    private static int lastCount;
 
     private SkyJewChatCompactor() {}
 
@@ -32,13 +35,22 @@ public final class SkyJewChatCompactor {
         prune(now);
 
         Entry previous = ENTRIES.get(key);
-        if (!consecutive || previous == null || now - previous.lastSeen > WINDOW_MS) {
+        boolean repeat = previous != null && consecutive
+            && key.equals(lastMessageKey) && now - lastMessageAt <= WINDOW_MS;
+
+        if (!repeat) {
             ENTRIES.put(key, new Entry(incoming.copy(), 1, now));
+            lastMessageKey = key;
+            lastMessageAt = now;
+            lastCount = 1;
             return 1;
         }
 
         previous.count++;
         previous.lastSeen = now;
+        lastMessageKey = key;
+        lastMessageAt = now;
+        lastCount = previous.count;
         return previous.count;
     }
 
@@ -51,6 +63,9 @@ public final class SkyJewChatCompactor {
 
     public static void clear() {
         ENTRIES.clear();
+        lastMessageKey = null;
+        lastMessageAt = 0L;
+        lastCount = 0;
     }
 
     private static void prune(long now) {
