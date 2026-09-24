@@ -103,7 +103,7 @@ public final class SkyJewRecipe {
 
         HypixelItem item = find(itemInput);
         if (item == null) {
-            mc.gui.getChat().addClientSystemMessage(Component.literal(
+            mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
                 "§c[SkyJew] Unknown Hypixel item: §f" + itemInput
                     + " §7— use autocomplete or wait for the item list to load."
             ));
@@ -112,7 +112,7 @@ public final class SkyJewRecipe {
         }
 
         mc.player.connection.sendCommand("viewrecipe " + item.id);
-        mc.gui.getChat().addClientSystemMessage(Component.literal(
+        mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
             "§d[SkyJew] §fRecipe: §a" + amount + "x §f" + item.name
                 + " §7(" + item.id + ")"
         ));
