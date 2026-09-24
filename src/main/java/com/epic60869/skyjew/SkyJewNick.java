@@ -212,6 +212,59 @@ public final class SkyJewNick {
      * Replaces the local player's name in normal Minecraft chat so /sj nick
      * is not limited to SkyJew's separate global-chat channel.
      */
+    /** Replaces synced nicknames for other SkyJew users in normal Hypixel chat. */
+    public static Component replaceOtherNamesInChat(Component message) {
+        if (message == null || config() == null || !config().misc.nickname.seeOtherNicks) return message;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getConnection() == null) return message;
+
+        Component result = message;
+        for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
+            if (info == null || info.getProfile() == null) continue;
+            UUID uuid = info.getProfile().id();
+            String actualName = info.getProfile().name();
+            if (uuid == null || actualName == null || actualName.isBlank()) continue;
+
+            RemoteNick remote = REMOTE_NICKS.get(uuid);
+            if (remote == null || !remote.enabled || remote.name.isBlank()) continue;
+            result = replaceExactName(result, actualName, styled(remote.name, remote.mode, remote.customHex));
+        }
+        return result;
+    }
+
+    private static Component replaceExactName(Component message, String actualName, Component replacement) {
+        MutableComponent result = Component.empty();
+        final boolean[] changed = {false};
+
+        message.visit((style, value) -> {
+            if (value == null || value.isEmpty()) return java.util.Optional.empty();
+            int start = 0;
+            while (start < value.length()) {
+                int at = value.indexOf(actualName, start);
+                if (at < 0) break;
+                int end = at + actualName.length();
+                boolean leftOk = at == 0 || !isNameChar(value.charAt(at - 1));
+                boolean rightOk = end >= value.length() || !isNameChar(value.charAt(end));
+                if (!leftOk || !rightOk) {
+                    start = end;
+                    continue;
+                }
+                if (at > start) result.append(Component.literal(value.substring(start, at)).setStyle(style));
+                result.append(replacement.copy());
+                changed[0] = true;
+                start = end;
+            }
+            if (start < value.length()) result.append(Component.literal(value.substring(start)).setStyle(style));
+            return java.util.Optional.empty();
+        }, Style.EMPTY);
+        return changed[0] ? result : message;
+    }
+
+    private static boolean isNameChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_';
+    }
+
     public static Component replaceOwnNameInChat(Component message) {
         if (message == null || config() == null || !config().misc.nickname.enabled
             || config().misc.nickname.name == null || config().misc.nickname.name.isBlank()) {
