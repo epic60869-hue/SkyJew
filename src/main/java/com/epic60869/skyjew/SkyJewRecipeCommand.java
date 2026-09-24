@@ -34,6 +34,10 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
  * crashes and allowing the requested amount to be shown.
  */
 public final class SkyJewRecipeCommand {
+    private static volatile String selectedId;
+    private static volatile String selectedName;
+    private static volatile int selectedAmount = 1;
+    private static volatile RecipeData selectedRecipe;
     private static final HttpClient HTTP = HttpClient.newBuilder()
         .connectTimeout(java.time.Duration.ofSeconds(5)).build();
     private static final List<ItemEntry> ITEMS = new ArrayList<>();
@@ -202,7 +206,7 @@ public final class SkyJewRecipeCommand {
         return input.matches("[A-Za-z0-9_:.\\-]+") ? input.toUpperCase(Locale.ROOT) : null;
     }
 
-    public static String displayName(String id) {
+    public static boolean hasSelectedRecipe() {\n        return selectedRecipe != null && selectedId != null;\n    }\n\n    public static String selectedId() { return selectedId; }\n    public static String selectedName() { return selectedName == null ? "Recipe" : selectedName; }\n    public static int selectedAmount() { return selectedAmount; }\n    public static RecipeData selectedRecipe() { return selectedRecipe; }\n\n    public static void clearSelected() {\n        selectedId = null;\n        selectedName = null;\n        selectedAmount = 1;\n        selectedRecipe = null;\n    }\n\n    public static String displayName(String id) {
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(id)) return item.name();
         }
