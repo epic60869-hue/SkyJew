@@ -211,7 +211,6 @@ public final class SkyJewCommandKeys {
     private static void run(Macro macro, Minecraft mc) {
         if (macro.commands == null || macro.commands.isEmpty()) return;
 
-        if (macro.mode == Mode.RELEASE) macro.mode = Mode.SEND;
         if (macro.mode == Mode.TYPE) {
             String text = expand(macro.commands.get(0), mc);
             mc.gui.setScreen(new ChatScreen(text, false, false));
