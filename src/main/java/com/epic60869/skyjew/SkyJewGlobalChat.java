@@ -386,7 +386,8 @@ public final class SkyJewGlobalChat {
                 }
                 MutableComponent line = Component.literal(prefix + " [")
                     .append(shownName)
-                     .append(linkify(message));
+                    .append(Component.literal("]: "))
+                    .append(linkify(SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message)).getString()));
                 mcMessage(line);
             } catch (Exception ignored) {
             }
