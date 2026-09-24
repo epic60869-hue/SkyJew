@@ -2,6 +2,8 @@ package com.epic60869.skyjew.mixin;
 
 import com.epic60869.skyjew.SkyJewGlobalChat;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.input.KeyEvent;
 import org.lwjgl.glfw.GLFW;
@@ -10,6 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChatScreen.class)
 public abstract class SkyJewChatScreenMixin {
@@ -45,4 +48,12 @@ public abstract class SkyJewChatScreenMixin {
         ((ChatScreen) (Object) this).onClose();
         cir.setReturnValue(true);
     }
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void skyjew$imagePreview(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (!SkyJewGlobalChat.isInSkyJewChannel()) return;
+        net.minecraft.network.chat.Style style =
+            Minecraft.getInstance().gui.getChat().getClickedComponentStyleAt(mouseX, mouseY);
+        SkyJewImagePreview.render(graphics, style, mouseX, mouseY);
+    }
+
 }
