@@ -74,7 +74,6 @@ public final class SkyJewMod implements ClientModInitializer {
             .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
 
         root.then(customCommand());
-        root.then(ClientCommands.literal("custom2").executes(context -> openSkyblockerCustom()));
         return root;
     }
 
@@ -98,8 +97,6 @@ public final class SkyJewMod implements ClientModInitializer {
                     .executes(context -> customTrim(
                         StringArgumentType.getString(context, "material"),
                         StringArgumentType.getString(context, "pattern"))))));
-
-        custom.then(ClientCommands.literal("skyblocker").executes(context -> openSkyblockerCustom()));
 
         custom.then(ClientCommands.literal("animatedDye")
             .then(ClientCommands.argument("hex1", StringArgumentType.word())
@@ -136,7 +133,7 @@ public final class SkyJewMod implements ClientModInitializer {
 
     private int openCustom() {
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> SkyJewCustom.open(mc, mc.gui.screen()));
+        mc.execute(() -> SkyJewCustom.openSkyblocker(mc, mc.gui.screen()));
         return 1;
     }
 
