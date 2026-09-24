@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -19,16 +20,16 @@ import java.util.regex.Pattern;
 @Mixin(AbstractContainerScreen.class)
 public abstract class SkyJewCalendarTooltipMixin {
     /*
-     * This follows Skyblocker's DateCalculatorTooltip Calendar provider:
-     * the calendar screen title contains the month/year, while the calendar
-     * item's stack count is the day number. We intentionally do not try to
-     * infer the date from the item's lore/name because Hypixel can change
-     * those tooltip strings.
+     * Port of Skyblocker's DateCalculatorTooltip Calendar provider.
+     *
+     * Skyblocker does NOT read the calendar day from the item name/lore.
+     * It reads the month/year from the calendar screen title and the day
+     * from the hovered calendar item's stack count.
      */
-    private static final Pattern CALENDAR_TITLE_PATTERN =
-        Pattern.compile("(?<month>.+), Year (?<year>\\d+)");
+    private static final Pattern CALENDAR_PATTERN =
+        Pattern.compile("(?<month>.+),\\s*Year\\s+(?<year>\\d+)", Pattern.CASE_INSENSITIVE);
 
-    @Inject(method = "getTooltipFromContainerItem", at = @At("RETURN"))
+    @Inject(method = "getTooltipFromContainerItem", at = @At("RETURN"), cancellable = true)
     private void skyjew$addRealWorldCalendarTime(
         ItemStack stack,
         CallbackInfoReturnable<List<Component>> cir
@@ -39,13 +40,22 @@ public abstract class SkyJewCalendarTooltipMixin {
         }
 
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
-        CalendarDate date = readCalendarDate(screen.getTitle().getString(), stack);
+        List<Component> original = cir.getReturnValue();
+        if (original == null || original.isEmpty()) return;
+
+        CalendarDate date = readCalendarDate(screen.getTitle().getString(), original, stack);
         if (date == null) return;
 
-        List<Component> tooltip = cir.getReturnValue();
-        if (tooltip == null) return;
+        for (Component line : original) {
+            if (line.getString().toLowerCase(Locale.ROOT).contains("real-world time:")) {
+                return;
+            }
+        }
 
         try {
+            // Copy the list before changing it. This also works if another
+            // tooltip provider returned an immutable list.
+            List<Component> tooltip = new ArrayList<>(original);
             tooltip.add(
                 Component.literal("Real-world time: ")
                     .withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY)
@@ -57,13 +67,43 @@ public abstract class SkyJewCalendarTooltipMixin {
                         )).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY)
                     )
             );
+            cir.setReturnValue(tooltip);
         } catch (IllegalArgumentException ignored) {
-            // Invalid calendar data should never break the inventory tooltip.
+            // Invalid calendar data must never break the inventory tooltip.
         }
     }
 
-    private static CalendarDate readCalendarDate(String screenTitle, ItemStack stack) {
-        Matcher matcher = CALENDAR_TITLE_PATTERN.matcher(screenTitle);
+    private static CalendarDate readCalendarDate(
+        String screenTitle,
+        List<Component> tooltip,
+        ItemStack stack
+    ) {
+        CalendarDate titleDate = parseDate(screenTitle);
+        if (titleDate != null) return new CalendarDate(
+            titleDate.monthIndex(),
+            stack.getCount(),
+            titleDate.year()
+        );
+
+        // Some Hypixel/resource-pack combinations can put the calendar
+        // heading into the tooltip instead of the screen title. Use the
+        // same Calendar provider pattern as a fallback.
+        for (Component line : tooltip) {
+            CalendarDate tooltipDate = parseDate(line.getString());
+            if (tooltipDate != null) {
+                return new CalendarDate(
+                    tooltipDate.monthIndex(),
+                    stack.getCount(),
+                    tooltipDate.year()
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private static CalendarDate parseDate(String text) {
+        Matcher matcher = CALENDAR_PATTERN.matcher(text == null ? "" : text.trim());
         if (!matcher.matches()) return null;
 
         int monthIndex = monthIndex(matcher.group("month"));
@@ -76,11 +116,8 @@ public abstract class SkyJewCalendarTooltipMixin {
             return null;
         }
 
-        // Skyblocker uses the calendar item's stack count as its day number.
-        int day = stack.getCount();
-        if (day < 1 || day > 31 || year < 1) return null;
-
-        return new CalendarDate(monthIndex, day, year);
+        if (year < 1) return null;
+        return new CalendarDate(monthIndex, 1, year);
     }
 
     private static int monthIndex(String month) {
