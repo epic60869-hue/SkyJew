@@ -241,30 +241,43 @@ public final class SkyJewGlobalChat {
         }
     }
 
-    private static Component linkify(String text) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("https?://\\S+");
-        java.util.regex.Matcher matcher = pattern.matcher(text);
+    private static Component linkify(Component text) {
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("https?://\\\\S+");
         MutableComponent result = Component.empty();
-        int last = 0;
-        while (matcher.find()) {
-            if (matcher.start() > last) result.append(Component.literal(text.substring(last, matcher.start())));
-            String url = matcher.group();
-            while (url.length() > 1 && ")]>.".indexOf(url.charAt(url.length() - 1)) >= 0) {
-                url = url.substring(0, url.length() - 1);
+
+        text.visit((style, value) -> {
+            if (value == null || value.isEmpty()) return java.util.Optional.empty();
+
+            java.util.regex.Matcher matcher = pattern.matcher(value);
+            int last = 0;
+            while (matcher.find()) {
+                if (matcher.start() > last) {
+                    result.append(Component.literal(value.substring(last, matcher.start())).setStyle(style));
+                }
+
+                String url = matcher.group();
+                while (url.length() > 1 && ")]>.".indexOf(url.charAt(url.length() - 1)) >= 0) {
+                    url = url.substring(0, url.length() - 1);
+                }
+
+                try {
+                    result.append(Component.literal(url).setStyle(style.withUnderlined(true)
+                        .withColor(0x55AAFF)
+                        .withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
+                        .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
+                            Component.literal("Open " + url + "\\n\\nHover for image preview when this is an image.")))));
+                } catch (Exception ignored) {
+                    result.append(Component.literal(url).setStyle(style));
+                }
+                last = matcher.end();
             }
-            try {
-                result.append(Component.literal(url).withStyle(Style.EMPTY
-                    .withUnderlined(true)
-                    .withColor(0x55AAFF)
-                    .withClickEvent(new ClickEvent.OpenUrl(java.net.URI.create(url)))
-                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
-                        Component.literal("Open link\\n" + url)))));
-            } catch (Exception ignored) {
-                result.append(Component.literal(url));
+
+            if (last < value.length()) {
+                result.append(Component.literal(value.substring(last)).setStyle(style));
             }
-            last = matcher.end();
-        }
-        if (last < text.length()) result.append(Component.literal(text.substring(last)));
+            return java.util.Optional.empty();
+        }, Style.EMPTY);
+
         return result;
     }
 
@@ -384,10 +397,11 @@ public final class SkyJewGlobalChat {
                 } catch (Exception ignored) {
                     shownName = SkyJewNick.displayName(displayName);
                 }
+                Component messageComponent = SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message));
                 MutableComponent line = Component.literal(prefix + " [")
                     .append(shownName)
                     .append(Component.literal("]: "))
-                    .append(linkify(SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message)).getString()));
+                    .append(linkify(messageComponent));
                 mcMessage(line);
             } catch (Exception ignored) {
             }
