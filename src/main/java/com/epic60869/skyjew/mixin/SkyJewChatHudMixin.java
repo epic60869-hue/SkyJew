@@ -50,47 +50,17 @@ public abstract class SkyJewChatHudMixin {
 
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
-        at = @At("HEAD"),
-        cancellable = true
-    )
-    private void skyjew$hideOtherCommandOutput(Component message, MessageSignature signature,
-                                                 GuiMessageSource source, GuiMessageTag tag,
-                                                 CallbackInfo ci) {
-        SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.chat.customChat.hideOtherCommands) return;
-
-        String text = message.getString();
-        var matcher = java.util.regex.Pattern
-            .compile("(?i)\\[SJ\\] \\[[^]]+\\] ([A-Za-z0-9_]{1,16})['’]s ")
-            .matcher(text);
-
-        if (matcher.find()) {
-            String owner = matcher.group(1);
-            String self = net.minecraft.client.Minecraft.getInstance().getUser().getName();
-            if (!owner.equalsIgnoreCase(self)) ci.cancel();
-        }
-    }
-
-    @Inject(
-        method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
         at = @At("TAIL")
     )
     private void skyjew$compact(Component message, MessageSignature signature,
                                 GuiMessageSource source, GuiMessageTag tag, CallbackInfo ci) {
         if (!SkyJewChatCompactor.enabled() || allMessages.isEmpty()) return;
 
-        GuiMessage newest = allMessages.get(0);
-        int count = SkyJewChatCompactor.record(newest.content());
-        if (allMessages.size() < 2 || count < 2) return;
-
-        GuiMessage previous = allMessages.get(1);
-        if (!SkyJewChatCompactor.same(newest.content(), previous.content())) return;
-
-        Component compacted = SkyJewChatCompactor.withCount(newest.content(), count);
-        allMessages.set(0, new GuiMessage(
-            newest.addedTime(), compacted, newest.signature(), newest.source(), newest.tag()
-        ));
-        allMessages.remove(1);
-        refreshTrimmedMessages();
+        // The new message is already present at index 0. Find the most recent
+        // matching message anywhere in the visible history instead of requiring
+        // it to be directly adjacent.
+        if (SkyJewChatCompactor.recentlySeen(allMessages.get(0).content())
+            && SkyJewChatCompactor.compact(allMessages)) {
+            refreshTrimmedMessages();
+        }
     }
-}
