@@ -34,6 +34,7 @@ public final class SkyJewNickScreen extends Screen {
     private final Screen parent;
     private EditBox nameBox;
     private boolean enabled;
+    private boolean seeOtherNicks;
     private String selectedStyle = "Plain";
 
     public SkyJewNickScreen(Screen parent) {
@@ -58,14 +59,17 @@ public final class SkyJewNickScreen extends Screen {
 
         enabled = config.misc.nickname.enabled;
         selectedStyle = config.misc.nickname.style == null ? "Plain" : config.misc.nickname.style;
+        seeOtherNicks = config.misc.nickname.seeOtherNicks;
 
         addRenderableWidget(Button.builder(Component.literal(enabled ? "TAB nickname: ON" : "TAB nickname: OFF"), b -> {
             enabled = !enabled;
             b.setMessage(Component.literal(enabled ? "TAB nickname: ON" : "TAB nickname: OFF"));
         }).bounds(left + 370, top + 78, 180, 24).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Rainbow"), b -> selectedStyle = "Rainbow")
-            .bounds(left + 560, top + 78, 105, 24).build());
+        addRenderableWidget(Button.builder(Component.literal(seeOtherNicks ? "See Other Nicks: ON" : "See Other Nicks: OFF"), b -> {
+            seeOtherNicks = !seeOtherNicks;
+            b.setMessage(Component.literal(seeOtherNicks ? "See Other Nicks: ON" : "See Other Nicks: OFF"));
+        }).bounds(left + 560, top + 78, 180, 24).build());
 
         int gridX = left + 24;
         int gridY = top + 140;
