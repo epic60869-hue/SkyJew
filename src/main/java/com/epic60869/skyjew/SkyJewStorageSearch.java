@@ -127,7 +127,7 @@ public final class SkyJewStorageSearch {
 
             for (int i = 0; i < contents.size(); i++) {
                 ItemStack stack = contents.get(i);
-                if (stack == null || stack.isEmpty()) continue;
+                if (stack == null || stack.isEmpty() || !isSearchableStorageItem(stack)) continue;
 
                 SearchText text = searchable(stack);
                 if (!q.isEmpty()
@@ -370,11 +370,21 @@ public final class SkyJewStorageSearch {
         return !(name.equals("go back")
                 || name.equals("back")
                 || name.equals("close")
+                || name.equals("exit")
                 || name.equals("previous page")
                 || name.equals("next page")
+                || name.equals("previous")
+                || name.equals("next")
                 || name.startsWith("previous page")
                 || name.startsWith("next page")
-                || name.startsWith("page "));
+                || name.startsWith("page ")
+                || name.matches("page\\s*\\d+")
+                || name.matches("[<>]\\s*page\\s*\\d*")
+                || name.contains("click to go back")
+                || name.contains("click to close")
+                || name.contains("click to view")
+                || name.contains("open previous")
+                || name.contains("open next"));
     }
 
     private static String cacheKey(Minecraft mc, String type, int number) {
