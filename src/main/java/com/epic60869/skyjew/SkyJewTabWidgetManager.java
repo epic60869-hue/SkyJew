@@ -224,11 +224,16 @@ public final class SkyJewTabWidgetManager {
             new Widget(Component.empty(), List.of(), List.of(), 0xFFFF00);
 
         public Widget {
-            detail = detail == null ? Component.empty() : detail.copy();
-            lines = lines == null ? List.of()
-                : lines.stream().map(line -> (Component) line.copy()).toList();
-            playerListEntries = playerListEntries == null ? List.of()
-                : List.copyOf(playerListEntries);
+            detail = detail == null ? Component.empty() : (Component) detail.copy();
+
+            List<Component> copiedLines = new ArrayList<>();
+            if (lines != null) {
+                for (Component line : lines) {
+                    copiedLines.add((Component) line.copy());
+                }
+            }
+            lines = List.copyOf(copiedLines);
+            playerListEntries = playerListEntries == null ? List.of() : List.copyOf(playerListEntries);
         }
 
         public Widget(Component detail, List<Component> lines, List<PlayerInfo> raw) {
