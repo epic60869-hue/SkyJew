@@ -170,7 +170,7 @@ public final class SkyJewNopoFeatures {
 
     private static void updatePetDisplay(Minecraft mc) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.pets.display || !config.pets.display.autoDisplay) {
+        if (config == null || !config.pets.display.enabled || !config.pets.display.autoDisplay) {
             petDisplay = null;
             return;
         }
