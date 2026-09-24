@@ -254,6 +254,11 @@ public final class SkyJewConfig extends Config {
         public boolean calendarTimeToRealTime = true;
 
         @Expose
+        @ConfigOption(name = "Item Rarity Background", desc = "Show a circular background behind SkyBlock items using the item's rarity color.")
+        @ConfigEditorBoolean
+        public boolean itemRarityBackground = true;
+
+        @Expose
         @Accordion
         @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
         public Nickname nickname = new Nickname();
