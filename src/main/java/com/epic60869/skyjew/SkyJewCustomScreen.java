@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -16,7 +17,7 @@ public final class SkyJewCustomScreen extends Screen {
     private int tab;
     private int selectedArmor;
     private EditBox itemName, dyeHex, trimMaterial, trimPattern, animatedStart, animatedEnd, animatedDuration;
-    private boolean cycleBack;
+    private Checkbox cycleBack;
     private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
     public SkyJewCustomScreen(Screen parent) { super(Component.literal("SkyJew Customization")); this.parent = parent; }
