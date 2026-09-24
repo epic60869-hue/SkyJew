@@ -19,12 +19,12 @@ import java.util.List;
  * notes do not require thousands of GUI widgets.
  */
 public final class SkyJewNotesScreen extends Screen {
-    private static final int BG = 0xFF080B12;
-    private static final int PANEL = 0xFF000000;
-    private static final int BORDER = 0xFF26364D;
-    private static final int MUTED = 0xFF8D9AAF;
-    private static final int CYAN = 0xFF58D8FF;
-    private static final int YELLOW = 0xFFFFD34D;
+    private static final int BG = 0xFFFFFFFF;
+    private static final int PANEL = 0xFFFFFFFF;
+    private static final int BORDER = 0xFFB8B8B8;
+    private static final int MUTED = 0xFF666666;
+    private static final int CYAN = 0xFF2468A8;
+    private static final int YELLOW = 0xFF222222;
     private static final int LINE_HEIGHT = 24;
     private static final int MAX_LINE_LENGTH = 500;
 
@@ -158,6 +158,11 @@ public final class SkyJewNotesScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (event.hasControlDown() && event.key() == GLFW.GLFW_KEY_S) {
+            save();
+            return true;
+        }
+
         if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
             for (int i = 0; i < visibleLines.size(); i++) {
                 if (visibleLines.get(i).isFocused()) {
@@ -187,16 +192,24 @@ public final class SkyJewNotesScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, BG);
-        g.fill(0, 0, width, 2, 0xFF5D3CFF);
+        g.fill(0, 0, width, 2, 0xFF4A90E2);
 
         int left = Math.max(20, width / 2 - 370);
         int right = Math.min(width - 20, width / 2 + 370);
         int bottom = height - 24;
 
         g.fill(left, 48, right, bottom, PANEL);
+        g.fill(left, 48, left + 42, bottom, 0xFFF4F4F4);
+        for (int i = 0; i < visibleLineCount(); i++) {
+            int n = scrollOffset + i + 1;
+            int y = 76 + i * LINE_HEIGHT;
+            if (y >= bottom - 20) break;
+            g.text(font, Integer.toString(n), left + 10, y + 3, 0xFF999999, false);
+            g.fill(left + 42, y + 19, right, y + 20, 0xFFEAEAEA);
+        }
 
         g.text(font, "SkyJew Notes", left + 18, 58, YELLOW, true);
-        g.text(font, "Saved automatically when you close. ENTER creates a new line.", left + 150, 58, MUTED, false);
+        g.text(font, "Notepad • ENTER = new line • Ctrl+S = save", left + 150, 58, MUTED, false);
 
         int visible = visibleLineCount();
         int maxScroll = Math.max(0, noteLines.size() - visible);
