@@ -28,7 +28,7 @@ public final class SkyJewCommandKeys {
     private static final String FILE_NAME = "skyjew-command-keys.json";
     private static final Random RANDOM = new Random();
 
-    public enum Mode { SEND, TYPE, EDIT, CYCLE, RANDOM, REPEAT }
+    public enum Mode { SEND, TYPE, EDIT, CYCLE, RANDOM, REPEAT, RELEASE }
 
     public enum Conflict { SUBMIT, ASSERT, VETO, AVOID }
 
@@ -39,7 +39,7 @@ public final class SkyJewCommandKeys {
         public int modifier = 0;
         public Mode mode = Mode.SEND;
         public int delayMs = 250;
-        public Conflict conflict = Conflict.SUBMIT;
+        public Conflict conflict = Conflict.ASSERT;
         public List<String> commands = new ArrayList<>(List.of("/help"));
         public int cycleIndex = 0;
         public boolean repeating = false;
@@ -166,7 +166,7 @@ public final class SkyJewCommandKeys {
             if (macro.keyCode == GLFW.GLFW_KEY_UNKNOWN || !modifierDown(window, macro.modifier)) continue;
             boolean down = isDown(window, macro.keyCode);
             boolean wasDown = previousKeys.contains(macro.keyCode);
-            if (down && !wasDown) {
+            if ((macro.mode == Mode.RELEASE && !down && wasDown) || (macro.mode != Mode.RELEASE && down && !wasDown)) {
                 if (macro.conflict == Conflict.AVOID) continue;
                 if (macro.conflict == Conflict.AVOID) continue;
                 if (macro.mode == Mode.REPEAT) {
@@ -211,6 +211,7 @@ public final class SkyJewCommandKeys {
     private static void run(Macro macro, Minecraft mc) {
         if (macro.commands == null || macro.commands.isEmpty()) return;
 
+        if (macro.mode == Mode.RELEASE) macro.mode = Mode.SEND;
         if (macro.mode == Mode.TYPE) {
             String text = expand(macro.commands.get(0), mc);
             mc.gui.setScreen(new ChatScreen(text, false, false));
