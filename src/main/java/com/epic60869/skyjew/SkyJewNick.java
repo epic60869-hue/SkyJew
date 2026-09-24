@@ -5,8 +5,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
+import java.awt.Color;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SkyJewNick {
     private static final Map<String, Integer> COLORS = Map.ofEntries(
@@ -24,6 +27,7 @@ public final class SkyJewNick {
         "Red", "Light Purple", "Yellow", "White", "Rainbow"
     };
 
+    private static final Map<UUID, RemoteNick> REMOTE_NICKS = new ConcurrentHashMap<>();
     private static SkyJewConfig config;
 
     private SkyJewNick() {}
@@ -41,6 +45,7 @@ public final class SkyJewNick {
             config().misc.nickname.style = "Plain";
             config().misc.nickname.customHex = "";
             save();
+            SkyJewGlobalChat.sendNicknameUpdate();
             message("Nickname disabled.", 0x55FF55);
             return;
         }
@@ -76,6 +81,7 @@ public final class SkyJewNick {
         config().misc.nickname.style = style;
         config().misc.nickname.customHex = customHex;
         save();
+        SkyJewGlobalChat.sendNicknameUpdate();
 
         message("Nickname set to " + name + ("Rainbow".equals(style) ? " (rainbow)" : ""), 0x55FF55);
     }
@@ -84,11 +90,16 @@ public final class SkyJewNick {
         return config().misc.nickname.style == null ? "Plain" : config().misc.nickname.style;
     }
 
+    public static String customHex() {
+        return config().misc.nickname.customHex == null ? "" : config().misc.nickname.customHex;
+    }
+
     public static void applyGuiName(String name) {
         String value = clean(name);
         config().misc.nickname.name = value;
         config().misc.nickname.enabled = !value.isBlank();
         save();
+        SkyJewGlobalChat.sendNicknameUpdate();
     }
 
     public static String outgoingName() {
@@ -105,30 +116,65 @@ public final class SkyJewNick {
             || config().misc.nickname.name.isBlank()) {
             return Component.literal(actualName);
         }
-        return styled(config().misc.nickname.name);
+        return styled(config().misc.nickname.name, mode(), customHex());
+    }
+
+    public static Component displayName(UUID uuid, String actualName) {
+        if (uuid != null) {
+            RemoteNick remote = REMOTE_NICKS.get(uuid);
+            if (remote != null && remote.enabled && !remote.name.isBlank()) {
+                return styled(remote.name, remote.mode, remote.customHex);
+            }
+        }
+        return displayName(actualName);
+    }
+
+    public static void updateRemote(UUID uuid, boolean enabled, String name, String mode, String customHex) {
+        if (uuid == null) return;
+        if (!enabled || name == null || name.isBlank()) {
+            REMOTE_NICKS.remove(uuid);
+            return;
+        }
+        REMOTE_NICKS.put(uuid, new RemoteNick(
+            clean(name),
+            cleanMode(mode),
+            cleanHex(customHex),
+            true
+        ));
+    }
+
+    public static void removeRemote(UUID uuid) {
+        if (uuid != null) REMOTE_NICKS.remove(uuid);
+    }
+
+    public static void clearRemote() {
+        REMOTE_NICKS.clear();
     }
 
     public static Component styled(String text) {
-        String style = config().misc.nickname.style == null ? "Plain" : config().misc.nickname.style;
+        return styled(text, mode(), customHex());
+    }
 
-        if ("Rainbow".equalsIgnoreCase(style)) {
+    public static Component styled(String text, String style, String customHex) {
+        String safeStyle = style == null ? "Plain" : style;
+
+        if ("Rainbow".equalsIgnoreCase(safeStyle)) {
             MutableComponent out = Component.empty();
             int n = Math.max(1, text.length());
             for (int i = 0; i < text.length(); i++) {
                 float hue = (float) i / n;
-                int rgb = java.awt.Color.HSBtoRGB(hue, 0.95f, 1.0f) & 0xFFFFFF;
+                int rgb = Color.HSBtoRGB(hue, 0.95f, 1.0f) & 0xFFFFFF;
                 out.append(Component.literal(String.valueOf(text.charAt(i)))
                     .setStyle(Style.EMPTY.withColor(rgb)));
             }
             return out;
         }
 
-        String key = style.toLowerCase(Locale.ROOT).replace(' ', '_');
+        String key = safeStyle.toLowerCase(Locale.ROOT).replace(' ', '_');
         Integer rgb = COLORS.get(key);
 
-        if ("plain".equals(key) && config().misc.nickname.customHex != null
-            && config().misc.nickname.customHex.matches("#[0-9a-fA-F]{6}")) {
-            rgb = Integer.parseInt(config().misc.nickname.customHex.substring(1), 16);
+        if ("plain".equals(key) && customHex != null && customHex.matches("#[0-9a-fA-F]{6}")) {
+            rgb = Integer.parseInt(customHex.substring(1), 16);
         }
 
         return rgb == null
@@ -139,6 +185,16 @@ public final class SkyJewNick {
     private static String clean(String value) {
         value = value.replace("\\r", "").replace("\\n", "").trim();
         return value.substring(0, Math.min(32, value.length()));
+    }
+
+    private static String cleanMode(String value) {
+        if (value == null || value.isBlank()) return "Plain";
+        String cleaned = value.replaceAll("[^A-Za-z ]", "").trim();
+        return cleaned.isBlank() ? "Plain" : cleaned.substring(0, Math.min(20, cleaned.length()));
+    }
+
+    private static String cleanHex(String value) {
+        return value != null && value.matches("#[0-9a-fA-F]{6}") ? value.toUpperCase(Locale.ROOT) : "";
     }
 
     private static String displayStyle(String key) {
@@ -163,4 +219,6 @@ public final class SkyJewNick {
                 .setStyle(Style.EMPTY.withColor(color)));
         }
     }
+
+    private record RemoteNick(String name, String mode, String customHex, boolean enabled) {}
 }
