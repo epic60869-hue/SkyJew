@@ -189,6 +189,7 @@ public final class SkyJewHelmetSkinSelectScreen extends Screen {
             g.fill(getX(), getY(), getRight(), getBottom(), background);
             g.item(head, getX() + 3, getY() + 3);
 
+            net.minecraft.client.gui.Font font = net.minecraft.client.Minecraft.getInstance().font;
             String text = entry.name();
             if (text.length() > 15) {
                 text = font.plainSubstrByWidth(text, Math.max(10, getWidth() - 30));
