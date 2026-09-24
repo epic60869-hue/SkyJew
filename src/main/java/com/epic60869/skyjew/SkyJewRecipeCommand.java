@@ -88,6 +88,7 @@ public final class SkyJewRecipeCommand {
 
     public static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> command() {
         return literal("recipe")
+            .then(literal("clear").executes(context -> { clearSelected(); return 1; }))
             .then(argument("item", StringArgumentType.greedyString())
                 .suggests(SkyJewRecipeCommand::suggestItems)
                 .executes(SkyJewRecipeCommand::run));
