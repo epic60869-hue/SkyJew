@@ -26,10 +26,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * SkyJew implementation of Skyblocker's /skyblocker custom item/armour
@@ -44,6 +51,9 @@ public final class SkyJewCustom {
     private static final Map<String, Integer> DYE_COLORS = new LinkedHashMap<>();
     private static final Map<String, TrimId> ARMOR_TRIMS = new LinkedHashMap<>();
     private static final Map<String, AnimatedDye> ANIMATED_DYES = new LinkedHashMap<>();
+    private static final Map<String, Integer> HYPIXEL_STATIC_DYES = new LinkedHashMap<>();
+    private static final Map<String, List<Integer>> HYPIXEL_ANIMATED_DYES = new LinkedHashMap<>();
+    private static volatile boolean dyeDataLoaded;
     private static final Map<String, String> ITEM_MODELS = new LinkedHashMap<>();
     private static final Map<String, Boolean> ITEM_GLINTS = new LinkedHashMap<>();
 
@@ -55,11 +65,12 @@ public final class SkyJewCustom {
 
     public record TrimId(String material, String pattern) {}
     public record Keyframe(int color, float time) {}
-    public record AnimatedDye(Keyframe first, Keyframe second, boolean cycleBack, float duration, float delay) {}
+    public record AnimatedDye(List<Keyframe> keyframes, boolean cycleBack, float duration, float delay) {}
 
     public static void init(Path dir) {
         configDir = dir;
         load();
+        loadHypixelDyes();
         initialized = true;
     }
 
@@ -147,18 +158,106 @@ public final class SkyJewCustom {
         if (color1 == null || color2 == null) {
             ANIMATED_DYES.remove(id);
         } else {
-            ANIMATED_DYES.put(id, new AnimatedDye(
-                    new Keyframe(color1 & 0xFFFFFF, 0f),
-                    new Keyframe(color2 & 0xFFFFFF, 1f),
-                    cycleBack,
-                    Math.max(0.1f, duration),
-                    Math.max(0f, delay)));
+            setAnimatedDye(stack, List.of(color1, color2), duration, cycleBack, delay);
+            return;
         }
         save();
     }
 
     public static AnimatedDye getAnimatedDye(ItemStack stack) {
         return ANIMATED_DYES.get(uuid(stack));
+    }
+
+    public static void setAnimatedDye(ItemStack stack, List<Integer> colors, float duration, boolean cycleBack, float delay) {
+        String id = uuid(stack);
+        if (id.isBlank()) return;
+        if (colors == null || colors.size() < 2) {
+            ANIMATED_DYES.remove(id);
+        } else {
+            List<Keyframe> frames = new ArrayList<>(colors.size());
+            int max = cycleBack && colors.size() % 2 == 0 ? colors.size() / 2 : colors.size() - 1;
+            max = Math.max(1, max);
+            for (int i = 0; i < colors.size(); i++) {
+                if (cycleBack && colors.size() % 2 == 0 && i > max) break;
+                float time = i == max ? 1f : Math.min(1f, (float) i / max);
+                frames.add(new Keyframe(colors.get(i) & 0xFFFFFF, time));
+            }
+            if (frames.size() < 2) frames.add(new Keyframe(colors.getLast() & 0xFFFFFF, 1f));
+            ANIMATED_DYES.put(id, new AnimatedDye(List.copyOf(frames), cycleBack,
+                Math.max(0.1f, duration), Math.max(0f, delay)));
+        }
+        save();
+    }
+
+    public static Map<String, Integer> hypixelStaticDyes() {
+        return HYPIXEL_STATIC_DYES;
+    }
+
+    public static Map<String, List<Integer>> hypixelAnimatedDyes() {
+        return HYPIXEL_ANIMATED_DYES;
+    }
+
+    public static boolean dyeDataLoaded() {
+        return dyeDataLoaded;
+    }
+
+    private static void loadHypixelDyes() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(5)).build();
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/constants/dyes.json"))
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .header("User-Agent", "SkyJew/1.0")
+                    .GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) return;
+                JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+
+                Map<String, Integer> statics = new LinkedHashMap<>();
+                JsonObject staticObject = root.getAsJsonObject("static");
+                if (staticObject != null) {
+                    staticObject.entrySet().forEach(e -> statics.put(e.getKey(), parseHex(e.getValue().getAsString())));
+                }
+
+                Map<String, List<Integer>> animated = new LinkedHashMap<>();
+                JsonObject animatedObject = root.getAsJsonObject("animated");
+                if (animatedObject != null) {
+                    animatedObject.entrySet().forEach(e -> {
+                        if (!e.getValue().isJsonArray()) return;
+                        List<Integer> colors = new ArrayList<>();
+                        e.getValue().getAsJsonArray().forEach(v -> colors.add(parseHex(v.getAsString())));
+                        if (colors.size() >= 2) animated.put(e.getKey(), List.copyOf(colors));
+                    });
+                }
+
+                synchronized (HYPIXEL_STATIC_DYES) {
+                    HYPIXEL_STATIC_DYES.clear();
+                    HYPIXEL_STATIC_DYES.putAll(statics);
+                }
+                synchronized (HYPIXEL_ANIMATED_DYES) {
+                    HYPIXEL_ANIMATED_DYES.clear();
+                    HYPIXEL_ANIMATED_DYES.putAll(animated);
+                }
+                dyeDataLoaded = true;
+            } catch (Exception e) {
+                System.err.println("[SkyJew] Failed to load Hypixel dye data: " + e.getMessage());
+            }
+        });
+    }
+
+    public static String dyeDisplayName(String id) {
+        String name = id.replace('_', ' ');
+        if (name.startsWith("DYE ")) name = name.substring(4);
+        if (name.startsWith("TENTACLE ")) name = name.substring(0, 1) + name.substring(1).toLowerCase(Locale.ROOT);
+        String[] words = name.toLowerCase(Locale.ROOT).split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return out.toString();
     }
 
     public static void setItemModel(ItemStack stack, String model) {
@@ -259,7 +358,21 @@ public final class SkyJewCustom {
                 t = progress % 1.0;
             }
         }
-        return interpolateOkLab(dye.first().color(), dye.second().color(), (float)Math.max(0, Math.min(1, t)));
+
+        List<Keyframe> frames = dye.keyframes();
+        if (frames.size() < 2) return frames.isEmpty() ? 0 : frames.getFirst().color();
+        Keyframe current = frames.getFirst();
+        Keyframe next = frames.getLast();
+        for (int i = 0; i < frames.size() - 1; i++) {
+            if (t >= frames.get(i).time() && t <= frames.get(i + 1).time()) {
+                current = frames.get(i);
+                next = frames.get(i + 1);
+                break;
+            }
+        }
+        float local = next.time() <= current.time() ? 0f :
+            (float) ((t - current.time()) / (next.time() - current.time()));
+        return interpolateOkLab(current.color(), next.color(), Math.max(0f, Math.min(1f, local)));
     }
 
     // Skyblocker's animated dye uses perceptual OKLab interpolation rather than
@@ -327,14 +440,24 @@ public final class SkyJewCustom {
             if (root.has("itemGlints")) root.getAsJsonObject("itemGlints").entrySet().forEach(e -> ITEM_GLINTS.put(e.getKey(), e.getValue().getAsBoolean()));
             if (root.has("animatedDyes")) root.getAsJsonObject("animatedDyes").entrySet().forEach(e -> {
                 JsonObject v = e.getValue().getAsJsonObject();
-                JsonObject a = v.getAsJsonObject("first");
-                JsonObject b = v.getAsJsonObject("second");
-                ANIMATED_DYES.put(e.getKey(), new AnimatedDye(
-                        new Keyframe(a.get("color").getAsInt(), a.get("time").getAsFloat()),
-                        new Keyframe(b.get("color").getAsInt(), b.get("time").getAsFloat()),
+                List<Keyframe> frames = new ArrayList<>();
+                if (v.has("keyframes") && v.get("keyframes").isJsonArray()) {
+                    v.getAsJsonArray("keyframes").forEach(frame -> {
+                        JsonObject f = frame.getAsJsonObject();
+                        frames.add(new Keyframe(f.get("color").getAsInt(), f.get("time").getAsFloat()));
+                    });
+                } else if (v.has("first") && v.has("second")) {
+                    JsonObject a = v.getAsJsonObject("first");
+                    JsonObject b = v.getAsJsonObject("second");
+                    frames.add(new Keyframe(a.get("color").getAsInt(), a.get("time").getAsFloat()));
+                    frames.add(new Keyframe(b.get("color").getAsInt(), b.get("time").getAsFloat()));
+                }
+                if (frames.size() >= 2) {
+                    ANIMATED_DYES.put(e.getKey(), new AnimatedDye(List.copyOf(frames),
                         v.get("cycleBack").getAsBoolean(),
                         v.get("duration").getAsFloat(),
                         v.get("delay").getAsFloat()));
+                }
             });
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to load custom item config: " + e.getMessage());
@@ -363,9 +486,14 @@ public final class SkyJewCustom {
             JsonObject animated = new JsonObject();
             ANIMATED_DYES.forEach((k,v) -> {
                 JsonObject o = new JsonObject();
-                JsonObject a = new JsonObject(); a.addProperty("color",v.first().color()); a.addProperty("time",v.first().time());
-                JsonObject b = new JsonObject(); b.addProperty("color",v.second().color()); b.addProperty("time",v.second().time());
-                o.add("first",a); o.add("second",b);
+                com.google.gson.JsonArray frames = new com.google.gson.JsonArray();
+                v.keyframes().forEach(frame -> {
+                    JsonObject f = new JsonObject();
+                    f.addProperty("color", frame.color());
+                    f.addProperty("time", frame.time());
+                    frames.add(f);
+                });
+                o.add("keyframes", frames);
                 o.addProperty("cycleBack",v.cycleBack());
                 o.addProperty("duration",v.duration());
                 o.addProperty("delay",v.delay());
