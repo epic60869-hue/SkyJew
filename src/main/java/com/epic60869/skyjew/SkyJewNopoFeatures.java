@@ -559,8 +559,8 @@ public final class SkyJewNopoFeatures {
                     String symbol = EMOJI_SYMBOLS.get(name);
                     if (EMOJI_SYMBOLS.containsKey(name)) {
                         out.append(Component.object(new AtlasSprite(
-                            AtlasSprite.DEFAULT_ATLAS,
-                            Identifier.fromNamespaceAndPath("skyjew", "gui/sprites/" + name)
+                            Identifier.withDefaultNamespace("gui"),
+                            Identifier.fromNamespaceAndPath("skyjew", name)
                         )).withStyle(style));
                     } else {
                         out.append(Component.literal(symbol == null ? matcher.group() : symbol).withStyle(style));
