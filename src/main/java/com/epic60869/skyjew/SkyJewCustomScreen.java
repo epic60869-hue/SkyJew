@@ -128,7 +128,7 @@ public final class SkyJewCustomScreen extends Screen {
 
         if (showDyes) buildDyePalette(left + 190, panelY + 32, selected);
 
-        SkyJewCustom.Trim trim = SkyJewCustom.getTrim(selected);
+        SkyJewCustom.TrimId trim = SkyJewCustom.getTrim(selected);
         int trimY = panelY + (showDyes ? 170 : 36);
 
         trimMaterial = box("Trim material", x, trimY, 220, trim == null ? "" : trim.material());
