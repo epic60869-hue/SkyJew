@@ -228,7 +228,7 @@ public final class SkyJewCommandKeys {
         for (String raw : selected) {
             String command = expand(raw, mc).trim();
             if (command.isEmpty()) continue;
-            final String toSend = command.startsWith("/") ? command.substring(1) : command;
+            final String toSend = command;
             final long wait = delay;
             if (wait == 0) send(mc, toSend);
             else {
