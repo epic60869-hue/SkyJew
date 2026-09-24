@@ -120,16 +120,14 @@ public final class SkyJewCustomScreen extends Screen {
         int x = left + 190;
 
         addRenderableWidget(Button.builder(Component.literal("Pick Dye"),
-            b -> { showDyes = !showDyes; rebuild(); }).bounds(x, panelY, 125, 25).build());
+            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected))).bounds(x, panelY, 125, 25).build());
 
         addRenderableWidget(Button.builder(Component.literal("Reset colour"),
             b -> { SkyJewCustom.setDye(selected, null); showDyes = false; rebuild(); })
             .bounds(x + 130, panelY, 125, 25).build());
 
-        if (showDyes) buildDyePalette(left + 190, panelY + 32, selected);
-
         SkyJewCustom.TrimId trim = SkyJewCustom.getTrim(selected);
-        int trimY = panelY + (showDyes ? 170 : 36);
+        int trimY = panelY + 36;
 
         trimMaterial = box("Trim material", x, trimY, 220, trim == null ? "" : trim.material());
         trimPattern = box("Trim pattern", x, trimY + 29, 220, trim == null ? "" : trim.pattern());
@@ -151,6 +149,8 @@ public final class SkyJewCustomScreen extends Screen {
         addRenderableWidget(cycleBack);
         addRenderableWidget(Button.builder(Component.literal("Apply animated dye"),
             b -> applyAnimatedDye(selected)).bounds(x + 260, animY, 125, 25).build());
+        addRenderableWidget(Button.builder(Component.literal("Pick Hypixel Animated Dye"),
+            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected))).bounds(x + 260, animY + 30, 180, 25).build());
     }
 
     private void buildDyePalette(int x, int y, ItemStack selected) {
@@ -277,19 +277,6 @@ public final class SkyJewCustomScreen extends Screen {
             }
         } else {
             g.text(font, Component.literal("Nothing customizable"), left + 18, top + 210, 0xFFAAAAAA, false);
-        }
-
-        if (showDyes) {
-            int px = left + 190, py = top + 108;
-            int col = 0, row = 0;
-            for (Map.Entry<String, Integer> entry : DYES.entrySet()) {
-                int bx = px + col * 62, by = py + row * 30;
-                int rgb = entry.getValue();
-                g.fill(bx + 4, by + 5, bx + 16, by + 17, 0xFF000000 | rgb);
-                g.text(font, Component.literal(entry.getKey()), bx + 18, by + 7, 0xFFDDDDDD, false);
-                col++;
-                if (col == 5) { col = 0; row++; }
-            }
         }
 
         super.extractRenderState(g, mouseX, mouseY, delta);
