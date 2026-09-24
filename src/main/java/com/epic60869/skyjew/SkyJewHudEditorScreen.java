@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -138,9 +139,10 @@ public final class SkyJewHudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (selected == null) return super.keyPressed(keyCode, scanCode, modifiers);
-        int d = hasShiftDown() ? 10 : 1;
+    public boolean keyPressed(KeyEvent event) {
+        if (selected == null) return super.keyPressed(event);
+        int keyCode = event.key();
+        int d = event.hasShiftDown() ? 10 : 1;
         switch (keyCode) {
             case GLFW.GLFW_KEY_LEFT -> selected.move(-d, 0);
             case GLFW.GLFW_KEY_RIGHT -> selected.move(d, 0);
@@ -148,7 +150,7 @@ public final class SkyJewHudEditorScreen extends Screen {
             case GLFW.GLFW_KEY_DOWN -> selected.move(0, d);
             case GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_KP_SUBTRACT -> selected.changeScale(-0.1f);
             case GLFW.GLFW_KEY_EQUAL, GLFW.GLFW_KEY_KP_ADD -> selected.changeScale(0.1f);
-            default -> { return super.keyPressed(keyCode, scanCode, modifiers); }
+            default -> { return super.keyPressed(event); }
         }
         save();
         return true;
@@ -174,7 +176,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     @Override
     public void onClose() {
         save();
-        if (minecraft != null) minecraft.setScreen(parent);
+        if (minecraft != null) minecraft.gui.setScreen(parent);
     }
 
     @FunctionalInterface
@@ -211,7 +213,6 @@ public final class SkyJewHudEditorScreen extends Screen {
             switch (type) {
                 case "rng" -> c.farming.rng.scale = clamp(c.farming.rng.scale + d);
                 case "commissions" -> c.farming.commissions.scale = clamp(c.farming.commissions.scale + d);
-                case "pet" -> c.pets.scale = clamp(c.pets.scale + d);
             }
         }
 
