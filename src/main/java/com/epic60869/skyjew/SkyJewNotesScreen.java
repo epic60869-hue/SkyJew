@@ -19,7 +19,7 @@ import java.util.List;
  * notes do not require thousands of GUI widgets.
  */
 public final class SkyJewNotesScreen extends Screen {
-    private static final int BG = 0xFFFFFFFF;
+    private static final int BG = 0xFF20252D;
     private static final int PANEL = 0xFFFFFFFF;
     private static final int BORDER = 0xFFB8B8B8;
     private static final int MUTED = 0xFF666666;
