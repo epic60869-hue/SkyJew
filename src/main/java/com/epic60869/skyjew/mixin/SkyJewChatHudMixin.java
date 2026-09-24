@@ -35,7 +35,7 @@ public abstract class SkyJewChatHudMixin {
         ordinal = 0
     )
     private Component skyjew$replaceSimpleChat(Component message) {
-        return SkyJewNopoFeatures.replaceChatEmojis(message);
+        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOwnNameInChat(message));
     }
 
     @ModifyVariable(
