@@ -40,6 +40,8 @@ public final class SkyJewGlobalChat {
     private static volatile int relayIndex = 0;
     private static final Queue<String> PENDING_MESSAGES = new ArrayDeque<>();
     private static volatile boolean inSkyJewChannel = false;
+    private static volatile long lastNicknameSync = 0L;
+    private static final long NICKNAME_SYNC_INTERVAL_MS = 5000L;
 
     public static boolean isInSkyJewChannel() { return inSkyJewChannel; }
 
@@ -235,9 +237,15 @@ public final class SkyJewGlobalChat {
     }
 
     public static void tick() {
-        if (socket == null && reconnectAt > 0 && System.currentTimeMillis() >= reconnectAt) {
+        long now = System.currentTimeMillis();
+        if (socket == null && reconnectAt > 0 && now >= reconnectAt) {
             reconnectAt = 0;
             connect();
+        }
+        if (socket != null && !socket.isInputClosed() && !socket.isOutputClosed()
+            && now - lastNicknameSync >= NICKNAME_SYNC_INTERVAL_MS) {
+            lastNicknameSync = now;
+            sendNicknameUpdate();
         }
     }
 
