@@ -503,6 +503,9 @@ public final class SkyJewNopoFeatures {
     }
 
     public static Component replaceChatEmojis(Component message) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null || !config.chat.chatEmoji) return message;
+
         final MutableComponent result = Component.empty();
         message.visit((style, value) -> {
             if (value == null || value.isEmpty()) return Optional.empty();
@@ -533,6 +536,24 @@ public final class SkyJewNopoFeatures {
             return Optional.empty();
         }, Style.EMPTY);
         return result;
+    }
+
+    public static boolean chatEmojisEnabled() {
+        SkyJewConfig config = SkyJewConfig.current();
+        return config != null && config.chat.chatEmoji;
+    }
+
+    public static List<String> getChatEmojiSuggestions() {
+        if (!chatEmojisEnabled()) return List.of();
+        return new ArrayList<>(EMOJIS.stream().map(name -> ":" + name + ":").sorted().toList());
+    }
+
+    public static boolean isChatEmoji(String value) {
+        if (value == null) return false;
+        String clean = value;
+        if (clean.startsWith(":")) clean = clean.substring(1);
+        if (clean.endsWith(":")) clean = clean.substring(0, clean.length() - 1);
+        return chatEmojisEnabled() && EMOJIS.contains(clean);
     }
 
     private static double parseDouble(String value) {
