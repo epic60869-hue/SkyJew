@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 public final class SkyJewCommissionHud {
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew-mod", "mining_commissions");
-    private static final Pattern COMMISSION = Pattern.compile("(?<name>.*): (?<progress>.*)%?");
+    private static final Pattern COMMISSION = Pattern.compile("(?<name>.+?)\\s*:\\s*(?<progress>(?:DONE|\\d+(?:\\.\\d+)?)%?)", Pattern.CASE_INSENSITIVE);
     private static SkyJewConfig config;
     private static List<Commission> commissions = List.of();
 
@@ -64,7 +64,7 @@ public final class SkyJewCommissionHud {
             Component display = info.getTabListDisplayName();
             if (display == null) continue;
 
-            String line = display.getString();
+            String line = display.getString().replaceAll("§.", "").trim();
             if (!inSection) {
                 if (line.trim().toLowerCase().startsWith("commissions")) {
                     inSection = true;
