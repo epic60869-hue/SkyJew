@@ -207,45 +207,24 @@ public final class SkyJewStorageSearch {
     }
 
     private static void applyPendingHighlight(Minecraft mc) {
+        // Do not move the native GLFW cursor here. On 26.2 that can race the
+        // container's input/render path and crash when another mod replaces the
+        // screen during an /ec or /bp command. The result remains selected by
+        // the search UI and the opened container is left untouched.
+        if (pendingHighlight == null || mc.gui.screen() == null) return;
         Result result = pendingHighlight;
-        if (result == null || mc.gui.screen() == null) return;
-
         if ("INVENTORY".equals(result.type())) {
-            if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
-            Slot target = null;
-            for (Slot slot : screen.getMenu().slots) {
-                if (slot.getContainerSlot() == result.slot()) {
-                    target = slot;
-                    break;
-                }
+            if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
+                pendingHighlight = null;
             }
-            if (target == null) return;
-            moveCursorToSlot(mc, screen, target);
-            pendingHighlight = null;
             return;
         }
-
         if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
         String title = cleanTitle(screen.getTitle().getString());
         boolean matching = result.type().equals("ENDER_CHEST")
             ? title.contains("ender chest")
             : title.contains("backpack");
-        if (!matching) return;
-
-        if (result.slot() >= 0 && result.slot() < screen.getMenu().slots.size()) {
-            moveCursorToSlot(mc, screen, screen.getMenu().slots.get(result.slot()));
-            pendingHighlight = null;
-        }
-    }
-
-    private static void moveCursorToSlot(Minecraft mc,
-                                         net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen,
-                                         Slot slot) {
-        double scale = mc.getWindow().getGuiScale();
-        SkyJewContainerScreenAccessor accessor = (SkyJewContainerScreenAccessor) screen;
-        double x = (accessor.skyjew$getLeftPos() + slot.x + 8) * scale;
-        double y = (accessor.skyjew$getTopPos() + slot.y + 8) * scale;
-        GLFW.glfwSetCursorPos(mc.getWindow().handle(), x, y);
+        if (matching) pendingHighlight = null;
     }
 
     private static String cleanTitle(String title) {
@@ -267,7 +246,7 @@ public final class SkyJewStorageSearch {
         if (target == null) return;
 
         List<Slot> slots = container.getMenu().slots;
-        int count = Math.max(0, slots.size() - 36);
+        int count = Math.max(0, slots.size() - 36);\n        if (count == 0) count = Math.min(54, slots.size());
         if (count <= 0) return;
 
         List<ItemStack> contents = new ArrayList<>(count);
@@ -290,19 +269,35 @@ public final class SkyJewStorageSearch {
     }
 
     private static StorageTarget identify(String title) {
-        String normalized = title == null ? "" : title.trim();
+        String normalized = title == null ? "" : title.trim().replaceAll("\\s+", " ");
         Matcher ender = ENDER_CHEST.matcher(normalized);
         if (ender.find()) {
-            int number = ender.group(1) == null ? 0 : parseNumber(ender.group(1));
+            int number = parseNumber(ender.group(1));
             return new StorageTarget("ENDER_CHEST", number, number > 0 ? "Ender Chest #" + number : "Ender Chest");
         }
-
         Matcher backpack = BACKPACK.matcher(normalized);
         if (backpack.find()) {
-            int number = backpack.group(1) == null ? 0 : parseNumber(backpack.group(1));
-            return new StorageTarget("BACKPACK", number, number > 0 ? "Backpack #" + number : cleanTitle(normalized));
+            int number = parseNumber(backpack.group(1));
+            return new StorageTarget("BACKPACK", number, number > 0 ? "Backpack #" + number : "Backpack");
+        }
+
+        // Hypixel has changed the visible title formatting several times.
+        // Never let a title variation prevent the cache from learning a page.
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.contains("ender chest")) {
+            int number = firstNumber(normalized);
+            return new StorageTarget("ENDER_CHEST", number, number > 0 ? "Ender Chest #" + number : "Ender Chest");
+        }
+        if (lower.contains("backpack")) {
+            int number = firstNumber(normalized);
+            return new StorageTarget("BACKPACK", number, number > 0 ? "Backpack #" + number : "Backpack");
         }
         return null;
+    }
+
+    private static int firstNumber(String text) {
+        Matcher m = Pattern.compile("\\d+").matcher(text);
+        return m.find() ? parseNumber(m.group()) : 0;
     }
 
     private record StorageTarget(String type, int number, String label) {}
