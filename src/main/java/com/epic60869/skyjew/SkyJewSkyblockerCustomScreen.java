@@ -367,11 +367,12 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
                 -yRotation * net.minecraft.util.Mth.DEG_TO_RAD,
                 (float) Math.PI
             );
-            var state = SkyJewInventoryScreenInvoker.invokeExtractRenderState(player);
+            var state = com.epic60869.skyjew.mixin.SkyJewInventoryScreenInvoker.invokeExtractRenderState(player);
             g.entity(state, size, translation, rotation, null, getX(), getY(), getRight(), getBottom());
         }
 
-        @Override protected void updateWidgetNarration(NarrationElementOutput n) {}
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput n) {}
     }
 
     private final class ArmorPieceWidget extends AbstractWidget {
@@ -399,7 +400,8 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
             if (e.button() == 0) click.run();
         }
 
-        @Override protected void updateWidgetNarration(NarrationElementOutput n) {}
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput n) {}
     }
 
     private final class ItemSelectorWidget extends AbstractWidget {
@@ -449,6 +451,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
             }
         }
 
-        @Override protected void updateWidgetNarration(NarrationElementOutput n) {}
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput n) {}
     }
 }
