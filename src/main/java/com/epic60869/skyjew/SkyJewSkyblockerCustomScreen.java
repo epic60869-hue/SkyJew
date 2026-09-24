@@ -127,7 +127,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         drawLabel("Name", controlLeft, row);
         nameField = field(controlLeft, row + 13, Math.max(120, controlWidth - 150), SkyJewCustom.getName(target));
         addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
-            SkyJewCustom.setName(itemTarget, nameField.getValue());
+            SkyJewCustom.setName(target, nameField.getValue());
             init();
         }).bounds(controlLeft + controlWidth - 72, row + 13, 68, 20).build());
 
@@ -139,7 +139,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
             drawLabel("Dye color", controlLeft, row);
             dyeField = field(controlLeft, row + 13, 100, colorText(SkyJewCustom.getDye(target)));
             addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
-                try { SkyJewCustom.setDye(itemTarget, SkyJewCustom.parseHex(dyeField.getValue())); init(); }
+                try { SkyJewCustom.setDye(target, SkyJewCustom.parseHex(dyeField.getValue())); init(); }
                 catch (Exception ignored) {}
             }).bounds(controlLeft + 106, row + 13, 68, 20).build());
 
@@ -177,7 +177,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         }
 
         addRenderableWidget(Button.builder(Component.literal("Clear customization"), b -> {
-            SkyJewCustom.clearAll(itemTarget);
+            SkyJewCustom.clearAll(target);
             init();
         }).bounds(controlLeft, height - 62, 145, 20).build());
     }
@@ -203,7 +203,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         drawLabel("Custom name", right, row);
         nameField = field(right, row + 13, Math.max(120, controlsWidth - 80), SkyJewCustom.getName(target));
         addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
-            SkyJewCustom.setName(target, nameField.getValue());
+            SkyJewCustom.setName(itemTarget, nameField.getValue());
             init();
         }).bounds(right + controlsWidth - 72, row + 13, 68, 20).build());
 
@@ -211,12 +211,12 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         drawLabel("Dye color", right, row);
         dyeField = field(right, row + 13, 100, colorText(SkyJewCustom.getDye(target)));
         addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
-            try { SkyJewCustom.setDye(target, SkyJewCustom.parseHex(dyeField.getValue())); init(); }
+            try { SkyJewCustom.setDye(itemTarget, SkyJewCustom.parseHex(dyeField.getValue())); init(); }
             catch (Exception ignored) {}
         }).bounds(right + 106, row + 13, 68, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Clear customization"), b -> {
-            SkyJewCustom.clearAll(target);
+            SkyJewCustom.clearAll(itemTarget);
             init();
         }).bounds(right, row + 50, 145, 20).build());
     }
