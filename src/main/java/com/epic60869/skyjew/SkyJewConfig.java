@@ -433,9 +433,9 @@ public final class SkyJewConfig extends Config {
         if (old.has("mouseLockEnabled")) migrated.farming.mouseLock.enabled = old.get("mouseLockEnabled").getAsBoolean();
         if (old.has("mouseLockGroundOnly")) migrated.farming.mouseLock.groundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
 
-        if (old.has("experimentHelperEnabled")) migrated.experiments.enabled = old.get("experimentHelperEnabled").getAsBoolean();
-        if (old.has("experimentHelperHighlight")) migrated.experiments.highlight = old.get("experimentHelperHighlight").getAsBoolean();
-        if (old.has("experimentHelperPreventMisclicks")) migrated.experiments.preventMisclicks = old.get("experimentHelperPreventMisclicks").getAsBoolean();
+        if (old.has("experimentHelperEnabled")) migrated.experiments.table.enabled = old.get("experimentHelperEnabled").getAsBoolean();
+        if (old.has("experimentHelperHighlight")) migrated.experiments.table.highlight = old.get("experimentHelperHighlight").getAsBoolean();
+        if (old.has("experimentHelperPreventMisclicks")) migrated.experiments.table.preventMisclicks = old.get("experimentHelperPreventMisclicks").getAsBoolean();
         if (old.has("experimentHelperDebug")) 
         if (old.has("nickEnabled")) migrated.misc.nickname.enabled = old.get("nickEnabled").getAsBoolean();
         if (old.has("nickName")) migrated.misc.nickname.name = old.get("nickName").getAsString();
