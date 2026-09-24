@@ -364,12 +364,9 @@ public final class SkyJewGlobalChat {
                     return;
                 }
 
-                if ("nicknameRemove".equals(type)) {
-                    try {
-                        SkyJewNick.removeRemote(UUID.fromString(packet.get("minecraftUuid").getAsString()));
-                    } catch (Exception ignored) {}
-                    return;
-                }
+                // Nicknames are persistent. A socket disconnect is not a
+                // reason to erase another player's nickname from this client.
+                // The authoritative nicknameUpdate packet handles enable/disable.
 
                 if ("discordResult".equals(type)) {
                     String requestId = packet.has("requestId")
