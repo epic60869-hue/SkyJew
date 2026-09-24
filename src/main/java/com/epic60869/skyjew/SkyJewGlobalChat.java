@@ -39,6 +39,23 @@ public final class SkyJewGlobalChat {
     private static volatile String username = "Unknown";
     private static volatile int relayIndex = 0;
     private static final Queue<String> PENDING_MESSAGES = new ArrayDeque<>();
+    private static volatile boolean inSkyJewChannel = false;
+
+    public static boolean isInSkyJewChannel() { return inSkyJewChannel; }
+
+    public static void enterSkyJewChannel() {
+        inSkyJewChannel = true;
+        mcMessage(Component.literal("You are now in the SkyJew channel")
+            .withStyle(Style.EMPTY.withColor(0x55FFFF).withBold(true))
+            .append(Component.literal(" — anything you type will be sent to SkyJew chat.")
+                .withStyle(Style.EMPTY.withColor(0xAAAAAA))));
+    }
+
+    public static void leaveSkyJewChannel() {
+        inSkyJewChannel = false;
+        mcMessage(Component.literal("You have left the SkyJew channel.")
+            .withStyle(Style.EMPTY.withColor(0xFFAA00).withBold(true)));
+    }
 
     private SkyJewGlobalChat() {}
 
