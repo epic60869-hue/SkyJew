@@ -12,7 +12,7 @@
     "SkyJewMouseHandlerMixin",
     "SkyJewExperimentScreenMixin",
     "SkyJewContainerScreenAccessor",
-    "com.epic60869.skyjew.SkyJewInventoryScreenInvoker",
+    "SkyJewInventoryScreenInvoker",
     "SkyJewPlayerTabOverlayMixin"
   ]
 }
