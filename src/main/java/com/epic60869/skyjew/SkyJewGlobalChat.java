@@ -82,6 +82,7 @@ public final class SkyJewGlobalChat {
         packet.addProperty("username", username);
         packet.addProperty("command", clean.substring(0, Math.min(clean.length(), 500)));
         ws.sendText(GSON.toJson(packet), true);
+        mcMessage(Component.literal("[SJ] Sending " + clean).withStyle(Style.EMPTY.withColor(0xAAAAAA)));
     }
 
     public static void send(String message) {
