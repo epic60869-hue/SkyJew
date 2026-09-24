@@ -178,106 +178,108 @@ public final class SkyJewNopoFeatures {
 
     private static void updatePetDisplay(Minecraft mc) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.pets.display.enabled || !config.pets.display.autoDisplay) {
-            petDisplay = null;
-            return;
-        }
-        if (!isHypixel() || mc.getConnection() == null) {
+        if (config == null || !config.pets.display.enabled || !config.pets.display.autoDisplay
+            || !isHypixel() || mc.getConnection() == null) {
             petDisplay = null;
             return;
         }
 
-        // Direct port of Nopo's TabWidget.PET source: use the standalone
-        // Skyblocker-style TAB cache, preserving the real Component styling.
-        List<Component> petLines = new ArrayList<>();
         SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Pet");
-        if (!widget.lines().isEmpty()) {
-            petLines.add(Component.literal("Pet:"));
-            petLines.addAll(widget.lines());
-        } else {
-            // Some Hypixel layouts expose "Pet:" without being classified by the
-            // generic colon parser; scan the cached raw entries as a fallback.
-            for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-                Component c = info.getTabListDisplayName();
-                if (c == null) continue;
-                String s = c.getString();
-                if (s.strip().equalsIgnoreCase("Pet:")) {
-                    petLines.clear();
-                    petLines.add(c);
-                    continue;
-                }
-                if (!petLines.isEmpty()) {
-                    if (s.startsWith(" ")) petLines.add(c);
-                    else break;
-                }
-            }
-        }
-
-        if (petLines.size() < 2) {
+        if (widget.lines().isEmpty()) {
             petDisplay = null;
             return;
         }
 
+        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)]\\s+(?<name>.+)$");
         List<Component> display = new ArrayList<>();
-        display.add(petLines.get(0));
+        display.add(Component.literal("Pet:")
+            .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
+
+        String petName = "";
         int level = -1;
-        int overflowLevel = -1;
-        String name = "";
-        int rarityOffset = 20;
-        boolean maxLevel = false;
 
-        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl (?<level>\\d+)] (?<name>.*)$");
-        Pattern overflowXpRegex = Pattern.compile("^\\s*\\+(?<xp>[\\d,.]+) XP$");
-
-        for (Component line : petLines) {
-            String text = line.getString();
+        for (Component line : widget.lines()) {
+            String text = line.getString().strip();
             Matcher petMatch = petNameRegex.matcher(text);
+
             if (petMatch.matches()) {
                 level = Integer.parseInt(petMatch.group("level"));
-                overflowLevel = level;
-                name = petMatch.group("name");
-                rarityOffset = rarityOffsetFromComponent(line, name.replace("✦", "").trim());
+                petName = petMatch.group("name").strip();
+
+                // Rebuild the line so the pet name keeps Hypixel's actual rarity
+                // colour from the TAB component. This is important because simply
+                // calling getString() throws away all rarity styling.
+                display.add(stylePetLine(line, level, petName));
                 continue;
             }
-            Matcher xpMatch = overflowXpRegex.matcher(text);
-            if (xpMatch.matches() && level >= 0) {
-                maxLevel = true;
-                float totalXp = (float) parseDouble(xpMatch.group("xp")) + calculativeXpForLevel(level, rarityOffset);
-                overflowLevel = calcLevel(totalXp);
-                if (level == 200) overflowLevel--;
-                float progressXp = leftoverXp(totalXp);
-                int nextOffset = (rarityOffset < 20 && overflowLevel < 100) ? 1 : 0;
-                int xpForNextLevel = getXpForLevel(Math.max(0, overflowLevel - nextOffset), 20);
-                double percent = xpForNextLevel <= 0 ? 0 : (progressXp / xpForNextLevel) * 100.0;
-                display.add(Component.literal(" " + formatNumber(progressXp) + "/" + formatCompact(xpForNextLevel)
-                    + " XP (" + String.format(Locale.US, "%.1f", percent) + "%)")
-                    .withStyle(s -> s.withColor(ChatFormatting.YELLOW)));
+
+            // Hypixel's normal pet line is e.g. "11,288/94.8k XP (25.2%)".
+            // Overflow pets may instead expose "+12345 XP". Keep both forms.
+            if (level >= 0 && text.matches("^\\+?[\\d,.]+(?:/[\\d,.]+[kKmMbB]?)?\\s+XP.*$")) {
+                display.add(line);
             }
         }
 
-        if (level < 0 || name.isBlank()) {
+        if (petName.isBlank()) {
             petDisplay = null;
             return;
         }
 
-        Component nameComponent = findComponentText(petLines.get(1), name);
-        if (nameComponent == null) nameComponent = Component.literal(name);
-
-        MutableComponent levelLine = Component.literal(" [Lvl " + overflowLevel);
-        if (rarityOffset < 20 && level != overflowLevel && overflowLevel < 100)
-            levelLine.append(Component.literal(" (" + level + ")"));
-        levelLine.append(Component.literal("] ")).append(nameComponent);
-        display.add(1, levelLine);
-
-        if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel && mc.player != null) {
-            mc.player.sendSystemMessage(Component.literal("Your ").append(nameComponent)
-                .append(Component.literal(" leveled up to level "))
-                .append(Component.literal(Integer.toString(overflowLevel)).withStyle(s -> s.withColor(ChatFormatting.BLUE)))
-                .append("!"));
+        // Keep the raw XP/progress component so Hypixel's percentage and
+        // formatting remain exact. Overflow XP is additionally rendered by Nopo's
+        // tooltip feature; the HUD should not invent a second progress format.
+        if (currentPet.isBlank()) {
+            currentPet = petName;
+            currentOverflowLevel = level;
+        } else if (!currentPet.equals(petName)) {
+            currentPet = petName;
+            currentOverflowLevel = level;
         }
+
         petDisplay = display;
-        currentPet = name;
-        currentOverflowLevel = overflowLevel;
+    }
+
+    private static Component stylePetLine(Component original, int level, String petName) {
+        MutableComponent out = Component.literal(" [Lvl " + level + "] ")
+            .withStyle(s -> s.withColor(ChatFormatting.GRAY));
+
+        final boolean[] found = {false};
+        original.visit((style, value) -> {
+            if (value == null || value.isEmpty()) return Optional.empty();
+
+            int start = value.indexOf(petName);
+            if (start >= 0 && !found[0]) {
+                if (start > 0) {
+                    out.append(Component.literal(value.substring(0, start)).withStyle(style));
+                }
+
+                Style petStyle = style;
+                // If Hypixel supplied a rarity colour, keep it exactly. If the
+                // whole component has no explicit colour, use gold as the safe
+                // legendary-looking fallback rather than rendering every pet
+                // white. Most live TAB entries provide an explicit rarity style.
+                if (petStyle.getColor() == null) {
+                    petStyle = petStyle.withColor(ChatFormatting.GOLD);
+                }
+                out.append(Component.literal(petName).withStyle(petStyle));
+
+                if (start + petName.length() < value.length()) {
+                    out.append(Component.literal(value.substring(start + petName.length()))
+                        .withStyle(style));
+                }
+                found[0] = true;
+                return Optional.empty();
+            }
+
+            if (!found[0]) out.append(Component.literal(value).withStyle(style));
+            return Optional.empty();
+        }, Style.EMPTY);
+
+        if (!found[0]) {
+            out.append(Component.literal(petName)
+                .withStyle(s -> s.withColor(ChatFormatting.GOLD)));
+        }
+        return out;
     }
 
     private static Component findComponentText(Component component, String text) {
