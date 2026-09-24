@@ -19,7 +19,10 @@ public class SkyJewPlayerTabOverlayMixin {
 
         Component original = cir.getReturnValue();
         Component replacement = SkyJewNick.tabDisplayName(original, profile.id(), profile.name());
-        if (replacement != null && !replacement.getString().equals(original.getString())) {
+        // getString() intentionally ignores colour/style. A nickname can keep
+        // the same text while changing its colour, so never use plain text as
+        // the test for whether the replacement should be applied.
+        if (replacement != null && replacement != original) {
             cir.setReturnValue(replacement);
         }
     }
