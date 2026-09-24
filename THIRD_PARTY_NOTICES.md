@@ -31,3 +31,13 @@ SkyJew's /sj keys GUI and command-key workflow are adapted from TerminalMC/Comma
 - License: Apache License 2.0
 
 The SkyJew implementation is adapted to SkyJew's own configuration/backend rather than adding CommandKeys as a runtime dependency.
+
+## SkyHanni GUI Position Editor
+
+SkyJew's /sj gui position editor is an adaptation of the SkyHanni GUI position editor interaction model, including draggable HUD boxes, hover information, keyboard movement, and scroll-wheel scaling.
+
+- https://github.com/hannibal002/SkyHanni
+- Relevant source: src/main/java/at/hannibal2/skyhanni/config/core/config/gui/GuiPositionEditor.kt and src/main/java/at/hannibal2/skyhanni/data/GuiEditManager.kt
+- License: GNU Lesser General Public License v2.1 (LGPL-2.1)
+
+SkyJew's implementation is independently adapted to its Java/Fabric 26.x HUD system and does not add SkyHanni as a runtime dependency.
