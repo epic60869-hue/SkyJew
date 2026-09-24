@@ -21,10 +21,11 @@ public final class SkyJewRecipeOverlay {
         for (var i : recipe.ingredients()) if (i.amount() > 0) lines++;
         int height = Math.min(190, 46 + Math.min(lines, 9) * 15 + 10);
 
-        g.fill(x, y, x + WIDTH, y + height, 0xD9101420);
+        g.fill(x, y, x + WIDTH, y + height, 0xE6101420);
         g.fill(x, y, x + WIDTH, y + 2, 0xFF9A6CFF);
         g.text(screen.getFont(), "Craft Helper", x + PADDING, y + 9, 0xFFFFFFFF, true);
-        g.text(screen.getFont(), "×", x + WIDTH - 15, y + 8, 0xFFFF7777, true);
+        g.fill(x + WIDTH - 24, y + 5, x + WIDTH - 5, y + 22, 0xFF8B1E2D);
+        g.text(screen.getFont(), "×", x + WIDTH - 19, y + 7, 0xFFFFFFFF, true);
 
         String title = SkyJewRecipeCommand.selectedAmount() + "x " + SkyJewRecipeCommand.selectedName();
         if (title.length() > 27) title = title.substring(0, 26) + "…";
@@ -40,7 +41,7 @@ public final class SkyJewRecipeOverlay {
             g.text(screen.getFont(), line, x + PADDING, y + 43 + row * 15, 0xFFE1E7F0, false);
             row++;
         }
-        g.text(screen.getFont(), "Click × or /sj recipe clear", x + PADDING, y + height - 10, 0xFF8794A8, false);
+        g.text(screen.getFont(), "Click the red × to close", x + PADDING, y + height - 10, 0xFF8794A8, false);
     }
 
     public static boolean mouseClicked(AbstractContainerScreen<?> screen, double mouseX, double mouseY, int button) {
