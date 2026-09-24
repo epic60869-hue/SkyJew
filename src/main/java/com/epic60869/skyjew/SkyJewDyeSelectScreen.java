@@ -1,5 +1,6 @@
 package com.epic60869.skyjew;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -157,7 +158,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
                     setMessage(Component.literal(getMessage().getString()).withColor(colors.get(index)));
                 }
             }
-            graphics.text(getMessage(), getX() + 25, getY() + 6, 0xFFFFFFFF, false);
+            graphics.text(Minecraft.getInstance().font, getMessage(), getX() + 25, getY() + 6, 0xFFFFFFFF, false);
         }
     }
 }
