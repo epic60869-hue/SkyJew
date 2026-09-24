@@ -10,8 +10,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import net.minecraft.client.gui.components.PlayerTabOverlay;
-import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
