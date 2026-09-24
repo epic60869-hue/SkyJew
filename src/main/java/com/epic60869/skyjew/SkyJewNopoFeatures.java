@@ -49,6 +49,7 @@ public final class SkyJewNopoFeatures {
     private static final Set<String> EMOJIS = new HashSet<>();
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([A-Za-z0-9_+\\-]+):");
     private static final Map<String, String> EMOJI_SYMBOLS = new LinkedHashMap<>();
+    private static final Map<String, String> EMOJI_CANONICAL = new HashMap<>();
     private static final Map<String, SlayerData> SLAYERS = new LinkedHashMap<>();
     private static final Map<String, List<Long>> CROP_TIMES = new LinkedHashMap<>();
     private static String currentSlayer = null;
@@ -494,6 +495,7 @@ public final class SkyJewNopoFeatures {
 
     private static void loadEmojis() {
         EMOJIS.clear();
+        EMOJI_CANONICAL.clear();
         try (InputStream in = SkyJewNopoFeatures.class.getResourceAsStream("/assets/skyjew/emojis.json")) {
             if (in == null) return;
             JsonObject root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -501,8 +503,13 @@ public final class SkyJewNopoFeatures {
                 JsonObject emoji = element.getAsJsonObject();
                 String name = emoji.get("name").getAsString();
                 EMOJIS.add(name);
+                EMOJI_CANONICAL.put(name, name);
                 if (emoji.has("alternatives")) {
-                    for (var alt : emoji.getAsJsonArray("alternatives")) EMOJIS.add(alt.getAsString());
+                    for (var alt : emoji.getAsJsonArray("alternatives")) {
+                        String alias = alt.getAsString();
+                        EMOJIS.add(alias);
+                        EMOJI_CANONICAL.put(alias, name);
+                    }
                 }
             }
         } catch (Throwable ignored) {
@@ -556,15 +563,14 @@ public final class SkyJewNopoFeatures {
                 }
                 String name = matcher.group(1);
                 if (EMOJIS.contains(name)) {
-                    String symbol = EMOJI_SYMBOLS.get(name);
-                    if (EMOJI_SYMBOLS.containsKey(name)) {
-                        out.append(Component.object(new AtlasSprite(
-                            Identifier.withDefaultNamespace("gui"),
-                            Identifier.fromNamespaceAndPath("skyjew", name)
-                        )).withStyle(style));
-                    } else {
-                        out.append(Component.literal(symbol == null ? matcher.group() : symbol).withStyle(style));
-                    }
+                    String canonical = EMOJI_CANONICAL.getOrDefault(name, name);
+                    // Nopo's implementation uses the vanilla GUI atlas. SkyJew
+                    // ships the same sprites under its own namespace, so aliases
+                    // resolve to the canonical sprite without a Nopo dependency.
+                    out.append(Component.object(new AtlasSprite(
+                        Identifier.withDefaultNamespace("gui"),
+                        Identifier.fromNamespaceAndPath("skyjew", canonical)
+                    )).withStyle(style));
                 } else {
                     out.append(Component.literal(matcher.group()).withStyle(style));
                 }
