@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -312,7 +313,7 @@ public final class SkyJewGlobalChat {
                 String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
 
                 String line = prefix + " [" + name + "] " + message;
-                mcMessage(Component.literal(line));
+                mcMessage(linkify(line));
             } catch (Exception ignored) {
             }
         }
