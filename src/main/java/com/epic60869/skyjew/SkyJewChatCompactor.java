@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * breaks as soon as another chat line is inserted between two repetitions.
  */
 public final class SkyJewChatCompactor {
-    private static final long WINDOW_MS = 5000L;
+    private static final int WINDOW_TICKS = 100; // 5 seconds at Minecraft's 20 TPS
     private static final Pattern COUNT_SUFFIX =
         Pattern.compile("\\s*\\u00a7?7?\\s*\\(x(\\d+)\\)$");
 
@@ -48,7 +48,7 @@ public final class SkyJewChatCompactor {
 
     /**
      * Records the newest message and returns whether it is inside the
-     * "recently seen" window. The visible list is handled by compact().
+     * "recently seen" window. Minecraft's GuiMessage.addedTime is a creation tick,
      */
     public static boolean recentlySeen(Component message) {
         if (!enabled() || message == null) return false;
@@ -56,14 +56,14 @@ public final class SkyJewChatCompactor {
         if (k.isBlank()) return false;
 
         long now = System.currentTimeMillis();
-        boolean recent = k.equals(lastKey) && now - lastAt <= WINDOW_MS;
+        boolean recent = k.equals(lastKey) && now - lastAt <= WINDOW_TICKS;
         lastKey = k;
         lastAt = now;
         return recent;
     }
 
     /**
-     * Compact the newest chat message against the most recently visible copy
+     * Compact the newest chat message against a matching copy that arrived
      * of the same message. This deliberately does not require adjacency.
      *
      * Returns true when the new message was absorbed into an older one.
@@ -81,7 +81,7 @@ public final class SkyJewChatCompactor {
             if (!same(newest.content(), old.content())) continue;
 
             long age = Math.max(0L, now - old.addedTime());
-            if (age > WINDOW_MS) continue;
+            if (age > WINDOW_TICKS) continue;
 
             int oldCount = count(old.content());
             int newCount = oldCount + 1;
