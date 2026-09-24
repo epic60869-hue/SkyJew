@@ -22,6 +22,7 @@ public final class SkyJewMod implements ClientModInitializer {
         Path configDir = minecraft.gameDirectory.toPath().resolve("config");
         config = SkyJewConfig.load(configDir.resolve("skyjew-mod.json"));
         SkyJewSounds.initialize();
+        SkyJewRecipeCommand.init();
 
         FarmingRngTracker.get().register();
         SkyJewRngHud.register(config);
@@ -57,6 +58,7 @@ public final class SkyJewMod implements ClientModInitializer {
             .then(ClientCommands.literal("notes").executes(context -> openNotes()))
             .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
             .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
+            .then(SkyJewRecipeCommand.command())
             .then(ClientCommands.literal("calc")
                 .then(ClientCommands.argument("calculation", StringArgumentType.greedyString())
                     .executes(context -> calculate(StringArgumentType.getString(context, "calculation")))))
@@ -262,6 +264,9 @@ public final class SkyJewMod implements ClientModInitializer {
             return;
         }
 
+        while (SkyJewKeyMappings.SEARCH.consumeClick()) {
+            openStorageSearch();
+        }
         SkyJewCommandKeys.tick(minecraft);
         SkyJewSearchKeybind.tick(minecraft);
         SkyJewStorageSearch.tick(minecraft);
