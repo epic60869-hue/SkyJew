@@ -38,7 +38,6 @@ public final class SkyJewStorageSearchScreen extends Screen {
 
     private EditBox searchBox;
     private boolean searchLore = true;
-    private int category;
     private int sortMode = 0; // 0 = amount, 1 = name, 2 = location
     private boolean ascending = true;
     private int scrollRows;
@@ -113,14 +112,9 @@ public final class SkyJewStorageSearchScreen extends Screen {
                 Minecraft.getInstance(),
                 searchBox.getValue(),
                 searchLore,
-                category == 2
+                true
         );
 
-        if (category == 1) {
-            results = results.stream()
-                    .filter(r -> !"INVENTORY".equals(r.type()))
-                    .toList();
-        }
 
         results = results.stream().sorted((a, b) -> {
             int cmp;
@@ -159,11 +153,9 @@ public final class SkyJewStorageSearchScreen extends Screen {
                 SkyJewStorageSearch.cachedStorageCount() + " storages cached",
                 right - 112, top + 10, MUTED, false);
 
-        // Category strip. These correspond to SkyOcean's ALL/STORAGE/SACK/ISLAND
-        // concept, with SkyJew currently providing the sources it can actually know.
-        drawCategory(g, left - 24, top + 30, 0, Items.COMPASS, "All");
-        drawCategory(g, left - 24, top + 54, 1, Items.ENDER_CHEST, "Storage");
-        drawCategory(g, left - 24, top + 78, 2, Items.CHEST, "Inventory");
+        // Only the compass remains on the left. Storage and inventory are
+        // searched together.
+        drawCategory(g, left - 24, top + 30, Items.COMPASS, "Search");
 
         // Sort controls.
         int sortX = right - 76;
@@ -225,9 +217,9 @@ public final class SkyJewStorageSearchScreen extends Screen {
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
-    private void drawCategory(GuiGraphicsExtractor g, int x, int y, int index,
+    private void drawCategory(GuiGraphicsExtractor g, int x, int y,
                               net.minecraft.world.item.Item item, String label) {
-        boolean selected = category == index;
+        boolean selected = true;
         g.fill(x, y, x + CATEGORY, y + CATEGORY,
                 selected ? PRIMARY : SLOT);
         g.item(new net.minecraft.world.item.ItemStack(item), x + 3, y + 3);
@@ -247,17 +239,7 @@ public final class SkyJewStorageSearchScreen extends Screen {
         int top = panelTop();
         int right = left + panelWidth();
 
-        // Category buttons.
-        int[] categoryYs = {top + 30, top + 54, top + 78};
-        for (int i = 0; i < categoryYs.length; i++) {
-            if (event.x() >= left - 24 && event.x() < left - 2
-                    && event.y() >= categoryYs[i] && event.y() < categoryYs[i] + CATEGORY) {
-                category = i;
-                scrollRows = 0;
-                refresh();
-                return true;
-            }
-        }
+        // The compass is the only side control now.
 
         // Sort selector cycles Amount -> Name -> Location.
         if (event.x() >= right - 76 && event.x() < right - 8
