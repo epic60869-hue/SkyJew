@@ -40,4 +40,15 @@ SkyJew's /sj gui position editor is an adaptation of the SkyHanni GUI position e
 - Relevant source: src/main/java/at/hannibal2/skyhanni/config/core/config/gui/GuiPositionEditor.kt and src/main/java/at/hannibal2/skyhanni/data/GuiEditManager.kt
 - License: GNU Lesser General Public License v2.1 (LGPL-2.1)
 
-SkyJew's implementation is independently adapted to its Java/Fabric 26.x HUD system and does not add SkyHanni as a runtime dependency.
+SkyJew's implementation is independently adapted to SkyJew's own Java/Fabric 26.x HUD system and does not add SkyHanni as a runtime dependency.
+
+## SkyOcean
+
+SkyJew's search-keybind and recipe-command workflows are adapted from the corresponding SkyOcean features:
+
+- https://github.com/meowdding/SkyOcean
+- Item search: src/main/kotlin/me/owdding/skyocean/features/item/search/ItemSearch.kt
+- Recipe command: src/main/kotlin/me/owdding/skyocean/commands/CraftHelperCommand.kt
+- Recipe autocomplete: src/main/kotlin/me/owdding/skyocean/utils/suggestions/RecipeNameSuggestionProvider.kt
+
+SkyJew uses an independent Java implementation and does not add SkyOcean as a runtime dependency. SkyOcean's repository is licensed under its published project terms.
