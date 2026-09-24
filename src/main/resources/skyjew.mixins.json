@@ -16,6 +16,7 @@
     "SkyJewInventoryScreenInvoker",
     "SkyJewPlayerInfoMixin",
     "SkyJewPlayerTabOverlayMixin",
-    "SkyJewPlayerTabOverlayAccessor"
+    "SkyJewPlayerTabOverlayAccessor",
+    "SkyJewItemHighlightMixin"
   ]
 }
