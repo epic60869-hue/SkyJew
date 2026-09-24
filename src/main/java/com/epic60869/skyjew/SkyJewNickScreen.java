@@ -50,7 +50,7 @@ public final class SkyJewNickScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
             nameBox.setValue("");
-            enabledBox.selected = false;
+            enabledBox.onPress();
         }).bounds(left + 22, top + 165, 72, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveAndClose())
@@ -92,7 +92,7 @@ public final class SkyJewNickScreen extends Screen {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
             config.misc.nickname.name = nameBox.getValue().trim();
-            config.misc.nickname.enabled = enabledBox.selected && !config.misc.nickname.name.isBlank();
+            config.misc.nickname.enabled = enabledBox.selected() && !config.misc.nickname.name.isBlank();
             String hex = hexBox.getValue().trim();
             if (!hex.startsWith("#")) hex = "#" + hex;
             if (hex.matches("#[0-9a-fA-F]{6}")) config.misc.nickname.customHex = hex.toUpperCase(Locale.ROOT);
