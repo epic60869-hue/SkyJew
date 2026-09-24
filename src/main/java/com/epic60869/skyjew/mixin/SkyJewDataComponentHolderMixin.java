@@ -5,7 +5,7 @@ import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;\nimport net.minecraft.resources.Identifier;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +17,7 @@ public interface SkyJewDataComponentHolderMixin {
     private <T> void skyjew$customTrim(DataComponentType<? extends T> type,
                                            CallbackInfoReturnable<T> cir) {
         if ((Object)this instanceof ItemStack stack) {
-            if (type == DataComponents.TRIM) {
+            if (type == DataComponents.ENCHANTMENT_GLINT_OVERRIDE) {\n                Boolean glint = SkyJewCustom.getGlint(stack);\n                if (glint != null) { @SuppressWarnings("unchecked") T custom = (T) glint; cir.setReturnValue(custom); return; }\n            }\n            if (type == DataComponents.TRIM) {
                 @SuppressWarnings("unchecked")
                 T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
                 cir.setReturnValue(custom);
