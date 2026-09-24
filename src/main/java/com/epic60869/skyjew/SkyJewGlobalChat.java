@@ -242,7 +242,7 @@ public final class SkyJewGlobalChat {
     }
 
     private static Component linkify(Component text) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("https?://\\\\S+");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("https?://\\S+");
         MutableComponent result = Component.empty();
 
         text.visit((style, value) -> {
