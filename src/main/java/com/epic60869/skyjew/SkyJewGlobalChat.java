@@ -257,8 +257,7 @@ public final class SkyJewGlobalChat {
                     .withColor(0x55AAFF)
                     .withClickEvent(new ClickEvent.OpenUrl(java.net.URI.create(url)))
                     .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
-                        Component.literal("Open link\
-" + url)))));
+                        Component.literal("Open link\\n" + url)))));
             } catch (Exception ignored) {
                 result.append(Component.literal(url));
             }
