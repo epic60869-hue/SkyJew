@@ -364,16 +364,15 @@ public final class SkyJewConfig extends Config {
             holder.file, SkyJewConfig.class
         ));
 
-        // ManagedConfig may keep a new/default config entirely in memory until
-        // the config screen is opened. Save it immediately so SkyJew always
-        // has a real config file on first launch.
-        if (!configExisted) {
-            try {
-                Files.createDirectories(path.getParent());
-                managed.saveToFile();
-            } catch (Exception e) {
-                System.err.println("[SkyJew] Failed to create initial config: " + e.getMessage());
-            }
+        // Always materialize the current config after loading. This is important
+        // for newly-added settings such as Mouse Reset: older SkyJew config files
+        // may not contain the new nested section yet, and leaving defaults only
+        // in memory makes them appear to reset after a restart.
+        try {
+            Files.createDirectories(path.getParent());
+            managed.saveToFile();
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Failed to persist config after load: " + e.getMessage());
         }
 
         return managed.getInstance();
@@ -480,6 +479,30 @@ public final class SkyJewConfig extends Config {
                 experiments.add("table", table);
                 changed = true;
             }
+        }
+
+        // Materialize Mouse Reset defaults in older configs so the setting
+        // is persisted instead of falling back to an in-memory default.
+        if (!root.has("misc") || !root.get("misc").isJsonObject()) {
+            JsonObject misc = new JsonObject();
+            root.add("misc", misc);
+            changed = true;
+        }
+        JsonObject misc = root.getAsJsonObject("misc");
+        if (!misc.has("mouseReset") || !misc.get("mouseReset").isJsonObject()) {
+            JsonObject mouseReset = new JsonObject();
+            mouseReset.addProperty("enabled", true);
+            mouseReset.addProperty("accessoryBag", true);
+            mouseReset.addProperty("enderChest", true);
+            mouseReset.addProperty("backpack", true);
+            misc.add("mouseReset", mouseReset);
+            changed = true;
+        } else {
+            JsonObject mouseReset = misc.getAsJsonObject("mouseReset");
+            if (!mouseReset.has("enabled")) { mouseReset.addProperty("enabled", true); changed = true; }
+            if (!mouseReset.has("accessoryBag")) { mouseReset.addProperty("accessoryBag", true); changed = true; }
+            if (!mouseReset.has("enderChest")) { mouseReset.addProperty("enderChest", true); changed = true; }
+            if (!mouseReset.has("backpack")) { mouseReset.addProperty("backpack", true); changed = true; }
         }
 
         if (root.has("farming") && root.get("farming").isJsonObject()) {
