@@ -293,9 +293,14 @@ public final class SkyJewConfig extends Config {
 
     public static final class Nickname {
         @Expose
-        @ConfigOption(name = "Nickname Enabled", desc = "Use your SkyJew nickname in SkyJew global chat.")
+        @ConfigOption(name = "Nickname Enabled", desc = "Use your SkyJew nickname in SkyBlock TAB and chat.")
         @ConfigEditorBoolean
         public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "See Other Nicks", desc = "Replace the real usernames of other SkyJew users with their synced nicknames in Hypixel chat, including normal, guild and private messages.")
+        @ConfigEditorBoolean
+        public boolean seeOtherNicks = true;
 
         @ConfigOption(name = "Open Nickname Menu", desc = "Open the dedicated /sj nick editor.")
         @ConfigEditorButton(buttonText = "OPEN")
