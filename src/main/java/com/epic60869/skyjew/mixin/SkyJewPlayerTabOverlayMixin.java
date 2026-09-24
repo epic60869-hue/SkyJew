@@ -18,7 +18,7 @@ public class SkyJewPlayerTabOverlayMixin {
         if (profile == null) return;
 
         Component original = cir.getReturnValue();
-        Component replacement = SkyJewNick.tabDisplayName(original, profile.id());
+        Component replacement = SkyJewNick.tabDisplayName(original, profile.id(), profile.name());
         if (replacement != null && !replacement.getString().equals(original.getString())) {
             cir.setReturnValue(replacement);
         }
