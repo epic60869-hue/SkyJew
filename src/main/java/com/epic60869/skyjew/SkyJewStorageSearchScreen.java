@@ -149,9 +149,6 @@ public final class SkyJewStorageSearchScreen extends Screen {
         g.fill(left, top, right, top + 2, PRIMARY);
 
         g.text(font, "Item Search", left + 8, top + 10, TEXT, true);
-        g.text(font,
-                SkyJewStorageSearch.cachedStorageCount() + " storages cached",
-                right - 112, top + 10, MUTED, false);
 
         // Only the compass remains on the left. Storage and inventory are
         // searched together.
@@ -208,11 +205,6 @@ public final class SkyJewStorageSearchScreen extends Screen {
         g.text(font,
                 resultCount + " results",
                 left + 8, top + 58, MUTED, false);
-
-        long age = SkyJewStorageSearch.oldestCacheAgeMs();
-        if (age >= 0) {
-            g.text(font, "Cache " + formatAge(age), right - 72, top + 58, MUTED, false);
-        }
 
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
@@ -311,13 +303,5 @@ public final class SkyJewStorageSearchScreen extends Screen {
         return value.length() <= max ? value : value.substring(0, Math.max(0, max - 3)) + "...";
     }
 
-    private static String formatAge(long millis) {
-        long seconds = millis / 1000L;
-        if (seconds < 60) return seconds + "s";
-        long minutes = seconds / 60L;
-        if (minutes < 60) return minutes + "m";
-        long hours = minutes / 60L;
-        if (hours < 24) return hours + "h";
-        return (hours / 24L) + "d";
-    }
+
 }
