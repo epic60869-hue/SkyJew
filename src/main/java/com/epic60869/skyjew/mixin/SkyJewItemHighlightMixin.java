@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.util.ARGB;
 
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
