@@ -8,18 +8,30 @@ import java.util.Locale;
 
 /** Resets the cursor when selected Hypixel storage menus open. */
 public final class SkyJewMouseReset {
-    private static Screen lastScreen;
+    /**
+     * True while the player is already inside one of the selected storage GUIs.
+     * This is deliberately based on the GUI category, not the exact Screen
+     * instance, so switching directly from Backpack -> Ender Chest -> Accessory
+     * Bag does not move the mouse again.
+     */
+    private static boolean storageGuiOpen;
     private static long lastReset;
 
     private SkyJewMouseReset() {}
 
     public static void tick(Minecraft mc) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.misc.mouseReset.enabled) return;
+        if (config == null || !config.misc.mouseReset.enabled) {
+            storageGuiOpen = false;
+            return;
+        }
 
         Screen screen = mc.gui.screen();
-        if (screen == null || screen == lastScreen) return;
-        lastScreen = screen;
+        if (screen == null) {
+            // Leaving the storage GUI arms the reset for the next storage GUI.
+            storageGuiOpen = false;
+            return;
+        }
 
         String title;
         try {
@@ -31,16 +43,29 @@ public final class SkyJewMouseReset {
             return;
         }
 
-        boolean reset = (config.misc.mouseReset.accessoryBag && matches(title, "accessory bag"))
+        boolean isStorageGui =
+            (config.misc.mouseReset.accessoryBag && matches(title, "accessory bag"))
             || (config.misc.mouseReset.enderChest && matches(title, "ender chest"))
             || (config.misc.mouseReset.backpack && matches(title, "backpack"));
 
-        if (!reset || System.currentTimeMillis() - lastReset < 250L) return;
+        // Only reset when entering the storage-GUI group from outside it.
+        // Changing between storage GUIs must leave the cursor where the user
+        // put it.
+        if (!isStorageGui) {
+            storageGuiOpen = false;
+            return;
+        }
 
+        if (storageGuiOpen || System.currentTimeMillis() - lastReset < 250L) {
+            storageGuiOpen = true;
+            return;
+        }
+
+        storageGuiOpen = true;
         lastReset = System.currentTimeMillis();
 
-        // GLFW cursor coordinates are window coordinates, not the framebuffer
-        // pixel dimensions returned by Window#getWidth/#getHeight.
+        // GLFW cursor coordinates are window coordinates, not framebuffer
+        // pixel dimensions.
         mc.execute(() -> {
             long window = mc.getWindow().handle();
             double x = mc.getWindow().getGuiScaledWidth() / 2.0;
