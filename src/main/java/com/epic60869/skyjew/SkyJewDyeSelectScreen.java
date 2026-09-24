@@ -28,6 +28,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
     private ScrollableLayout list;
     private StringWidget title;
     private Button close;
+    private Button applyColor;
     private EditBox hex;
 
     public SkyJewDyeSelectScreen(Screen parent, net.minecraft.world.item.ItemStack item) {
@@ -43,7 +44,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         hex.setMaxLength(7);
         addRenderableWidget(hex);
 
-        addRenderableWidget(Button.builder(Component.literal("Apply Colour"), b -> applyCustom()).bounds(0, 0, 100, 20).build());
+        addRenderableWidget(applyColor = Button.builder(Component.literal("Apply Colour"), b -> applyCustom()).bounds(0, 0, 100, 20).build());
         addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).width(75).build());
 
         LinearLayout layout = LinearLayout.vertical().spacing(3);
@@ -116,7 +117,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         close.setPosition((width - close.getWidth()) / 2, list.getY() + list.getHeight() + 10);
 
         hex.setPosition(width / 2 - 155, 22);
-        getChild(Button.class, 0).ifPresent(b -> b.setPosition(width / 2 + 5, 22));
+        applyColor.setPosition(width / 2 + 5, 22);
     }
 
     @Override
