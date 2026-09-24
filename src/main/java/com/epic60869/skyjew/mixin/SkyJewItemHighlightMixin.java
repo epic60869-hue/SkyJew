@@ -23,11 +23,8 @@ public abstract class SkyJewItemHighlightMixin {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.misc.itemRarityBackground || stack == null || stack.isEmpty()) return;
 
-        TextColor rarityColor = stack.getHoverName().getStyle().getColor();
-        if (rarityColor == null) return;
-
-        int rgb = rarityColor.getValue() & 0xFFFFFF;
-        if (!isSkyBlockRarityColor(rgb)) return;
+        int rgb = rarityColor(stack);
+        if (rgb < 0 || !isSkyBlockRarityColor(rgb)) return;
 
         GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
 
@@ -43,6 +40,18 @@ public abstract class SkyJewItemHighlightMixin {
         self.fill(x + 2, y + 11, x + 14, y + 13, color);
         self.fill(x + 3, y + 13, x + 13, y + 14, color);
         self.fill(x + 5, y + 14, x + 11, y + 15, color);
+    }
+
+    private static int rarityColor(ItemStack stack) {
+        final int[] found = {-1};
+        stack.getHoverName().visit((style, value) -> {
+            if (found[0] < 0 && style.getColor() != null) {
+                int rgb = style.getColor().getValue() & 0xFFFFFF;
+                if (isSkyBlockRarityColor(rgb)) found[0] = rgb;
+            }
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
+        return found[0];
     }
 
     private static boolean isSkyBlockRarityColor(int rgb) {
