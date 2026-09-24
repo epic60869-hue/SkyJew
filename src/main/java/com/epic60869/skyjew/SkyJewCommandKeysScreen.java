@@ -229,6 +229,7 @@ public final class SkyJewCommandKeysScreen extends Screen {
             case CYCLE -> "Cycle";
             case RANDOM -> "Random";
             case REPEAT -> "Repeat";
+            case RELEASE -> "Release";
         };
     }
 
