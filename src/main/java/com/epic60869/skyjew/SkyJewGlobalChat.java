@@ -41,6 +41,7 @@ public final class SkyJewGlobalChat {
     private static final Queue<String> PENDING_MESSAGES = new ArrayDeque<>();
     private static volatile boolean inSkyJewChannel = false;
     private static volatile long lastNicknameSync = 0L;
+    private static volatile boolean nicknameUpdatePending = false;
     private static final long NICKNAME_SYNC_INTERVAL_MS = 5000L;
 
     public static boolean isInSkyJewChannel() { return inSkyJewChannel; }
@@ -129,16 +130,22 @@ public final class SkyJewGlobalChat {
 
     public static void sendNicknameUpdate() {
         WebSocket ws = socket;
-        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) return;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            // Keep the newest saved nickname until the relay is connected again.
+            nicknameUpdatePending = true;
+            connect();
+            return;
+        }
 
         JsonObject packet = new JsonObject();
         packet.addProperty("type", "nickname");
         packet.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
-        packet.addProperty("enabled", !SkyJewNick.outgoingName().equals(username));
+        packet.addProperty("enabled", SkyJewNick.enabled());
         packet.addProperty("name", SkyJewNick.outgoingName());
         packet.addProperty("mode", SkyJewNick.mode());
         packet.addProperty("customHex", SkyJewNick.customHex());
         ws.sendText(GSON.toJson(packet), true);
+        nicknameUpdatePending = false;
     }
 
     public static void requestDiscord(String action, JsonObject data) {
@@ -225,6 +232,10 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("nicknameHex", SkyJewNick.customHex());
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
+                // /sj nick may have been saved while the WebSocket was offline.
+                if (nicknameUpdatePending) {
+                    sendNicknameUpdate();
+                }
             });
     }
 
