@@ -43,6 +43,10 @@ public final class SkyJewConfig extends Config {
     public Farming farming = new Farming();
 
     @Expose
+    @Category(name = "Mining", desc = "Mining overlays and commission tools.")
+    public Mining mining = new Mining();
+
+    @Expose
     @Category(name = "Slayers", desc = "Slayer utilities and future drop tracking.")
     public Slayers slayers = new Slayers();
 
@@ -58,9 +62,6 @@ public final class SkyJewConfig extends Config {
     @Category(name = "Misc", desc = "Nickname and small quality-of-life options.")
     public Misc misc = new Misc();
 
-    @Expose
-    @Category(name = "Discord", desc = "Link and use your own Discord account.")
-    public Discord discord = new Discord();
 
     public static final class General {
         @ConfigOption(name = "Custom Item Editor", desc = "Open the SkyJew custom item editor.")
@@ -74,6 +75,10 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Command Keys", desc = "Configure SkyJew command shortcuts.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable commandKeys = () -> openCommandKeys();
+
+        @ConfigOption(name = "Gui Editor", desc = "Open the transparent HUD/GUI editor.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable guiEditor = () -> openHudEditor();
 
         @Expose
         public boolean firstBootAcknowledged = false;
@@ -105,6 +110,13 @@ public final class SkyJewConfig extends Config {
         @Expose
         @Accordion
         @ConfigOption(name = "Mining Commissions HUD", desc = "Show Dwarven Mines, Crystal Hollows, and Glacite commission progress read from the Hypixel tab list.")
+        public MiningCommissions commissions = new MiningCommissions();
+    }
+
+    public static final class Mining {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mining Commissions", desc = "Show and configure the Mining Commission HUD.")
         public MiningCommissions commissions = new MiningCommissions();
     }
 
@@ -170,9 +182,16 @@ public final class SkyJewConfig extends Config {
 
     public static final class Pets {
         @Expose
-        @ConfigOption(name = "Pet Display", desc = "Show the active pet HUD.")
+        @Accordion
+        @ConfigOption(name = "Pets Display", desc = "Pet display, overflow XP and positioning.")
+        public PetDisplay display = new PetDisplay();
+    }
+
+    public static final class PetDisplay {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show the active pet HUD.")
         @ConfigEditorBoolean
-        public boolean display = true;
+        public boolean enabled = true;
 
         @Expose
         @ConfigOption(name = "Overflow Pet Levels", desc = "Show pet XP beyond the normal maximum level.")
@@ -184,11 +203,8 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorBoolean
         public boolean autoDisplay = true;
 
-        @Expose
-        public int x = 10;
-
-        @Expose
-        public int y = 10;
+        @Expose public int x = 10;
+        @Expose public int y = 10;
 
         @ConfigOption(name = "Edit Position", desc = "Open the HUD editor and drag the Pet Display.")
         @ConfigEditorButton(buttonText = "OPEN")
@@ -197,27 +213,25 @@ public final class SkyJewConfig extends Config {
 
     public static final class Experiments {
         @Expose
-        @ConfigOption(name = "Experiment Solver", desc = "Enable the Experimentation Table helper.")
-        @ConfigEditorBoolean
-        public boolean enabled = true;
+        @Accordion
+        @ConfigOption(name = "Experimental Table", desc = "Experimentation Table solver and protections.")
+        public ExperimentalTable table = new ExperimentalTable();
+    }
 
-        @Expose
-        @ConfigOption(name = "Next Click Highlight", desc = "Highlight the next Chronomatron/Ultrasequencer click.")
-        @ConfigEditorBoolean
-        public boolean highlight = true;
-
-        @Expose
-        @ConfigOption(name = "Prevent Misclicks", desc = "Block clicks that do not match the detected sequence.")
-        @ConfigEditorBoolean
-        public boolean preventMisclicks = true;
-
+    public static final class ExperimentalTable {
+        @Expose @ConfigOption(name = "Enabled", desc = "Enable the Experimentation Table helper.")
+        @ConfigEditorBoolean public boolean enabled = true;
+        @Expose @ConfigOption(name = "Next Click Highlight", desc = "Highlight the next Chronomatron/Ultrasequencer click.")
+        @ConfigEditorBoolean public boolean highlight = true;
+        @Expose @ConfigOption(name = "Prevent Misclicks", desc = "Block clicks that do not match the detected sequence.")
+        @ConfigEditorBoolean public boolean preventMisclicks = true;
     }
 
     public static final class MouseLock {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Reduce camera sensitivity while using supported farming tools.")
         @ConfigEditorBoolean
-        public boolean enabled = false;
+        public boolean enabled = true;
 
         @Expose
         @ConfigOption(name = "Ground Only", desc = "Only apply Mouse Lock while the player is on the ground.")
