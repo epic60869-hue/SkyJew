@@ -58,7 +58,7 @@ public final class SkyJewNickScreen extends Screen {
             }).bounds(width / 2 + 125, height / 2 + 66, 90, 24).build());
 
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> saveAndClose())
-            .bounds(width / 2 - 45, height / 2 + 102, 90, 24).build());
+            .bounds(width / 2 - 45, height / 2 + 130, 90, 24).build());
 
         syncFromHex(hex);
     }
@@ -104,8 +104,8 @@ public final class SkyJewNickScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, 0xFF0B0C10);
 
-        int w = 500;
-        int h = 300;
+        int w = 560;
+        int h = 340;
         int left = (width - w) / 2;
         int top = (height - h) / 2;
 
@@ -113,11 +113,12 @@ public final class SkyJewNickScreen extends Screen {
         g.fill(left, top, left + w, top + 1, 0xFF3A3D46);
         g.fill(left, top + h - 1, left + w, top + h, 0xFF3A3D46);
 
-        g.text(font, Component.literal("SJ Nickname"), left + 18, top + 18, 0xFFFFFFFF, true);
-        g.text(font, Component.literal("Name"), left + 18, top + 44, 0xFFB5BAC1, false);
+        g.text(font, Component.literal("SkyJew Nickname"), left + 20, top + 18, 0xFFFFFFFF, true);
+        g.text(font, Component.literal("Customize how your name appears locally."), left + 20, top + 38, 0xFF9DA3AE, false);
+        g.text(font, Component.literal("Nickname"), left + 20, top + 58, 0xFFE5E7EB, true);
 
         int wheelX = left + 20;
-        int wheelY = top + 82;
+        int wheelY = top + 100;
         int wheelSize = 140;
         drawWheel(g, wheelX, wheelY, wheelSize);
 
@@ -136,7 +137,7 @@ public final class SkyJewNickScreen extends Screen {
         g.text(font, Component.literal("Pick a color"), left + 210, top + 94, 0xFFF2F3F5, true);
         g.text(font, Component.literal("Wheel: hue + saturation"), left + 210, top + 116, 0xFFB5BAC1, false);
         g.text(font, Component.literal("Bars: hue + brightness"), left + 210, top + 132, 0xFFB5BAC1, false);
-        g.text(font, Component.literal("Rainbow can be enabled separately."), left + 210, top + 158, 0xFFB5BAC1, false);
+        g.text(font, Component.literal("Your Hypixel rank stays visible in TAB."), left + 260, top + 270, 0xFF55FF55, false);
 
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
@@ -180,11 +181,11 @@ public final class SkyJewNickScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
         int w = 500;
-        int h = 300;
+        int h = 340;
         int left = (width - w) / 2;
         int top = (height - h) / 2;
         int wx = left + 20;
-        int wy = top + 82;
+        int wy = top + 100;
         int ws = 140;
 
         if (inside(event.x(), event.y(), wx, wy, ws, ws)) {
