@@ -59,8 +59,7 @@ public abstract class SkyJewChatHudMixin {
         // The new message is already present at index 0. Find the most recent
         // matching message anywhere in the visible history instead of requiring
         // it to be directly adjacent.
-        if (SkyJewChatCompactor.recentlySeen(allMessages.get(0).content())
-            && SkyJewChatCompactor.compact(allMessages)) {
+        if (SkyJewChatCompactor.compact(allMessages)) {
             refreshTrimmedMessages();
         }
     }
