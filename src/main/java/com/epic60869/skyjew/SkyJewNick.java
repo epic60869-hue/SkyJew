@@ -114,7 +114,8 @@ public final class SkyJewNick {
 
         Minecraft mc = Minecraft.getInstance();
         boolean local = uuid.equals(mc.getUser().getProfileId())
-            || (mc.player != null && uuid.equals(mc.player.getUUID()));
+            || (mc.player != null && uuid.equals(mc.player.getUUID()))
+            || actualName.equals(mc.getUser().getName());
         // A local setting is authoritative for our own TAB entry; do not let a
         // delayed relay packet overwrite the local nickname/style.
         RemoteNick remote = local ? null : REMOTE_NICKS.get(uuid);
