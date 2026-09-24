@@ -9,6 +9,7 @@
     "SkyJewChatHudMixin",
     "SkyJewMouseHandlerMixin",
     "SkyJewExperimentScreenMixin",
-    "SkyJewContainerScreenAccessor"
+    "SkyJewContainerScreenAccessor",
+    "SkyJewInventoryScreenInvoker"
   ]
 }
