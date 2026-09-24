@@ -14,22 +14,34 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(DataComponentHolder.class)
 public interface SkyJewDataComponentHolderMixin {
     @Inject(method = "get", at = @At("RETURN"), cancellable = true)
-    private <T> void skyjew$customTrim(DataComponentType<? extends T> type,
-                                           CallbackInfoReturnable<T> cir) {
-        if ((Object)this instanceof ItemStack stack) {
-            if (type == DataComponents.ENCHANTMENT_GLINT_OVERRIDE) {\n                Boolean glint = SkyJewCustom.getGlint(stack);\n                if (glint != null) { @SuppressWarnings("unchecked") T custom = (T) glint; cir.setReturnValue(custom); return; }\n            }\n            if (type == DataComponents.TRIM) {
-                @SuppressWarnings("unchecked")
-                T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
+    private <T> void skyjew$customComponents(DataComponentType<? extends T> type,
+                                              CallbackInfoReturnable<T> cir) {
+        if (!((Object) this instanceof ItemStack stack)) return;
+
+        if (type == DataComponents.ENCHANTMENT_GLINT_OVERRIDE) {
+            Boolean glint = SkyJewCustom.getGlint(stack);
+            if (glint != null) {
+                @SuppressWarnings("unchecked") T custom = (T) glint;
                 cir.setReturnValue(custom);
-            } else if (type == DataComponents.ITEM_MODEL) {
-                String model = SkyJewCustom.getItemModel(stack);
-                if (model != null && !model.isBlank()) {
-                    try {
-                        @SuppressWarnings("unchecked")
-                        T custom = (T) net.minecraft.resources.Identifier.parse(model);
-                        cir.setReturnValue(custom);
-                    } catch (Throwable ignored) {}
-                }
+                return;
+            }
+        }
+
+        if (type == DataComponents.TRIM) {
+            @SuppressWarnings("unchecked")
+            T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
+            cir.setReturnValue(custom);
+            return;
+        }
+
+        if (type == DataComponents.ITEM_MODEL) {
+            String model = SkyJewCustom.getItemModel(stack);
+            if (model != null && !model.isBlank()) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    T custom = (T) net.minecraft.resources.Identifier.parse(model);
+                    cir.setReturnValue(custom);
+                } catch (Throwable ignored) {}
             }
         }
     }
