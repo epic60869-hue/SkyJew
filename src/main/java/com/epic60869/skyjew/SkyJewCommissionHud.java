@@ -62,12 +62,7 @@ public final class SkyJewCommissionHud {
         boolean inSection = false;
         List<Commission> found = new ArrayList<>();
 
-        List<PlayerInfo> ordered = List.of();
-        try {
-            ordered = ((SkyJewPlayerTabOverlayAccessor) mc.gui.getTabList()).skyjew$getPlayerInfos();
-        } catch (Throwable ignored) {
-            ordered = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
-        }
+        List<PlayerInfo> ordered = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
 
         for (PlayerInfo info : ordered) {
             Component display = info.getTabListDisplayName();
