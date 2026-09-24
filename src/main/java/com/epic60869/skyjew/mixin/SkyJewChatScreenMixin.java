@@ -28,7 +28,7 @@ public abstract class SkyJewChatScreenMixin {
         }
 
         String message = input.getValue().trim();
-        if (!message.isEmpty()) {
+        if (!message.isEmpty() && !message.startsWith("/")) {
             if (message.startsWith("!")) {
                 SkyJewGlobalChat.sendBotCommand(message);
             } else {
