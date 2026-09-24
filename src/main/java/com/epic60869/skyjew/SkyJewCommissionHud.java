@@ -4,6 +4,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
+import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -60,7 +62,14 @@ public final class SkyJewCommissionHud {
         boolean inSection = false;
         List<Commission> found = new ArrayList<>();
 
-        for (PlayerInfo info : mc.getConnection().getListedOnlinePlayers()) {
+        List<PlayerInfo> ordered = List.of();
+        try {
+            ordered = ((SkyJewPlayerTabOverlayAccessor) mc.gui.getTabList()).skyjew$getPlayerInfos();
+        } catch (Throwable ignored) {
+            ordered = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
+        }
+
+        for (PlayerInfo info : ordered) {
             Component display = info.getTabListDisplayName();
             if (display == null) continue;
 
