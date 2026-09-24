@@ -4,8 +4,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
-import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
-import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
