@@ -25,7 +25,7 @@ public final class SkyJewCommissionHud {
         HudElementRegistry.addLast(ID, SkyJewCommissionHud::extract);
     }
 
-    public static int x() { return config == null ? 8 : config.farming.commissions.x; }
+    public static int x() { return config == null ? 8 : config.mining.commissions.x; }
     public static int y() { return config == null ? 80 : config.farming.commissions.y; }
     public static float scale() { return config == null ? 1.0f : config.farming.commissions.scale; }
     public static int width() { return 290; }
@@ -66,13 +66,15 @@ public final class SkyJewCommissionHud {
 
             String line = display.getString();
             if (!inSection) {
-                if (line.startsWith("Commissions")) inSection = true;
+                if (line.trim().toLowerCase().startsWith("commissions")) {
+                    inSection = true;
+                }
                 continue;
             }
 
-            if (!line.startsWith(" ")) break;
-
-            String stripped = line.substring(1);
+            String stripped = line.trim();
+            if (stripped.isEmpty()) break;
+            if (stripped.equalsIgnoreCase("Commissions")) continue;
             Matcher matcher = COMMISSION.matcher(stripped);
             if (!matcher.matches()) continue;
 
