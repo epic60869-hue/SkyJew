@@ -28,11 +28,9 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewRngHud.register(config);
         SkyJewCommissionHud.register(config);
         SkyJewCommandKeys.init(configDir);
-        SkyJewSearchKeybind.init();
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
         SkyJewNopoFeatures.init(configDir);
-        SkyJewRecipe.init();
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
         SkyJewGlobalChat.init();
@@ -74,7 +72,6 @@ public final class SkyJewMod implements ClientModInitializer {
             .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
             .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
 
-        SkyJewRecipe.register(root);
         root.then(customCommand());
         return root;
     }
@@ -268,7 +265,6 @@ public final class SkyJewMod implements ClientModInitializer {
             openStorageSearch();
         }
         SkyJewCommandKeys.tick(minecraft);
-        SkyJewSearchKeybind.tick(minecraft);
         SkyJewStorageSearch.tick(minecraft);
         SkyJewCustom.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
