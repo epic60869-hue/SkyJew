@@ -82,6 +82,25 @@ public final class SkyJewGlobalChat {
         connect();
     }
 
+    public static void sendBotCommand(String command) {
+        String clean = String.valueOf(command == null ? "" : command).trim();
+        if (clean.isEmpty() || !clean.startsWith("!")) return;
+
+        WebSocket ws = socket;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            connect();
+            mcMessage(Component.literal("[SkyJew] Bot command is still connecting...")
+                .withStyle(Style.EMPTY.withColor(0xFFFF55)));
+            return;
+        }
+
+        JsonObject packet = new JsonObject();
+        packet.addProperty("type", "command");
+        packet.addProperty("username", username);
+        packet.addProperty("command", clean.substring(0, Math.min(clean.length(), 500)));
+        ws.sendText(GSON.toJson(packet), true);
+    }
+
     public static void send(String message) {
         String clean = String.valueOf(message == null ? "" : message).trim();
         if (clean.isEmpty()) return;
