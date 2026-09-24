@@ -212,7 +212,7 @@ public final class SkyJewHudEditorScreen extends Screen {
             if (c == null) return;
             switch (type) {
                 case "rng" -> c.farming.rng.scale = clamp(c.farming.rng.scale + d);
-                case "commissions" -> c.farming.commissions.scale = clamp(c.farming.commissions.scale + d);
+                case "commissions" -> c.mining.commissions.scale = clamp(c.farming.commissions.scale + d);
             }
         }
 
