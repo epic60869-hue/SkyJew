@@ -26,7 +26,7 @@ public final class SkyJewCommissionHud {
     }
 
     public static int x() { return config == null ? 8 : config.mining.commissions.x; }
-    public static int y() { return config == null ? 80 : config.farming.commissions.y; }
+    public static int y() { return config == null ? 80 : config.mining.commissions.y; }
     public static float scale() { return config == null ? 1.0f : config.farming.commissions.scale; }
     public static int width() { return 290; }
     public static int height() { return Math.max(24, 18 + commissions.size() * 18); }
