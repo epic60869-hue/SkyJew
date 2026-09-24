@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
+import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
@@ -61,6 +62,10 @@ public final class SkyJewCommissionHud {
         List<Commission> found = new ArrayList<>();
 
         List<PlayerInfo> ordered = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
+        try {
+            ordered.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
+        } catch (Throwable ignored) {
+        }
 
         for (PlayerInfo info : ordered) {
             Component display = info.getTabListDisplayName();
