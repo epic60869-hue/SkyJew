@@ -65,9 +65,9 @@ public final class SkyJewCustomScreen extends Screen {
     private void rebuild() {
         clearWidgets();
 
-        int w = Math.min(820, width - 20);
+        int w = Math.min(780, width - 24);
         int left = (width - w) / 2;
-        int top = Math.max(8, (height - 500) / 2);
+        int top = Math.max(10, (height - 460) / 2);
 
         addRenderableWidget(Button.builder(Component.literal("Armor"), b -> {
             tab = 0;
@@ -85,74 +85,72 @@ public final class SkyJewCustomScreen extends Screen {
         else buildItem(left, top);
 
         addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> minecraft.gui.setScreen(parent))
-            .bounds(left + w - 215, top + 466, 100, 24).build());
+.bounds(left + w - 215, top + 426, 100, 24).build());
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> minecraft.gui.setScreen(parent))
-            .bounds(left + w - 110, top + 466, 100, 24).build());
+.bounds(left + w - 110, top + 426, 100, 24).build());
     }
 
     private void buildArmor(int left, int top) {
         int panelY = top + 76;
+        int sideW = 160;
+        int x = left + sideW + 30;
 
-        // Left: the same four-piece selection concept used by Skyblocker.
         addRenderableWidget(Button.builder(Component.literal(selectedArmor == 0 ? "▶ Helmet" : "Helmet"),
             b -> { selectedArmor = 0; selectedItem = ItemStack.EMPTY; rebuild(); })
-            .bounds(left + 18, panelY, 120, 25).build());
+            .bounds(left + 18, panelY, sideW - 30, 25).build());
         addRenderableWidget(Button.builder(Component.literal(selectedArmor == 1 ? "▶ Chestplate" : "Chestplate"),
             b -> { selectedArmor = 1; selectedItem = ItemStack.EMPTY; rebuild(); })
-            .bounds(left + 18, panelY + 30, 120, 25).build());
+            .bounds(left + 18, panelY + 31, sideW - 30, 25).build());
         addRenderableWidget(Button.builder(Component.literal(selectedArmor == 2 ? "▶ Leggings" : "Leggings"),
             b -> { selectedArmor = 2; selectedItem = ItemStack.EMPTY; rebuild(); })
-            .bounds(left + 18, panelY + 60, 120, 25).build());
+            .bounds(left + 18, panelY + 62, sideW - 30, 25).build());
         addRenderableWidget(Button.builder(Component.literal(selectedArmor == 3 ? "▶ Boots" : "Boots"),
             b -> { selectedArmor = 3; selectedItem = ItemStack.EMPTY; rebuild(); })
-            .bounds(left + 18, panelY + 90, 120, 25).build());
+            .bounds(left + 18, panelY + 93, sideW - 30, 25).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Select another item"),
+        addRenderableWidget(Button.builder(Component.literal("Select item"),
             b -> minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                 selectedItem = stack.copy();
-                showDyes = false;
                 rebuild();
-            }))).bounds(left + 18, panelY + 130, 120, 25).build());
+            }))).bounds(left + 18, panelY + 135, sideW - 30, 25).build());
 
         ItemStack selected = selectedStack();
         if (selected.isEmpty()) return;
 
-        int x = left + 190;
-
         addRenderableWidget(Button.builder(Component.literal("Pick Dye"),
-            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected))).bounds(x, panelY, 125, 25).build());
-
+            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected)))
+            .bounds(x, panelY, 130, 25).build());
         addRenderableWidget(Button.builder(Component.literal("Reset colour"),
-            b -> { SkyJewCustom.setDye(selected, null); showDyes = false; rebuild(); })
-            .bounds(x + 130, panelY, 125, 25).build());
+            b -> { SkyJewCustom.setDye(selected, null); rebuild(); })
+            .bounds(x + 138, panelY, 130, 25).build());
 
         SkyJewCustom.TrimId trim = SkyJewCustom.getTrim(selected);
-        int trimY = panelY + 36;
-
-        trimMaterial = box("Trim material", x, trimY, 220, trim == null ? "" : trim.material());
-        trimPattern = box("Trim pattern", x, trimY + 29, 220, trim == null ? "" : trim.pattern());
+        int trimY = panelY + 52;
+        trimMaterial = box("Trim material", x, trimY, 180, trim == null ? "" : trim.material());
+        trimPattern = box("Trim pattern", x + 190, trimY, 180, trim == null ? "" : trim.pattern());
         addRenderableWidget(trimMaterial);
         addRenderableWidget(trimPattern);
         addRenderableWidget(Button.builder(Component.literal("Apply Trim"),
             b -> { SkyJewCustom.setTrim(selected, trimMaterial.getValue(), trimPattern.getValue()); rebuild(); })
-            .bounds(x + 225, trimY + 14, 105, 25).build());
+            .bounds(x + 380, trimY, 105, 22).build());
 
-        int animY = trimY + 66;
-        animatedStart = box("Animated start #RRGGBB", x, animY, 160, "");
-        animatedEnd = box("Animated end #RRGGBB", x, animY + 29, 160, "");
-        animatedDuration = box("Seconds", x + 166, animY, 90, "5");
+        int animY = trimY + 42;
+        animatedStart = box("Start #RRGGBB", x, animY, 135, "");
+        animatedEnd = box("End #RRGGBB", x + 143, animY, 135, "");
+        animatedDuration = box("Seconds", x + 286, animY, 85, "5");
         cycleBack = Checkbox.builder(Component.literal("Cycle"), font)
-            .pos(x + 166, animY + 29).selected(true).build();
+            .pos(x + 379, animY + 2).selected(true).build();
         addRenderableWidget(animatedStart);
         addRenderableWidget(animatedEnd);
         addRenderableWidget(animatedDuration);
         addRenderableWidget(cycleBack);
-        addRenderableWidget(Button.builder(Component.literal("Apply animated dye"),
-            b -> applyAnimatedDye(selected)).bounds(x + 260, animY, 125, 25).build());
-        addRenderableWidget(Button.builder(Component.literal("Pick Hypixel Animated Dye"),
-            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected))).bounds(x + 260, animY + 30, 180, 25).build());
-    }
 
+        addRenderableWidget(Button.builder(Component.literal("Apply animated dye"),
+            b -> applyAnimatedDye(selected)).bounds(x, animY + 30, 160, 25).build());
+        addRenderableWidget(Button.builder(Component.literal("Pick Hypixel animated dye"),
+            b -> minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected)))
+            .bounds(x + 168, animY + 30, 200, 25).build());
+    }
     private void buildDyePalette(int x, int y, ItemStack selected) {
         int col = 0, row = 0;
         for (Map.Entry<String, Integer> entry : DYES.entrySet()) {
@@ -173,13 +171,13 @@ public final class SkyJewCustomScreen extends Screen {
 
     private void buildItem(int left, int top) {
         int y = top + 76;
-        int x = left + 190;
+        int x = left + 205;
 
         addRenderableWidget(Button.builder(Component.literal("Select item"),
             b -> minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                 selectedItem = stack.copy();
                 rebuild();
-            }))).bounds(left + 18, y, 120, 25).build());
+            }))).bounds(left + 18, y, 145, 25).build());
 
         ItemStack selected = selectedItem.isEmpty()
             ? (Minecraft.getInstance().player == null ? ItemStack.EMPTY
@@ -188,43 +186,41 @@ public final class SkyJewCustomScreen extends Screen {
 
         if (selected.isEmpty()) return;
 
-        itemName = box("Custom item name", x, y, 280,
+        itemName = box("Custom item name", x, y, 300,
             SkyJewCustom.getName(selected) == null ? "" : SkyJewCustom.getName(selected));
         addRenderableWidget(itemName);
-        addRenderableWidget(Button.builder(Component.literal("Apply name"),
+        addRenderableWidget(Button.builder(Component.literal("Apply"),
             b -> { SkyJewCustom.setName(selected, itemName.getValue()); rebuild(); })
-            .bounds(x, y + 30, 120, 25).build());
-        addRenderableWidget(Button.builder(Component.literal("Reset name"),
+            .bounds(x + 308, y, 70, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Reset"),
             b -> { SkyJewCustom.setName(selected, null); rebuild(); })
-            .bounds(x + 126, y + 30, 120, 25).build());
+            .bounds(x + 384, y, 70, 22).build());
 
         Boolean currentGlint = SkyJewCustom.getGlint(selected);
         glint = Checkbox.builder(Component.literal("Override enchant glint"), font)
-            .pos(x, y + 68).selected(currentGlint == null || currentGlint).build();
+            .pos(x, y + 36).selected(currentGlint == null || currentGlint).build();
         addRenderableWidget(glint);
         addRenderableWidget(Button.builder(Component.literal("Apply glint"),
             b -> { SkyJewCustom.setGlint(selected, glint.selected()); rebuild(); })
-            .bounds(x + 185, y + 66, 110, 25).build());
+            .bounds(x + 190, y + 34, 105, 24).build());
 
-        itemModel = box("Item model override", x, y + 105, 280,
+        itemModel = box("Item model identifier", x, y + 74, 300,
             SkyJewCustom.getItemModel(selected) == null ? "" : SkyJewCustom.getItemModel(selected));
         addRenderableWidget(itemModel);
-        addRenderableWidget(Button.builder(Component.literal("Apply model"),
+        addRenderableWidget(Button.builder(Component.literal("Apply"),
             b -> { SkyJewCustom.setItemModel(selected, itemModel.getValue()); rebuild(); })
-            .bounds(x + 286, y + 105, 110, 25).build());
+            .bounds(x + 308, y + 74, 70, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Select Item Icon"),
+        addRenderableWidget(Button.builder(Component.literal("Select Model"),
             b -> minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
                 SkyJewCustom.setItemModel(selected, identifier.toString());
                 rebuild();
-            })))
-            .bounds(x, y + 136, 150, 25).build());
+            }))).bounds(x, y + 110, 145, 25).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Reset Item Icon"),
+        addRenderableWidget(Button.builder(Component.literal("Reset Model"),
             b -> { SkyJewCustom.setItemModel(selected, null); rebuild(); })
-            .bounds(x + 156, y + 136, 140, 25).build());
+            .bounds(x + 153, y + 110, 145, 25).build());
     }
-
     private EditBox box(String hint, int x, int y, int w, String value) {
         EditBox box = new EditBox(font, x, y, w, 22, Component.literal(hint));
         box.setHint(Component.literal(hint));
@@ -261,8 +257,8 @@ public final class SkyJewCustomScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int w = Math.min(820, width - 20);
-        int h = Math.min(500, height - 16);
+        int w = Math.min(780, width - 24);
+        int h = Math.min(460, height - 20);
         int left = (width - w) / 2;
         int top = (height - h) / 2;
 
