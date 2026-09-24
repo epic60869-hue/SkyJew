@@ -51,8 +51,8 @@ public final class SkyJewStorageSearch {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "skyjew-storage-search.json";
 
-    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)ender\\s+chest(?:\\s*#?\\s*(\\d+))?");
-    private static final Pattern BACKPACK = Pattern.compile("(?i)(?:small|medium|large|greater|jumbo)?\\s*backpack(?:\\s*#?\\s*(\\d+))?");
+    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)ender\\s+chest.*?(?:#|\\(|\\s)(\\d+)(?:\\)|\\s|$)");
+    private static final Pattern BACKPACK = Pattern.compile("(?i)(?:small|medium|large|greater|jumbo)?\\s*backpack.*?(?:#|\\(|\\s)(\\d+)(?:\\)|\\s|$)");
 
     private static final long CAPTURE_INTERVAL_MS = 400L;
     private static final long SAVE_INTERVAL_MS = 1200L;
@@ -193,11 +193,15 @@ public final class SkyJewStorageSearch {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
                 mc.player.connection.sendCommand("enderchest " + result.number());
+            } else {
+                pendingHighlight = null;
             }
         } else if (result.type().equals("BACKPACK") && result.number() > 0) {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
                 mc.player.connection.sendCommand("backpack " + result.number());
+            } else {
+                pendingHighlight = null;
             }
         }
     }
