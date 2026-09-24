@@ -4,11 +4,9 @@ import com.epic60869.skyjew.SkyJewConfig;
 import com.epic60869.skyjew.SkyJewStorageSearch;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.Identifier;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -42,20 +40,13 @@ public abstract class SkyJewItemHighlightMixin {
         int rgb = rarityColor(stack);
         if (rgb < 0) return;
 
-        try {
-            Identifier circleTexture = Identifier.fromNamespaceAndPath(
-                "skyjew", "textures/gui/item_background_circular.png");
-            graphics.blit(
-                RenderPipelines.GUI_TEXTURED,
-                circleTexture,
-                slot.x, slot.y,
-                0, 0,
-                16, 16,
-                16, 16,
-                ARGB.color(128, rgb));
-        } catch (Throwable ignored) {
-            // Resource reloads must never break inventory rendering.
-        }
+        // Draw the rarity backdrop directly as GUI geometry instead of relying
+        // on a texture/pipeline combination. This is deliberately done before
+        // vanilla renders the item, so the item remains fully visible on top.
+        int color = ARGB.color(170, rgb);
+        graphics.fill(slot.x + 4, slot.y + 1, slot.x + 12, slot.y + 15, color);
+        graphics.fill(slot.x + 2, slot.y + 3, slot.x + 14, slot.y + 13, color);
+        graphics.fill(slot.x + 1, slot.y + 5, slot.x + 15, slot.y + 11, color);
     }
 
     private static int rarityColor(ItemStack stack) {
