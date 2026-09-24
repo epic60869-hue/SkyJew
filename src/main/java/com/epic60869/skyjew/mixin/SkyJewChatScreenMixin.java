@@ -28,7 +28,12 @@ public abstract class SkyJewChatScreenMixin {
         }
 
         String message = input.getValue().trim();
-        if (!message.isEmpty() && !message.startsWith("/")) {
+        // Let Minecraft handle slash commands normally. This is what makes
+        // /sj chat leave (and every other /command) usable while channel mode is active.
+        if (message.startsWith("/")) {
+            return;
+        }
+        if (!message.isEmpty()) {
             if (message.startsWith("!")) {
                 SkyJewGlobalChat.sendBotCommand(message);
             } else {
