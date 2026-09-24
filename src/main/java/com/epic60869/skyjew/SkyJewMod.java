@@ -22,6 +22,8 @@ public final class SkyJewMod implements ClientModInitializer {
         Path configDir = minecraft.gameDirectory.toPath().resolve("config");
         config = SkyJewConfig.load(configDir.resolve("skyjew-mod.json"));
         SkyJewSounds.initialize();
+        // Register key mappings during client initialization, before GameOptions is initialized.
+        SkyJewKeyMappings.init();
         SkyJewRecipeCommand.init();
 
         FarmingRngTracker.get().register();
