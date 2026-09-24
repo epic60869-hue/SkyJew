@@ -1,6 +1,7 @@
 package com.epic60869.skyjew;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -179,6 +180,68 @@ public final class SkyJewNick {
             return styled(finalNickName, finalNickMode, finalNickHex);
         }
         return original;
+    }
+
+    /**
+     * Applies the local nickname directly to the client-side TAB entry.
+     * Hypixel can periodically replace PlayerInfo display names, so this is
+     * re-applied from the client tick instead of relying only on a render mixin.
+     */
+    public static void applyToTab(PlayerInfo info) {
+        if (info == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getUser() == null || info.getProfile() == null) return;
+        if (!info.getProfile().id().equals(mc.getUser().getProfileId())
+            && !info.getProfile().name().equals(mc.getUser().getName())) return;
+
+        Component original = info.getTabListDisplayName();
+        if (original == null) original = Component.literal(info.getProfile().name());
+
+        Component replacement = tabDisplayName(original, info.getProfile().id(), info.getProfile().name());
+        if (replacement != null && !replacement.equals(original)) {
+            info.setTabListDisplayName(replacement);
+        }
+    }
+
+    /**
+     * Replaces the local player's name in normal Minecraft chat so /sj nick
+     * is not limited to SkyJew's separate global-chat channel.
+     */
+    public static Component replaceOwnNameInChat(Component message) {
+        if (message == null || config() == null || !config().misc.nickname.enabled
+            || config().misc.nickname.name == null || config().misc.nickname.name.isBlank()) {
+            return message;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        String actualName = mc.getUser().getName();
+        if (actualName == null || actualName.isBlank()) return message;
+
+        String nickname = config().misc.nickname.name;
+        MutableComponent result = Component.empty();
+        final boolean[] replaced = {false};
+
+        message.visit((style, value) -> {
+            if (value == null || value.isEmpty()) return java.util.Optional.empty();
+
+            if (!replaced[0]) {
+                int at = value.indexOf(actualName);
+                if (at >= 0) {
+                    if (at > 0) result.append(Component.literal(value.substring(0, at)).setStyle(style));
+                    result.append(styled(nickname, mode(), customHex()));
+                    if (at + actualName.length() < value.length()) {
+                        result.append(Component.literal(value.substring(at + actualName.length())).setStyle(style));
+                    }
+                    replaced[0] = true;
+                    return java.util.Optional.empty();
+                }
+            }
+
+            result.append(Component.literal(value).setStyle(style));
+            return java.util.Optional.empty();
+        }, Style.EMPTY);
+
+        return replaced[0] ? result : message;
     }
 
     public static Component displayName(String actualName) {
