@@ -1,5 +1,7 @@
 package com.epic60869.skyjew;
 
+import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -181,7 +183,12 @@ public final class SkyJewNopoFeatures {
 
         // Minecraft 26.2 exposes the live TAB entries through the connection.
         // Keep the raw component rows so Nopo's indented Pet widget can be parsed.
-        List<Component> tab = mc.getConnection().getListedOnlinePlayers().stream()
+        List<PlayerInfo> orderedPlayers = new ArrayList<>(mc.getConnection().getListedOnlinePlayers());
+        try {
+            orderedPlayers.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
+        } catch (Throwable ignored) {
+        }
+        List<Component> tab = orderedPlayers.stream()
             .map(PlayerInfo::getTabListDisplayName)
             .filter(Objects::nonNull)
             .toList();
