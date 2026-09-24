@@ -268,6 +268,15 @@ public final class SkyJewGlobalChat {
         return result;
     }
 
+    private static Component linkifyComponent(Component input) {
+        MutableComponent out = Component.empty();
+        for (Component child : input.getSiblings()) {
+            out.append(child.copy());
+        }
+        if (input.getSiblings().isEmpty()) return linkify(input.getString());
+        return out;
+    }
+
     private static void mcMessage(Component message) {
         Minecraft.getInstance().execute(() -> {
             Minecraft mc = Minecraft.getInstance();
@@ -376,8 +385,18 @@ public final class SkyJewGlobalChat {
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
                 String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
 
-                String line = prefix + " [" + name + "] " + message;
-                mcMessage(linkify(line));
+                Component shownName;
+                try {
+                    UUID uuid = packet.has("minecraftUuid")
+                        ? UUID.fromString(packet.get("minecraftUuid").getAsString()) : null;
+                    shownName = SkyJewNick.displayName(uuid, displayName);
+                } catch (Exception ignored) {
+                    shownName = SkyJewNick.displayName(displayName);
+                }
+                MutableComponent line = Component.literal(prefix + " [")
+                    .append(shownName)
+                    .append(Component.literal("] " + message));
+                mcMessage(linkifyComponent(line));
             } catch (Exception ignored) {
             }
         }
