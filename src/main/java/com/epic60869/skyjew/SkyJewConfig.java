@@ -55,10 +55,6 @@ public final class SkyJewConfig extends Config {
     public Experiments experiments = new Experiments();
 
     @Expose
-    @Category(name = "Visual", desc = "Visual helpers and camera behaviour.")
-    public Visual visual = new Visual();
-
-    @Expose
     @Category(name = "Misc", desc = "Nickname and small quality-of-life options.")
     public Misc misc = new Misc();
 
@@ -95,6 +91,11 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Farming RNG HUD", desc = "Click to expand the farming RNG HUD options.")
         public FarmingRng rng = new FarmingRng();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mouse Lock", desc = "Reduce camera sensitivity while using supported farming tools.")
+        public MouseLock mouseLock = new MouseLock();
     }
 
     public static final class FarmingRng {
@@ -175,16 +176,16 @@ public final class SkyJewConfig extends Config {
 
     }
 
-    public static final class Visual {
+    public static final class MouseLock {
         @Expose
-        @ConfigOption(name = "Mouse Lock", desc = "Reduce camera sensitivity while aiming at supported farming tools.")
+        @ConfigOption(name = "Enabled", desc = "Reduce camera sensitivity while using supported farming tools.")
         @ConfigEditorBoolean
-        public boolean mouseLockEnabled = false;
+        public boolean enabled = false;
 
         @Expose
         @ConfigOption(name = "Ground Only", desc = "Only apply Mouse Lock while the player is on the ground.")
         @ConfigEditorBoolean
-        public boolean mouseLockGroundOnly = true;
+        public boolean groundOnly = true;
     }
 
     public static final class Misc {
@@ -369,8 +370,8 @@ public final class SkyJewConfig extends Config {
         if (old.has("farmingRngX")) migrated.farming.rng.x = old.get("farmingRngX").getAsInt();
         if (old.has("farmingRngY")) migrated.farming.rng.y = old.get("farmingRngY").getAsInt();
         if (old.has("farmingRngX")) 
-        if (old.has("mouseLockEnabled")) migrated.visual.mouseLockEnabled = old.get("mouseLockEnabled").getAsBoolean();
-        if (old.has("mouseLockGroundOnly")) migrated.visual.mouseLockGroundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
+        if (old.has("mouseLockEnabled")) migrated.farming.mouseLock.enabled = old.get("mouseLockEnabled").getAsBoolean();
+        if (old.has("mouseLockGroundOnly")) migrated.farming.mouseLock.groundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
 
         if (old.has("experimentHelperEnabled")) migrated.experiments.enabled = old.get("experimentHelperEnabled").getAsBoolean();
         if (old.has("experimentHelperHighlight")) migrated.experiments.highlight = old.get("experimentHelperHighlight").getAsBoolean();
