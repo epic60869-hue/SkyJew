@@ -181,21 +181,12 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        // Hypixel's pet widget is built from the same sorted tab-list rows that
-        // NopoMod uses. Reading the raw connection list without the vanilla
-        // tab comparator can put the Pet section in the wrong order.
-        List<Component> tab;
-        try {
-            tab = ((SkyJewPlayerTabOverlayAccessor) mc.gui.getTabList()).skyjew$getPlayerInfos().stream()
-                .map(PlayerInfo::getTabListDisplayName)
-                .filter(Objects::nonNull)
-                .toList();
-        } catch (Throwable ignored) {
-            tab = mc.getConnection().getListedOnlinePlayers().stream()
-                .map(PlayerInfo::getTabListDisplayName)
-                .filter(Objects::nonNull)
-                .toList();
-        }
+        // Minecraft 26.2 exposes the live TAB entries through the connection.
+        // Keep the raw component rows so Nopo's indented Pet widget can be parsed.
+        List<Component> tab = mc.getConnection().getListedOnlinePlayers().stream()
+            .map(PlayerInfo::getTabListDisplayName)
+            .filter(Objects::nonNull)
+            .toList();
 
         List<Component> petLines = new ArrayList<>();
         boolean inPetWidget = false;
