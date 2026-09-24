@@ -66,33 +66,9 @@ public final class SkyJewCustom {
         animationTicks++;
     }
 
-    /** Opens Skyblocker's actual customization screen. SkyJew no longer maintains a separate imitation. */
+    /** Opens SkyJew's standalone port of the Skyblocker customisation workflow. */
     public static void open(Minecraft mc, Screen parent) {
-        // Use Skyblocker's actual CustomizeScreen when Skyblocker is installed.
-        // This gives /sj custom the same tabs, item selector, armour preview,
-        // dye/trim controls, model selector, glint controls and persistence as
-        // /skyblocker custom instead of a separate imitation.
-        Runnable open = () -> {
-            try {
-                Class<?> screenClass = Class.forName(
-                    "de.hysky.skyblocker.skyblock.item.custom.screen.CustomizeScreen",
-                    true,
-                    SkyJewCustom.class.getClassLoader()
-                );
-                java.lang.reflect.Constructor<?> ctor =
-                    screenClass.getConstructor(Screen.class, boolean.class);
-                Screen customizeScreen = (Screen) ctor.newInstance(parent, false);
-                mc.gui.setScreen(customizeScreen);
-            } catch (Throwable error) {
-                System.err.println("[SkyJew] Could not open Skyblocker's real CustomizeScreen: "
-                    + error.getClass().getSimpleName() + ": " + error.getMessage());
-                mc.player.sendSystemMessage(Component.literal("[SkyJew] Skyblocker is required for /sj custom."));
-            }
-        };
-
-        // Skyblocker opens this screen through its scheduler. Deferring one tick
-        // avoids opening it while the command screen is still processing.
-        mc.execute(open);
+        mc.execute(() -> mc.gui.setScreen(new SkyJewCustomScreen(parent)));
     }
 
     public static boolean isHypixel(Minecraft mc) {
