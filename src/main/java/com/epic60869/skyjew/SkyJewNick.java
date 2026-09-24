@@ -113,7 +113,7 @@ public final class SkyJewNick {
         if (original == null || uuid == null) return original;
 
         RemoteNick remote = REMOTE_NICKS.get(uuid);
-        boolean local = uuid.equals(Minecraft.getInstance().getUser().profileId());
+        boolean local = uuid.equals(Minecraft.getInstance().getUser().getProfileId());
 
         String nickName = null;
         String nickMode = null;
