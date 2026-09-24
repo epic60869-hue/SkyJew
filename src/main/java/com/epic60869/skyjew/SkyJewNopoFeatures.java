@@ -521,7 +521,7 @@ public final class SkyJewNopoFeatures {
                 if (EMOJIS.contains(name)) {
                     MutableComponent emoji = Component.object(new AtlasSprite(
                         Identifier.fromNamespaceAndPath("minecraft", "gui"),
-                        Identifier.fromNamespaceAndPath("skyjew-mod", name)
+                        Identifier.fromNamespaceAndPath("skyjew", name)
                     ));
                     out.append(emoji.withStyle(style));
                 } else {
