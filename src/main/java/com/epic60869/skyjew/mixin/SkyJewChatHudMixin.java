@@ -3,6 +3,7 @@ package com.epic60869.skyjew.mixin;
 import com.epic60869.skyjew.SkyJewChatCompactor;
 import com.epic60869.skyjew.SkyJewConfig;
 import com.epic60869.skyjew.SkyJewNopoFeatures;
+import com.epic60869.skyjew.SkyJewNick;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.multiplayer.chat.GuiMessageSource;
@@ -45,7 +46,7 @@ public abstract class SkyJewChatHudMixin {
         ordinal = 0
     )
     private Component skyjew$replaceFullChat(Component message) {
-        return SkyJewNopoFeatures.replaceChatEmojis(message);
+        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOwnNameInChat(message));
     }
 
     @Inject(
