@@ -28,13 +28,13 @@ import java.util.Locale;
  * Skyblocker reference: https://github.com/SkyblockerMod/Skyblocker
  */
 public final class SkyJewSkyblockerCustomScreen extends Screen {
-    private static final int BG = 0xFF202124;
-    private static final int PANEL = 0xFF2B2D31;
-    private static final int INNER = 0xFF17191C;
+    private static final int BG = 0xFF111318;
+    private static final int PANEL = 0xFF1B1E24;
+    private static final int INNER = 0xFF14171C;
     private static final int BORDER = 0xFF4B4E54;
     private static final int TEXT = 0xFFF2F3F5;
     private static final int MUTED = 0xFFB5BAC1;
-    private static final int SELECTED = 0xFF5865F2;
+    private static final int SELECTED = 0xFF7B61FF;
 
     private final Screen previousScreen;
     private boolean itemTab;
@@ -66,13 +66,13 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         clearWidgets();
         buildPreview();
 
-        int tabWidth = 110;
-        addRenderableWidget(Button.builder(Component.literal("Armor"), b -> {
+        int tabWidth = 150;
+        addRenderableWidget(Button.builder(Component.literal("ARMOR"), b -> {
             itemTab = false;
             init();
         }).bounds(width / 2 - tabWidth - 3, 8, tabWidth, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Item"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("ITEM"), b -> {
             itemTab = true;
             init();
         }).bounds(width / 2 + 3, 8, tabWidth, 22).build());
@@ -101,17 +101,19 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
     }
 
     private void initArmorTab() {
-        int top = 38;
+        int top = 42;
         int left = 12;
-        int previewWidth = 104;
-        int controlLeft = left + previewWidth + 12;
+        int sidebarWidth = 116;
+        int previewLeft = left + sidebarWidth + 10;
+        int previewWidth = 190;
+        int controlLeft = previewLeft + previewWidth + 12;
         int controlWidth = width - controlLeft - 12;
 
-        addRenderableWidget(new PlayerPreviewWidget(left, top + 8, previewWidth, 165, previewPlayer));
+        addRenderableWidget(new PlayerPreviewWidget(previewLeft, top + 8, previewWidth, 215, previewPlayer));
 
         for (int i = 0; i < armorSlots.length; i++) {
             final int index = i;
-            addRenderableWidget(new ArmorPieceWidget(left + 8 + i * 24, top + 180, 24, 24, armorSlots[i],
+            addRenderableWidget(new ArmorPieceWidget(left + 10, top + 48 + i * 38, 34, 34, armorSlots[i],
                 () -> {
                     selectedArmor = index;
                     init();
@@ -119,7 +121,7 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
         }
 
         final ItemStack target = currentArmor();
-        drawLabel("ARMOR CUSTOMIZATION", controlLeft, top + 5);
+        drawLabel("APPEARANCE", controlLeft, top + 5);
         drawLabel(target.isEmpty() ? "No customizable armor selected" : target.getHoverName().getString(),
             controlLeft, top + 24);
 
@@ -288,17 +290,19 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, BG);
+        g.fill(10, 38, 128, height - 40, PANEL);
+        g.fill(140, 38, 340, height - 40, PANEL);
+        g.fill(352, 38, width - 12, height - 40, INNER);
 
         int tabY = 8;
         g.text(font, "Skyblocker-style Customization", 12, tabY + 6, TEXT, true);
 
         int top = 38;
         int left = 12;
-        int previewWidth = itemTab ? Math.min(280, width / 2) : 104;
+        int previewWidth = itemTab ? Math.min(280, width / 2) : 190;
         int right = left + previewWidth + 12;
 
-        g.fill(left, top, right, height - 40, PANEL);
-        g.fill(right, top, width - 12, height - 40, INNER);
+        
 
         if (itemTab) {
             g.text(font, "ITEM", right + 10, top + 5, TEXT, true);
@@ -307,10 +311,10 @@ public final class SkyJewSkyblockerCustomScreen extends Screen {
                 g.text(font, selectedItem.getHoverName(), left + 12, top + 245, TEXT, false);
             }
         } else {
-            g.text(font, "ARMOR", left + 10, top + 5, TEXT, true);
+            g.text(font, "ARMOR", 20, top + 5, TEXT, true);
             ItemStack target = currentArmor();
             if (!target.isEmpty()) {
-                g.text(font, target.getHoverName(), left + 10, top + 222, TEXT, false);
+                g.text(font, target.getHoverName(), 155, top + 232, TEXT, false);
             }
         }
 
