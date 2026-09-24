@@ -83,28 +83,31 @@ public abstract class SkyJewChatHudMixin {
         }
 
         List<GuiMessage> all = allMessages;
+        if (all.isEmpty()) return;
 
-        boolean consecutive = !all.isEmpty()
-            && all.get(0).content().getString().replaceAll(" §7\\(x\\d+\\)$", "").equals(replaced.getString());
+        GuiMessage previous = all.get(0);
+        String previousText = previous.content().getString().replaceFirst("\\s+\\(x\\d+\\)$", "");
+        if (!previousText.equals(replaced.getString())) return;
 
-        int count = SkyJewChatCompactor.nextCount(replaced, consecutive);
-        if (count <= 1) {
-            return;
+        int count = 2;
+        java.util.regex.Matcher countMatcher = java.util.regex.Pattern
+            .compile("\\s+\\(x(\\d+)\\)$")
+            .matcher(previous.content().getString());
+        if (countMatcher.find()) {
+            try {
+                count = Integer.parseInt(countMatcher.group(1)) + 1;
+            } catch (NumberFormatException ignored) {}
         }
 
-        if (!all.isEmpty()) {
-            GuiMessage previous = all.get(0);
-            Component compacted = SkyJewChatCompactor.withCount(replaced, count);
-            all.set(0, new GuiMessage(
-                previous.addedTime(),
-                compacted,
-                previous.signature(),
-                previous.source(),
-                previous.tag()
-            ));
-            refreshTrimmedMessages();
-        }
-
+        Component compacted = SkyJewChatCompactor.withCount(replaced, count);
+        all.set(0, new GuiMessage(
+            previous.addedTime(),
+            compacted,
+            previous.signature(),
+            previous.source(),
+            previous.tag()
+        ));
+        refreshTrimmedMessages();
         ci.cancel();
     }
 }
