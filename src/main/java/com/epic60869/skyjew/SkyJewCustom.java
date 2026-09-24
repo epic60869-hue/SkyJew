@@ -101,11 +101,10 @@ public final class SkyJewCustom {
     public static String uuid(ItemStack stack) {
         try {
             if (stack == null || stack.isEmpty()) return "";
-            // Use Minecraft's native SkyBlock UUID accessor, the same path
-            // Skyblocker uses for custom dye/model data. This is more reliable
-            // than manually reading CustomData and works with Hypixel item UUIDs.
-            String value = stack.getUuid();
-            return value == null ? "" : value;
+            // Hypixel item UUIDs are stored in the CustomData root.
+            // Keep this compatible with the 26.1.2 ItemStack mappings.
+            CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+            return data == null ? "" : data.copyTag().getStringOr("uuid", "");
         } catch (Throwable ignored) {
             return "";
         }
