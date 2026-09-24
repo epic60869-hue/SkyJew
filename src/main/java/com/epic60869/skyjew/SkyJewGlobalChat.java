@@ -356,10 +356,11 @@ public final class SkyJewGlobalChat {
                     try {
                         UUID uuid = UUID.fromString(packet.get("minecraftUuid").getAsString());
                         boolean enabled = packet.has("enabled") && packet.get("enabled").getAsBoolean();
+                        String username = packet.has("username") ? packet.get("username").getAsString() : "";
                         String name = packet.has("name") ? packet.get("name").getAsString() : "";
                         String mode = packet.has("mode") ? packet.get("mode").getAsString() : "Plain";
                         String hex = packet.has("customHex") ? packet.get("customHex").getAsString() : "";
-                        SkyJewNick.updateRemote(uuid, enabled, name, mode, hex);
+                        SkyJewNick.updateRemote(uuid, username, enabled, name, mode, hex);
                     } catch (Exception ignored) {}
                     return;
                 }
@@ -407,6 +408,7 @@ public final class SkyJewGlobalChat {
                 try {
                     if (packet.has("minecraftUuid")) {
                         messageUuid = UUID.fromString(packet.get("minecraftUuid").getAsString());
+                        String messageUsername = packet.has("username") ? packet.get("username").getAsString() : "";
                         boolean nickEnabled = packet.has("nicknameEnabled")
                             && packet.get("nicknameEnabled").getAsBoolean();
                         String nickMode = packet.has("nicknameMode")
@@ -419,7 +421,7 @@ public final class SkyJewGlobalChat {
                         // contain nickname styling, so it must never erase a
                         // nickname that was already synced from the relay.
                         if (nickEnabled) {
-                            SkyJewNick.updateRemote(messageUuid, true, displayName, nickMode, nickHex);
+                            SkyJewNick.updateRemote(messageUuid, messageUsername, true, displayName, nickMode, nickHex);
                         }
                     }
                 } catch (Exception ignored) {}
