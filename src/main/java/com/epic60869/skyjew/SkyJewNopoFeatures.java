@@ -10,6 +10,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -178,88 +179,133 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
+        // Hypixel's pet widget is built from the same sorted tab-list rows that
+        // NopoMod uses. Reading the raw connection list without the vanilla
+        // tab comparator can put the Pet section in the wrong order.
         List<Component> tab = mc.getConnection().getOnlinePlayers().stream()
+            .sorted(PlayerTabOverlay.PLAYER_COMPARATOR)
             .map(PlayerInfo::getTabListDisplayName)
             .filter(Objects::nonNull)
             .toList();
 
-        int petIndex = -1;
-        for (int i = 0; i < tab.size(); i++) {
-            if (tab.get(i).getString().trim().equalsIgnoreCase("Pet:")
-                    || tab.get(i).getString().trim().startsWith("Pet:")) {
-                petIndex = i;
+        List<Component> petLines = new ArrayList<>();
+        boolean inPetWidget = false;
+        for (Component line : tab) {
+            String text = line.getString();
+            if (!inPetWidget) {
+                if (text.equals("Pet:") || text.trim().equals("Pet:")) {
+                    inPetWidget = true;
+                    petLines.add(line);
+                }
+                continue;
+            }
+
+            // TabWidget.PET keeps every following indented line until the next
+            // non-indented row. This is the important part of Nopo's parser.
+            if (!text.isEmpty() && text.charAt(0) == ' ') {
+                petLines.add(line);
+            } else {
                 break;
             }
         }
 
-        if (petIndex < 0 || petIndex + 1 >= tab.size()) {
+        if (petLines.size() < 2) {
             petDisplay = null;
             return;
         }
-
-        Component petLine = tab.get(petIndex + 1);
-        Matcher nameMatch = Pattern.compile("^ +\\[Lvl (?<level>\\d+)] (?<name>.*)$").matcher(petLine.getString());
-        if (!nameMatch.matches()) {
-            petDisplay = null;
-            return;
-        }
-
-        int realLevel = Integer.parseInt(nameMatch.group("level"));
-        String name = nameMatch.group("name").trim();
-        int rarityOffset = rarityOffsetFromComponent(petLine, name);
-        int overflowLevel = realLevel;
-        float currentXp = 0;
-        boolean maxLevel = false;
-
-        for (int i = petIndex + 2; i < Math.min(tab.size(), petIndex + 6); i++) {
-            String line = tab.get(i).getString();
-            if (!line.startsWith(" ")) break;
-
-            Matcher xpMatch = Pattern.compile("^ +\\+(?<xp>[\\d,.]+) XP$").matcher(line);
-            if (xpMatch.matches()) {
-                currentXp = (float) parseDouble(xpMatch.group("xp"));
-                maxLevel = true;
-                float totalXp = currentXp + calculativeXpForLevel(realLevel, rarityOffset);
-                overflowLevel = calcLevel(totalXp, rarityOffset);
-                if (realLevel == 200) overflowLevel--;
-                break;
-            }
-        }
-
-        Component nameComponent = findComponentText(petLine, name);
-        if (nameComponent == null) nameComponent = Component.literal(name);
 
         List<Component> display = new ArrayList<>();
-        display.add(Component.literal("Pet:").withStyle(s -> s.withColor(ChatFormatting.YELLOW).withBold(true)));
+        int level = -1;
+        int overflowLevel = -1;
+        String name = "";
+        int rarityOffset = 20;
+        boolean maxLevel = false;
+
+        Pattern petNameRegex = Pattern.compile("^ +\\[Lvl (?<level>\\d+)] (?<name>.*)$");
+        Pattern overflowXpRegex = Pattern.compile("^ +\\+(?<xp>[\\d,.]+) XP$");
+
+        for (Component line : petLines) {
+            String text = line.getString();
+
+            Matcher petMatch = petNameRegex.matcher(text);
+            if (petMatch.matches()) {
+                level = Integer.parseInt(petMatch.group("level"));
+                overflowLevel = level;
+                name = petMatch.group("name");
+                String rarityName = name.replace("✦", "").trim();
+                rarityOffset = rarityOffsetFromComponent(line, rarityName);
+
+                // Preserve the original Pet: header and any other widget rows,
+                // then replace the normal [Lvl ...] row below.
+                continue;
+            }
+
+            Matcher xpMatch = overflowXpRegex.matcher(text);
+            if (xpMatch.matches() && level >= 0) {
+                maxLevel = true;
+                float currentXp = (float) parseDouble(xpMatch.group("xp"));
+
+                // Match NopoMod's behaviour: add the XP already earned through
+                // the real pet level using that pet's rarity, then calculate the
+                // overflow level on the legendary curve.
+                float totalXp = currentXp + calculativeXpForLevel(level, rarityOffset);
+                overflowLevel = calcLevel(totalXp);
+                if (level == 200) overflowLevel--;
+
+                float progressXp = leftoverXp(totalXp);
+                int nextOffset = (rarityOffset < 20 && overflowLevel < 100) ? 1 : 0;
+                int xpForNextLevel = getXpForLevel(
+                    Math.max(0, overflowLevel - nextOffset), 20
+                );
+                double percent = xpForNextLevel <= 0
+                    ? 0
+                    : (progressXp / xpForNextLevel) * 100.0;
+
+                display.add(Component.literal(
+                    " " + formatNumber(progressXp) + "/" + formatCompact(xpForNextLevel)
+                        + " XP (" + String.format(Locale.US, "%.1f", percent) + "%)"
+                ).withStyle(style -> style.withColor(ChatFormatting.YELLOW)));
+                continue;
+            }
+
+            // Keep the header. The normal pet-name row is inserted below after
+            // we have calculated its overflow level.
+            if (display.isEmpty()) {
+                display.add(line);
+            }
+        }
+
+        if (level < 0 || name.isBlank()) {
+            petDisplay = null;
+            return;
+        }
+
+        Component nameComponent = findComponentText(petLines.get(1), name);
+        if (nameComponent == null) {
+            nameComponent = Component.literal(name);
+        }
 
         MutableComponent levelLine = Component.literal(" [Lvl " + overflowLevel);
-        if (rarityOffset < 20 && realLevel != overflowLevel && overflowLevel < 100) {
-            levelLine.append(Component.literal(" (" + realLevel + ")"));
+        if (rarityOffset < 20 && level != overflowLevel && overflowLevel < 100) {
+            levelLine.append(Component.literal(" (" + level + ")"));
         }
         levelLine.append(Component.literal("] "));
         levelLine.append(nameComponent);
-        display.add(levelLine);
 
-        if (maxLevel) {
-            float totalXp = currentXp + calculativeXpForLevel(realLevel, rarityOffset);
-            float progressXp = leftoverXp(totalXp, rarityOffset);
-            int nextOffset = (rarityOffset < 20 && overflowLevel < 100) ? 1 : 0;
-            int xpForNext = getXpForLevel(Math.max(0, overflowLevel - nextOffset), rarityOffset);
-            double percent = xpForNext <= 0 ? 0 : (progressXp / xpForNext) * 100.0;
-            display.add(Component.literal(" " + formatNumber(progressXp) + "/" + formatCompact(xpForNext)
-                + " XP (" + String.format(Locale.US, "%.1f", percent) + "%)")
-                .withStyle(s -> s.withColor(ChatFormatting.YELLOW)));
+        if (display.isEmpty()) {
+            display.add(Component.literal("Pet:")
+                .withStyle(style -> style.withColor(ChatFormatting.YELLOW).withBold(true)));
         }
+        display.add(1, levelLine);
 
-        if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel) {
-            if (mc.player != null) {
-                mc.player.sendSystemMessage(Component.literal("Your ")
-                    .append(nameComponent)
-                    .append(Component.literal(" leveled up to level "))
-                    .append(Component.literal(Integer.toString(overflowLevel))
-                        .withStyle(s -> s.withColor(ChatFormatting.BLUE)))
-                    .append("!"));
-            }
+        if (currentPet.equals(name) && currentOverflowLevel + 1 == overflowLevel && maxLevel
+                && mc.player != null) {
+            mc.player.sendSystemMessage(Component.literal("Your ")
+                .append(nameComponent)
+                .append(Component.literal(" leveled up to level "))
+                .append(Component.literal(Integer.toString(overflowLevel))
+                    .withStyle(style -> style.withColor(ChatFormatting.BLUE)))
+                .append("!"));
         }
 
         petDisplay = display;
@@ -297,12 +343,20 @@ public final class SkyJewNopoFeatures {
 
     private static String styleColorName(Style style) {
         try {
-            Method method = Style.class.getMethod("getColor");
-            Object color = method.invoke(style);
-            if (color == null) return "";
-            Method name = color.getClass().getMethod("getName");
-            Object value = name.invoke(color);
-            return value == null ? "" : value.toString();
+            // 26.x TextColor exposes its vanilla colour name directly. Keep
+            // reflection as a fallback so this remains tolerant of mapping
+            // changes between 26.1 and 26.2.
+            if (style.getColor() == null) return "";
+            try {
+                return style.getColor().getName();
+            } catch (Throwable ignored) {
+                Method method = Style.class.getMethod("getColor");
+                Object color = method.invoke(style);
+                if (color == null) return "";
+                Method name = color.getClass().getMethod("getName");
+                Object value = name.invoke(color);
+                return value == null ? "" : value.toString();
+            }
         } catch (Throwable ignored) {
             return "";
         }
@@ -329,6 +383,12 @@ public final class SkyJewNopoFeatures {
         return xp;
     }
 
+    // NopoMod calculates overflow progress against the legendary curve after
+    // adding the XP already accumulated by the lower-rarity pet.
+    private static int calcLevel(float xp) {
+        return calcLevel(xp, 20);
+    }
+
     private static int calcLevel(float xp, int offset) {
         float remaining = xp;
         int level = 0;
@@ -337,6 +397,10 @@ public final class SkyJewNopoFeatures {
             level++;
         }
         return Math.max(1, level);
+    }
+
+    private static float leftoverXp(float xp) {
+        return leftoverXp(xp, 20);
     }
 
     private static float leftoverXp(float xp, int offset) {
