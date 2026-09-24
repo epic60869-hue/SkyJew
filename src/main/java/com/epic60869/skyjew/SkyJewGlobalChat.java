@@ -17,6 +17,7 @@ import java.util.Queue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.UUID;
 
 public final class SkyJewGlobalChat {
     private static final String CONFIGURED_RELAY_URL =
@@ -81,6 +82,20 @@ public final class SkyJewGlobalChat {
                 sendNow(ws, PENDING_MESSAGES.poll());
             }
         }
+    }
+
+    public static void sendNicknameUpdate() {
+        WebSocket ws = socket;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) return;
+
+        JsonObject packet = new JsonObject();
+        packet.addProperty("type", "nickname");
+        packet.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
+        packet.addProperty("enabled", SkyJewNick.outgoingName() != username);
+        packet.addProperty("name", SkyJewNick.outgoingName());
+        packet.addProperty("mode", SkyJewNick.mode());
+        packet.addProperty("customHex", SkyJewNick.customHex());
+        ws.sendText(GSON.toJson(packet), true);
     }
 
     public static void requestDiscord(String action, JsonObject data) {
@@ -161,6 +176,10 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
                 hello.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
+                hello.addProperty("nicknameEnabled", SkyJewNick.outgoingName() != username);
+                hello.addProperty("nickname", SkyJewNick.outgoingName());
+                hello.addProperty("nicknameMode", SkyJewNick.mode());
+                hello.addProperty("nicknameHex", SkyJewNick.customHex());
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
             });
@@ -231,6 +250,25 @@ public final class SkyJewGlobalChat {
             try {
                 JsonObject packet = JsonParser.parseString(raw).getAsJsonObject();
                 String type = packet.has("type") ? packet.get("type").getAsString() : "";
+
+                if ("nicknameUpdate".equals(type)) {
+                    try {
+                        UUID uuid = UUID.fromString(packet.get("minecraftUuid").getAsString());
+                        boolean enabled = packet.has("enabled") && packet.get("enabled").getAsBoolean();
+                        String name = packet.has("name") ? packet.get("name").getAsString() : "";
+                        String mode = packet.has("mode") ? packet.get("mode").getAsString() : "Plain";
+                        String hex = packet.has("customHex") ? packet.get("customHex").getAsString() : "";
+                        SkyJewNick.updateRemote(uuid, enabled, name, mode, hex);
+                    } catch (Exception ignored) {}
+                    return;
+                }
+
+                if ("nicknameRemove".equals(type)) {
+                    try {
+                        SkyJewNick.removeRemote(UUID.fromString(packet.get("minecraftUuid").getAsString()));
+                    } catch (Exception ignored) {}
+                    return;
+                }
 
                 if ("discordResult".equals(type)) {
                     String requestId = packet.has("requestId")
