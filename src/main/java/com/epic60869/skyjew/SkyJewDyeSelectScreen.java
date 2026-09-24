@@ -49,7 +49,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
     protected void init() {
         waitingForDyes = !SkyJewCustom.dyeDataLoaded();
         rebuildEntries();
-        rebuildWidgets();
+        rebuildDyeWidgets();
     }
 
     private void rebuildEntries() {
@@ -78,7 +78,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         }
     }
 
-    private void rebuildWidgets() {
+    private void rebuildDyeWidgets() {
         clearWidgets();
 
         left = (width - PANEL_W) / 2;
@@ -89,7 +89,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         search.setResponder(value -> {
             scroll = 0;
             rebuildEntries();
-            rebuildWidgets();
+            rebuildDyeWidgets();
         });
         addRenderableWidget(search);
 
@@ -160,7 +160,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         if (waitingForDyes && SkyJewCustom.dyeDataLoaded()) {
             waitingForDyes = false;
             rebuildEntries();
-            rebuildWidgets();
+            rebuildDyeWidgets();
         }
     }
 
@@ -192,7 +192,7 @@ public final class SkyJewDyeSelectScreen extends Screen {
         int next = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.signum(scrollY)));
         if (next != scroll) {
             scroll = next;
-            rebuildWidgets();
+            rebuildDyeWidgets();
         }
         return true;
     }
