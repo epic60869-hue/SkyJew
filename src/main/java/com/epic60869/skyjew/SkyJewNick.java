@@ -109,8 +109,8 @@ public final class SkyJewNick {
         return config().misc.nickname.name;
     }
 
-    public static Component tabDisplayName(Component original, UUID uuid) {
-        if (original == null || uuid == null) return original;
+    public static Component tabDisplayName(Component original, UUID uuid, String actualName) {
+        if (original == null || uuid == null || actualName == null || actualName.isBlank()) return original;
 
         RemoteNick remote = REMOTE_NICKS.get(uuid);
         boolean local = uuid.equals(Minecraft.getInstance().getUser().getProfileId());
@@ -134,25 +134,34 @@ public final class SkyJewNick {
 
         if (nickName == null) return original;
 
-        String actualName = Minecraft.getInstance().getUser().getName();
         MutableComponent result = Component.empty();
-        boolean replaced = false;
+        final boolean[] replaced = {false};
 
-        // Hypixel's rank/name is made from multiple styled components. Rebuilding
-        // the whole string as literals destroys those per-component styles and is
-        // what caused rank text to turn white. Flatten the component tree instead
-        // and keep every original component's style.
-        for (Component part : original.toFlatList()) {
-            String text = part.getString();
-            if (!replaced && text.equals(actualName)) {
-                result.append(styled(nickName, nickMode, nickHex));
-                replaced = true;
-            } else {
-                result.append(part.copy());
+        // Hypixel may put the rank prefix and username in the same styled leaf.
+        // Split only that leaf so the rank keeps its original formatting.
+        original.visit((style, value) -> {
+            if (value == null || value.isEmpty()) return java.util.Optional.empty();
+
+            if (!replaced[0]) {
+                int at = value.indexOf(actualName);
+                if (at >= 0) {
+                    if (at > 0) {
+                        result.append(Component.literal(value.substring(0, at)).setStyle(style));
+                    }
+                    result.append(styled(nickName, nickMode, nickHex));
+                    if (at + actualName.length() < value.length()) {
+                        result.append(Component.literal(value.substring(at + actualName.length())).setStyle(style));
+                    }
+                    replaced[0] = true;
+                    return java.util.Optional.empty();
+                }
             }
-        }
 
-        return replaced ? result : original;
+            result.append(Component.literal(value).setStyle(style));
+            return java.util.Optional.empty();
+        }, Style.EMPTY);
+
+        return replaced[0] ? result : original;
     }
 
     public static Component displayName(String actualName) {
