@@ -97,7 +97,7 @@ public final class SkyJewCustomScreen extends Screen {
     private void applyAnimatedDye(ItemStack stack) {
         Integer a = parseHex(animatedStart.getValue()), b = parseHex(animatedEnd.getValue()); if (a == null || b == null) return;
         float duration; try { duration = Float.parseFloat(animatedDuration.getValue()); } catch (Exception e) { duration = 5f; }
-        SkyJewCustom.setAnimatedDye(stack, a, b, duration, cycleBack, 0);
+        SkyJewCustom.setAnimatedDye(stack, a, b, duration, cycleBack.selected(), 0);
     }
 
     private static Integer parseHex(String value) {
