@@ -214,7 +214,7 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
                 hello.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
-                hello.addProperty("nicknameEnabled", SkyJewNick.outgoingName() != username);
+                hello.addProperty("nicknameEnabled", !SkyJewNick.outgoingName().equals(username));
                 hello.addProperty("nickname", SkyJewNick.outgoingName());
                 hello.addProperty("nicknameMode", SkyJewNick.mode());
                 hello.addProperty("nicknameHex", SkyJewNick.customHex());
@@ -386,7 +386,7 @@ public final class SkyJewGlobalChat {
                 }
                 MutableComponent line = Component.literal(prefix + " [")
                     .append(shownName)
-                    .append(Component.literal("] " + message));
+                     .append(linkify(message));
                 mcMessage(line);
             } catch (Exception ignored) {
             }
