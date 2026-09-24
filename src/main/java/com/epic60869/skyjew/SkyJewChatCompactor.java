@@ -23,6 +23,7 @@ public final class SkyJewChatCompactor {
 
     private static String lastKey;
     private static long lastAt;
+    private static final java.util.Map<String, Component> BASE_MESSAGES = new java.util.HashMap<>();
 
     private SkyJewChatCompactor() {}
 
@@ -84,8 +85,10 @@ public final class SkyJewChatCompactor {
 
             int oldCount = count(old.content());
             int newCount = oldCount + 1;
+            Component base = BASE_MESSAGES.getOrDefault(key, stripCount(old.content()));
+            BASE_MESSAGES.putIfAbsent(key, base.copy());
 
-            Component compacted = withCount(old.content(), newCount);
+            Component compacted = withCount(base, newCount);
             messages.set(i, new GuiMessage(
                 old.addedTime(), compacted, old.signature(), old.source(), old.tag()
             ));
@@ -104,7 +107,7 @@ public final class SkyJewChatCompactor {
     public static Component withCount(Component message, int value) {
         if (message == null || value <= 1) return message;
 
-        MutableComponent out = stripCount(message).copy();
+        MutableComponent out = message.copy();
         out.append(Component.literal(" §7(x" + value + ")"));
         return out;
     }
@@ -121,14 +124,15 @@ public final class SkyJewChatCompactor {
         Matcher m = COUNT_SUFFIX.matcher(text);
         if (!m.find()) return message;
 
-        // Preserve the original component styling by rebuilding only the
-        // plain text. Hypixel chat styling is retained by the surrounding
-        // ChatComponent before the compacted suffix is appended.
+        // This path is only used when recovering a pre-existing compacted
+        // message. New messages are stored in BASE_MESSAGES so their styling
+        // is retained for every subsequent count update.
         return Component.literal(text.substring(0, m.start()));
     }
 
     public static void clear() {
         lastKey = null;
         lastAt = 0L;
+        BASE_MESSAGES.clear();
     }
 }
