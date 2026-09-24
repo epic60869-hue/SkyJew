@@ -72,6 +72,24 @@ public final class SkyJewCustom {
 
     /** Opens the alternate Skyblocker-style customization screen for side-by-side testing. */
     public static void openSkyblocker(Minecraft mc, Screen parent) {
+        // Skyblocker is already an installed dependency for the user's profile.
+        // Open its real CustomizeScreen so /sj custom is the same GUI instead of
+        // maintaining a second, visually different reimplementation.
+        try {
+            Class<?> screenClass = Class.forName(
+                "de.hysky.skyblocker.skyblock.item.custom.screen.CustomizeScreen"
+            );
+            java.lang.reflect.Constructor<?> ctor =
+                screenClass.getDeclaredConstructor(Screen.class, boolean.class);
+            ctor.setAccessible(true);
+            Object screen = ctor.newInstance(parent, false);
+            if (screen instanceof Screen customizeScreen) {
+                mc.gui.setScreen(customizeScreen);
+                return;
+            }
+        } catch (Throwable ignored) {
+            // Fall back to SkyJew's local implementation if Skyblocker is not installed.
+        }
         mc.gui.setScreen(new SkyJewSkyblockerCustomScreen(parent));
     }
 
