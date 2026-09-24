@@ -5,8 +5,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.Items;
+import com.epic60869.skyjew.mixin.SkyJewModelManagerAccessor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
@@ -65,34 +66,46 @@ public final class SkyJewItemIconSelectScreen extends Screen {
         options.clear();
         String query = queryValue == null ? "" : queryValue.trim().toLowerCase(Locale.ROOT);
 
-        // Real stacks first: these preserve Hypixel's custom ITEM_MODEL when present.
+        // Use Minecraft's baked model registry instead of only scanning the
+        // player's inventory. This includes vanilla models, Hypixel's loaded
+        // SkyBlock resource-pack models, and models supplied by other enabled
+        // resource packs.
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            for (ItemStack stack : mc.player.getInventory()) addStackOption(stack, query);
-            addStackOption(mc.player.getMainHandItem(), query);
-            addStackOption(mc.player.getOffhandItem(), query);
+        if (mc.getModelManager() instanceof SkyJewModelManagerAccessor accessor) {
+            for (Identifier model : accessor.skyjew$getBakedItemStackModels().keySet().stream().sorted().toList()) {
+                String id = model.toString();
+                if (!query.isEmpty() && !id.toLowerCase(Locale.ROOT).contains(query)) continue;
+
+                ItemStack icon = new ItemStack(Items.CAT_SPAWN_EGG);
+                icon.set(DataComponents.ITEM_MODEL, model);
+                String name = model.getNamespace().equals("minecraft")
+                    ? model.getPath().replace('_', ' ')
+                    : model.toString();
+                options.add(new ItemOption(icon, model, name, id));
+            }
         }
 
-        // Then every normal Minecraft registry item.
-        for (var entry : BuiltInRegistries.ITEM.entrySet()) {
-            String id = entry.getKey().toString();
-            String name = new ItemStack(entry.getValue()).getHoverName().getString();
-            if (!query.isEmpty()
-                    && !name.toLowerCase(Locale.ROOT).contains(query)
-                    && !id.toLowerCase(Locale.ROOT).contains(query)) {
-                continue;
-            }
+        // Keep real inventory items at the top when they have a useful
+        // display name, while still using the complete baked-model list above.
+        if (mc.player != null && query.isEmpty()) {
+            List<ItemOption> inventory = new ArrayList<>();
+            for (ItemStack stack : mc.player.getInventory()) addStackOption(inventory, stack);
+            addStackOption(inventory, mc.player.getMainHandItem());
+            addStackOption(inventory, mc.player.getOffhandItem());
 
-            var itemId = BuiltInRegistries.ITEM.getKey(entry.getValue());
-            Identifier model = Identifier.fromNamespaceAndPath(
-                itemId.getNamespace(),
-                itemId.getPath()
-            );
-            options.add(new ItemOption(new ItemStack(entry.getValue()), model, name, id));
+            java.util.LinkedHashMap<String, ItemOption> merged = new java.util.LinkedHashMap<>();
+            for (ItemOption option : inventory) merged.put(option.model().toString(), option);
+            for (ItemOption option : options) merged.putIfAbsent(option.model().toString(), option);
+            options.clear();
+            options.addAll(merged.values());
         }
     }
 
     private void addStackOption(ItemStack stack, String query) {
+        addStackOption(options, stack, query);
+    }
+
+    private void addStackOption(List<ItemOption> target, ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         String name = stack.getHoverName().getString();
         String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
@@ -107,7 +120,7 @@ public final class SkyJewItemIconSelectScreen extends Screen {
             return;
         }
 
-        options.add(new ItemOption(stack.copy(), model, name, id));
+        target.add(new ItemOption(stack.copy(), model, name, id));
     }
 
     @Override
