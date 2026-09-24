@@ -51,8 +51,8 @@ public final class SkyJewStorageSearch {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "skyjew-storage-search.json";
 
-    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)ender chest\\s*#?\\s*(\\d+)");
-    private static final Pattern BACKPACK = Pattern.compile("(?i)backpack\\s*#?\\s*(\\d+)");
+    private static final Pattern ENDER_CHEST = Pattern.compile("(?i)ender\\s+chest(?:\\s*#?\\s*(\\d+))?");
+    private static final Pattern BACKPACK = Pattern.compile("(?i)(?:small|medium|large|greater|jumbo)?\\s*backpack(?:\\s*#?\\s*(\\d+))?");
 
     private static final long CAPTURE_INTERVAL_MS = 400L;
     private static final long SAVE_INTERVAL_MS = 1200L;
@@ -189,12 +189,12 @@ public final class SkyJewStorageSearch {
             mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
             return;
         }
-        if (result.type().equals("ENDER_CHEST")) {
+        if (result.type().equals("ENDER_CHEST") && result.number() > 0) {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
                 mc.player.connection.sendCommand("enderchest " + result.number());
             }
-        } else if (result.type().equals("BACKPACK")) {
+        } else if (result.type().equals("BACKPACK") && result.number() > 0) {
             mc.gui.setScreen(null);
             if (mc.player != null && mc.player.connection != null) {
                 mc.player.connection.sendCommand("backpack " + result.number());
@@ -287,14 +287,14 @@ public final class SkyJewStorageSearch {
         String normalized = title == null ? "" : title.trim();
         Matcher ender = ENDER_CHEST.matcher(normalized);
         if (ender.find()) {
-            int number = parseNumber(ender.group(1));
-            return number > 0 ? new StorageTarget("ENDER_CHEST", number, "Ender Chest #" + number) : null;
+            int number = ender.group(1) == null ? 0 : parseNumber(ender.group(1));
+            return new StorageTarget("ENDER_CHEST", number, number > 0 ? "Ender Chest #" + number : "Ender Chest");
         }
 
         Matcher backpack = BACKPACK.matcher(normalized);
         if (backpack.find()) {
-            int number = parseNumber(backpack.group(1));
-            return number > 0 ? new StorageTarget("BACKPACK", number, "Backpack #" + number) : null;
+            int number = backpack.group(1) == null ? 0 : parseNumber(backpack.group(1));
+            return new StorageTarget("BACKPACK", number, number > 0 ? "Backpack #" + number : cleanTitle(normalized));
         }
         return null;
     }
