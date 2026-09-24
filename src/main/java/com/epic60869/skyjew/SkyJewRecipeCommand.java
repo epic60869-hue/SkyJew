@@ -144,8 +144,10 @@ public final class SkyJewRecipeCommand {
                             + "§c. The item may not be craftable."));
                     return;
                 }
-                mc.gui.setScreen(new SkyJewRecipeScreen(mc.gui.screen(), finalId, displayName(finalId),
-                    finalAmount, recipe));
+                selectedId = finalId;
+                selectedName = displayName(finalId);
+                selectedAmount = finalAmount;
+                selectedRecipe = recipe;
             }));
         return 1;
     }
