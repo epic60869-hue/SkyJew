@@ -112,8 +112,10 @@ public final class SkyJewNick {
     public static Component tabDisplayName(Component original, UUID uuid, String actualName) {
         if (original == null || uuid == null || actualName == null || actualName.isBlank()) return original;
 
-        RemoteNick remote = REMOTE_NICKS.get(uuid);
         boolean local = uuid.equals(Minecraft.getInstance().getUser().getProfileId());
+        // A local setting is authoritative for our own TAB entry; do not let a
+        // delayed relay packet overwrite the local nickname/style.
+        RemoteNick remote = local ? null : REMOTE_NICKS.get(uuid);
 
         String nickName = null;
         String nickMode = null;
