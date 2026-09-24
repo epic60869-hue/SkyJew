@@ -51,7 +51,7 @@ public final class SkyJewExperimentHelper {
     }
 
     public static void tick(Minecraft mc) {
-        if (config == null || !config.experiments.enabled) {
+        if (config == null || !config.experiments.table.enabled) {
             resetIfNeeded();
             return;
         }
@@ -67,7 +67,7 @@ public final class SkyJewExperimentHelper {
     public static void render(GuiGraphicsExtractor g, AbstractContainerScreen<?> screen) {
         if (config == null || !config.experiments.enabled || !isExperimentTable(screen)) return;
 
-        if (config.experiments.highlight) {
+        if (config.experiments.table.highlight) {
             if (phase == Phase.REPLICATE) {
                 if (isChronomatron(screen)) {
                     highlightChron(g, screen);
@@ -90,7 +90,7 @@ public final class SkyJewExperimentHelper {
             if (expected == null) return false;
             String clicked = colorName(slot.getItem());
             if (clicked == null) return false;
-            if (!expected.equals(clicked)) return config.experiments.preventMisclicks;
+            if (!expected.equals(clicked)) return config.experiments.table.preventMisclicks;
             chronProgress++;
             return false;
         }
