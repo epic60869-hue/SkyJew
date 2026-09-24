@@ -15,8 +15,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SkyJewCommissionHud {
-    private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew-mod", "mining_commissions");
-    private static final Pattern COMMISSION = Pattern.compile("(?<name>.+?)\\s*:\\s*(?<progress>(?:DONE|\\d+(?:\\.\\d+)?)%?)", Pattern.CASE_INSENSITIVE);
+    private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew", "commissions");
+    private static final Pattern COMMISSION = Pattern.compile("(?<name>.*): (?<progress>.*)%?", Pattern.CASE_INSENSITIVE);
     private static SkyJewConfig config;
     private static List<Commission> commissions = List.of();
 
@@ -73,31 +73,44 @@ public final class SkyJewCommissionHud {
             Component display = info.getTabListDisplayName();
             if (display == null) continue;
 
-            String line = display.getString().replaceAll("§.", "").trim();
+            String raw = display.getString().replaceAll("§.", "");
+            String line = raw.strip();
+
             if (!inSection) {
-                if (line.trim().toLowerCase().startsWith("commissions")) {
+                if (line.equalsIgnoreCase("Commissions") || line.startsWith("Commissions:")) {
                     inSection = true;
                 }
                 continue;
             }
 
-            String stripped = line.trim();
-            if (stripped.isEmpty()) break;
-            if (stripped.equalsIgnoreCase("Commissions")) continue;
-            Matcher matcher = COMMISSION.matcher(stripped);
-            if (!matcher.matches()) continue;
+            // Skyblocker reads the actual TAB widget lines and stops when the
+            // next unindented widget begins. Do not strip before this check.
+            if (raw.isBlank() || !raw.startsWith(" ")) {
+                break;
+            }
 
-            String name = matcher.group("name").trim();
-            String progress = matcher.group("progress").trim();
+            String stripped = raw.strip();
+            Matcher matcher = COMMISSION.matcher(stripped);
+            if (!matcher.matches()) {
+                continue;
+            }
+
+            String name = matcher.group("name").strip();
+            String progress = matcher.group("progress").strip();
+            if (name.isEmpty() || progress.isEmpty()) continue;
 
             if ("DONE".equalsIgnoreCase(progress)) {
                 found.add(new Commission(name, "DONE", 100));
             } else {
-                String numeric = progress.replace("%", "").trim();
+                String numeric = progress.endsWith("%")
+                    ? progress.substring(0, progress.length() - 1)
+                    : progress;
                 try {
                     float value = Math.max(0, Math.min(100, Float.parseFloat(numeric)));
                     found.add(new Commission(name, progress, value));
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                    // Ignore non-commission TAB rows.
+                }
             }
         }
 
@@ -110,32 +123,36 @@ public final class SkyJewCommissionHud {
         g.pose().translate((float) x, (float) y);
         g.pose().scale(scale, scale);
 
-        int contentHeight = 18 + list.size() * 18;
+        // Match Skyblocker's CommsWidget structure: title followed by one
+        // progress element per active commission.
+        int contentHeight = 18 + list.size() * 20;
         if (config != null && config.mining.commissions.background) {
             g.fill(-5, -4, width() + 5, contentHeight + 4, 0xB0000000);
         }
 
-        draw(g, "Commissions", 4, 0, 0xFF55FFFF, true);
+        draw(g, "Commissions", 4, 0, 0xFF00AAAA, true);
 
         int row = 18;
         for (Commission commission : list) {
-            draw(g, commission.name, 4, row, 0xFFFFFFFF, false);
+            // Book icon used by Skyblocker's commission widget.
+            draw(g, "▣", 4, row, 0xFF55FFFF, false);
+            draw(g, commission.name, 17, row, 0xFFFFFFFF, false);
 
             String progress = commission.progress;
             int progressWidth = Minecraft.getInstance().font.width(progress);
             draw(g, progress, width() - progressWidth - 4, row,
-                "DONE".equalsIgnoreCase(progress) ? 0xFF55FF55 : 0xFFAAAAAA, false);
+                "DONE".equalsIgnoreCase(progress) ? 0xFF55FF55 : 0xFFFFFFFF, false);
 
-            int barX = 4;
-            int barY = row + 12;
-            int barWidth = width() - 8;
+            int barX = 17;
+            int barY = row + 11;
+            int barWidth = width() - 21;
+            g.fill(barX, barY, barX + barWidth, barY + 3, 0x55333333);
             int filled = Math.round(barWidth * (commission.percent / 100.0f));
-            g.fill(barX, barY, barX + barWidth, barY + 2, 0x55333333);
             if (filled > 0) {
-                g.fill(barX, barY, barX + filled, barY + 2,
-                    "DONE".equalsIgnoreCase(progress) ? 0xFF55FF55 : 0xFF55AAAA);
+                g.fill(barX, barY, barX + filled, barY + 3,
+                    "DONE".equalsIgnoreCase(progress) ? 0xFF55FF55 : 0xFF00AAAA);
             }
-            row += 18;
+            row += 20;
         }
 
         g.pose().popMatrix();
