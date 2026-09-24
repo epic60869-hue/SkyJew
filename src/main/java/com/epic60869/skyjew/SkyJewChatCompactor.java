@@ -3,93 +3,44 @@ package com.epic60869.skyjew;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 public final class SkyJewChatCompactor {
-    private static final long WINDOW_MS = 5_000L;
-    private static final Map<String, Entry> ENTRIES = new HashMap<>();
-    private static String lastMessageKey;
-    private static long lastMessageAt;
-    private static int lastCount;
+    private static final long WINDOW_MS = 5000L;
+    private static String lastKey;
+    private static long lastAt;
+    private static int count;
 
     private SkyJewChatCompactor() {}
 
     public static boolean enabled() {
-        SkyJewConfig config = SkyJewConfig.current();
-        return config != null && config.chat != null && config.chat.compactChat;
+        SkyJewConfig c = SkyJewConfig.current();
+        return c != null && c.chat != null && c.chat.compactChat;
     }
 
-    /**
-     * Records an incoming message. Returns 1 for a new message, or the
-     * occurrence count when it repeats consecutively within the time window.
-     */
-    public static int nextCount(Component incoming, boolean consecutive) {
-        if (!enabled() || incoming == null) return 1;
+    public static boolean same(Component a, Component b) {
+        return a != null && b != null && strip(a.getString()).equals(strip(b.getString()));
+    }
 
-        String key = incoming.getString();
-        if (key == null || key.isBlank() || isSeparator(key)) return 1;
-
+    public static int record(Component message) {
+        if (!enabled() || message == null) return 1;
+        String key = message.getString();
         long now = System.currentTimeMillis();
-        prune(now);
-
-        Entry previous = ENTRIES.get(key);
-        boolean repeat = previous != null && consecutive
-            && key.equals(lastMessageKey) && now - lastMessageAt <= WINDOW_MS;
-
-        if (!repeat) {
-            ENTRIES.put(key, new Entry(incoming.copy(), 1, now));
-            lastMessageKey = key;
-            lastMessageAt = now;
-            lastCount = 1;
-            return 1;
-        }
-
-        previous.count++;
-        previous.lastSeen = now;
-        lastMessageKey = key;
-        lastMessageAt = now;
-        lastCount = previous.count;
-        return previous.count;
+        if (key.isBlank()) return 1;
+        if (key.equals(lastKey) && now - lastAt <= WINDOW_MS) count++;
+        else { lastKey = key; count = 1; }
+        lastAt = now;
+        return count;
     }
 
-    public static Component withCount(Component incoming, int count) {
-        if (count <= 1) return incoming;
-        MutableComponent result = incoming.copy();
-        result.append(Component.literal(" §7(x" + count + ")"));
-        return result;
+    public static Component withCount(Component message, int value) {
+        if (value <= 1) return message;
+        MutableComponent out = message.copy();
+        out.append(Component.literal(" §7(x" + value + ")"));
+        return out;
     }
 
-    public static void clear() {
-        ENTRIES.clear();
-        lastMessageKey = null;
-        lastMessageAt = 0L;
-        lastCount = 0;
-    }
+    public static void clear() { lastKey = null; lastAt = 0; count = 0; }
 
-    private static void prune(long now) {
-        Iterator<Map.Entry<String, Entry>> it = ENTRIES.entrySet().iterator();
-        while (it.hasNext()) {
-            if (now - it.next().getValue().lastSeen > WINDOW_MS) it.remove();
-        }
-    }
-
-    private static boolean isSeparator(String text) {
-        String plain = text.replaceAll("\s", "");
-        if (plain.length() < 3) return false;
-        return plain.matches("[-_=~*•·━─═]+");
-    }
-
-    private static final class Entry {
-        private final Component original;
-        private int count;
-        private long lastSeen;
-
-        private Entry(Component original, int count, long lastSeen) {
-            this.original = original;
-            this.count = count;
-            this.lastSeen = lastSeen;
-        }
+    private static String strip(String s) {
+        return s.replaceFirst(" §7\\(x\\d+\\)$", "");
     }
 }
