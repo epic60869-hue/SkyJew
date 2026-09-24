@@ -1,11 +1,11 @@
 package com.epic60869.skyjew;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -13,29 +13,39 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Command Keys-style keybind editor used by SkyJew. */
+/**
+ * SkyJew's Command Keys editor.
+ *
+ * The layout follows the useful parts of TerminalMC CommandKeys: profile
+ * selection on the left, a macro list in the centre, and a proper editor on
+ * the right. It intentionally uses SkyJew's own data model and does not
+ * bundle the CommandKeys mod.
+ */
 public final class SkyJewCommandKeysScreen extends Screen {
     private static final int BG = 0xFF080B12;
-    private static final int PANEL = 0xFF141B27;
+    private static final int PANEL = 0xFF121925;
+    private static final int PANEL_2 = 0xFF192231;
+    private static final int BORDER = 0xFF293548;
+    private static final int ACCENT = 0xFF58D8FF;
+    private static final int PURPLE = 0xFF9A72FF;
     private static final int TEXT = 0xFFF3F6FF;
-    private static final int MUTED = 0xFF8D9AAF;
-    private static final int CYAN = 0xFF58D8FF;
-    private static final int PURPLE = 0xFF9A6CFF;
-    private static final int YELLOW = 0xFFFFD34D;
+    private static final int MUTED = 0xFF8794A8;
+    private static final int GREEN = 0xFF57E389;
+    private static final int RED = 0xFFFF647C;
 
     private final Path configDir;
-    private int selected;
     private int selectedProfile;
-    private boolean profileView = true;
-    private EditBox name;
-    private EditBox command;
-    private EditBox key;
-    private EditBox delay;
+    private int selectedMacro = -1;
+    private boolean pickingKey;
+    private boolean pickingMouse;
+
     private EditBox profileName;
     private EditBox profileMatch;
-    private SkyJewCommandKeys.Mode mode = SkyJewCommandKeys.Mode.SEND;
-    private SkyJewCommandKeys.Macro editing;
-    private boolean pickingKey;
+    private EditBox macroName;
+    private EditBox commands;
+    private EditBox delay;
+    private SkyJewCommandKeys.Mode mode;
+    private SkyJewCommandKeys.Conflict conflict;
 
     public SkyJewCommandKeysScreen(Path configDir) {
         super(Component.literal("SkyJew Keybinds"));
@@ -49,180 +59,286 @@ public final class SkyJewCommandKeysScreen extends Screen {
         if (SkyJewCommandKeys.data().profiles.isEmpty()) {
             SkyJewCommandKeys.data().profiles.add(new SkyJewCommandKeys.Profile());
         }
-        selectedProfile = Math.max(0, Math.min(selectedProfile, SkyJewCommandKeys.data().profiles.size() - 1));
+        selectedProfile = Math.max(0,
+            Math.min(selectedProfile, SkyJewCommandKeys.data().profiles.size() - 1));
         return SkyJewCommandKeys.data().profiles.get(selectedProfile);
     }
 
-    private List<SkyJewCommandKeys.Macro> keybinds() {
-        return profile().macros;
+    private SkyJewCommandKeys.Macro macro() {
+        List<SkyJewCommandKeys.Macro> list = profile().macros;
+        if (selectedMacro < 0 || selectedMacro >= list.size()) return null;
+        return list.get(selectedMacro);
     }
 
     @Override
     protected void init() {
         clearWidgets();
 
-        if (profileView) {
-            initProfileView();
-        } else {
-            initMacroView();
+        int margin = 18;
+        int top = 32;
+        int bottom = height - 34;
+
+        // Header/profile controls.
+        addRenderableWidget(Button.builder(Component.literal("+ Profile"), b -> addProfile())
+            .bounds(margin, 8, 92, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"), b -> save())
+            .bounds(width - 190, 8, 78, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Done"), b -> {
+            save();
+            onClose();
+        }).bounds(width - 106, 8, 88, 20).build());
+
+        int leftW = Math.min(190, Math.max(160, width / 5));
+        int centreW = Math.min(300, Math.max(220, width / 4));
+        int rightX = margin + leftW + 10 + centreW + 10;
+        int centreX = margin + leftW + 10;
+        int usableRight = width - margin;
+
+        buildProfilePanel(margin, top, leftW, bottom);
+        buildMacroPanel(centreX, top, centreW, bottom);
+
+        if (rightX + 220 < usableRight) {
+            buildEditor(rightX, top, usableRight - rightX, bottom);
         }
     }
 
-    private void initProfileView() {
-        int w = Math.min(520, width - 40);
-        int left = (width - w) / 2;
-        int rowW = w - 48;
-        int y = 58;
-
-        addRenderableWidget(Button.builder(Component.literal("Conflict Strategy: Assert"), b -> {})
-            .bounds(left, y, rowW / 2 - 3, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Send Mode: Send"), b -> {})
-            .bounds(left + rowW / 2 + 3, y, rowW / 2 - 3, 20).build());
-
-        y += 32;
-        addRenderableWidget(Button.builder(Component.literal("Active Profile"), b -> {})
-            .bounds(left, y, rowW, 20).build());
-
-        y += 28;
+    private void buildProfilePanel(int x, int top, int w, int bottom) {
+        int y = top + 28;
         for (int i = 0; i < SkyJewCommandKeys.data().profiles.size(); i++) {
             final int index = i;
             SkyJewCommandKeys.Profile p = SkyJewCommandKeys.data().profiles.get(i);
-            int by = y + i * 27;
+            String label = (i == selectedProfile ? "▶ " : "") +
+                (p.name == null || p.name.isBlank() ? "Unnamed" : p.name);
 
-            addRenderableWidget(Button.builder(
-                Component.literal((i == selectedProfile ? "↑ " : "") + (p.name == null || p.name.isBlank() ? "Unnamed Profile" : p.name)),
-                b -> {
-                    selectedProfile = index;
-                    selected = 0;
-                    profileView = false;
-                    init();
-                }).bounds(left, by, rowW - 138, 22).build());
-
-            addRenderableWidget(Button.builder(Component.literal("S"),
-                b -> {
-                    p.singleplayerDefault = !p.singleplayerDefault;
-                    SkyJewCommandKeys.save();
-                    init();
-                }).bounds(left + rowW - 132, by, 40, 22).build());
-
-            addRenderableWidget(Button.builder(Component.literal("M"),
-                b -> {
-                    p.multiplayerDefault = !p.multiplayerDefault;
-                    SkyJewCommandKeys.save();
-                    init();
-                }).bounds(left + rowW - 88, by, 40, 22).build());
-
-            addRenderableWidget(Button.builder(Component.literal("Edit"),
-                b -> {
-                    selectedProfile = index;
-                    selected = 0;
-                    profileView = false;
-                    init();
-                }).bounds(left + rowW - 44, by, 44, 22).build());
+            addRenderableWidget(Button.builder(Component.literal(label), b -> {
+                saveEditor();
+                selectedProfile = index;
+                selectedMacro = -1;
+                init();
+            }).bounds(x, y, w, 24).build());
+            y += 28;
         }
 
-        int addY = y + SkyJewCommandKeys.data().profiles.size() * 27 + 8;
-        addRenderableWidget(Button.builder(Component.literal("+"),
-            b -> {
-                SkyJewCommandKeys.Profile p = new SkyJewCommandKeys.Profile();
-                p.name = "Profile " + (SkyJewCommandKeys.data().profiles.size() + 1);
-                SkyJewCommandKeys.data().profiles.add(p);
-                selectedProfile = SkyJewCommandKeys.data().profiles.size() - 1;
-                SkyJewCommandKeys.save();
-                init();
-            }).bounds(left, addY, rowW, 22).build());
+        SkyJewCommandKeys.Profile p = profile();
+        int fieldY = bottom - 92;
 
-        addRenderableWidget(Button.builder(Component.literal("Done"),
-            b -> onClose()).bounds(left, height - 42, rowW, 22).build());
+        profileName = field(x, fieldY, w, p.name);
+        profileMatch = field(x, fieldY + 28, w, p.match);
+        addRenderableWidget(profileName);
+        addRenderableWidget(profileMatch);
 
-        addRenderableWidget(Button.builder(Component.literal("Remove Profile"),
+        addRenderableWidget(Button.builder(
+            Component.literal(p.multiplayerDefault ? "★ Multiplayer default" : "☆ Set multiplayer default"),
             b -> {
-                if (SkyJewCommandKeys.data().profiles.size() > 1) {
-                    SkyJewCommandKeys.data().profiles.remove(selectedProfile);
-                    selectedProfile = Math.max(0, selectedProfile - 1);
-                    SkyJewCommandKeys.save();
-                    init();
+                p.multiplayerDefault = !p.multiplayerDefault;
+                if (p.multiplayerDefault) {
+                    for (SkyJewCommandKeys.Profile other : SkyJewCommandKeys.data().profiles)
+                        if (other != p) other.multiplayerDefault = false;
                 }
-            }).bounds(left, height - 70, rowW, 22).build());
+                save();
+                init();
+            }).bounds(x, fieldY + 56, w, 22).build());
     }
 
-    private void initMacroView() {
-        int left = 28;
-        int listRight = Math.min(330, width / 2 - 20);
-        int right = listRight + 25;
-        int fieldW = Math.max(250, Math.min(460, width - right - 30));
+    private void buildMacroPanel(int x, int top, int w, int bottom) {
+        addRenderableWidget(Button.builder(Component.literal("+ New macro"), b -> addMacro())
+            .bounds(x, top, w - 54, 24).build());
+        addRenderableWidget(Button.builder(Component.literal("Copy"), b -> copyMacro())
+            .bounds(x + w - 48, top, 48, 24).build());
 
-        if (selected >= keybinds().size()) selected = Math.max(0, keybinds().size() - 1);
-        editing = keybinds().isEmpty() ? null : keybinds().get(selected);
-        mode = editing == null || editing.mode == null ? SkyJewCommandKeys.Mode.SEND : editing.mode;
+        int y = top + 32;
+        List<SkyJewCommandKeys.Macro> list = profile().macros;
+        for (int i = 0; i < list.size(); i++) {
+            final int index = i;
+            SkyJewCommandKeys.Macro m = list.get(i);
+            String key = keyDisplay(m);
+            String label = (i == selectedMacro ? "▶ " : "") +
+                (m.name == null || m.name.isBlank() ? "Unnamed macro" : m.name);
 
-        addRenderableWidget(Button.builder(Component.literal("< Profiles"),
-            b -> {
-                saveEditing();
-                SkyJewCommandKeys.save();
-                profileView = true;
+            addRenderableWidget(Button.builder(Component.literal(label), b -> {
+                saveEditor();
+                selectedMacro = index;
                 init();
-            }).bounds(left, 20, 100, 22).build());
+            }).bounds(x, y, w, 25).build());
 
-        addRenderableWidget(Button.builder(Component.literal("+ Add Keybind"), b -> addMacro())
-            .bounds(left, height - 46, 125, 24).build());
-        addRenderableWidget(Button.builder(Component.literal("Delete"), b -> deleteMacro())
-            .bounds(left + 132, height - 46, 85, 24).build());
-
-        if (editing != null) {
-            name = box(right, 80, fieldW, editing.name);
-            command = box(right, 112, fieldW, String.join("\n", editing.commands));
-            key = box(right, 144, 120, displayKey(editing));
-            key.setEditable(false);
-            delay = box(right + 130, 144, 90, String.valueOf(editing.delayMs));
-
-            addRenderableWidget(Button.builder(
-                    Component.literal(pickingKey ? "Press a key..." : "Pick Key"),
-                    b -> pickingKey = true)
-                    .bounds(right + 225, 144, 110, 20).build());
-
-            int y = 180;
-            for (SkyJewCommandKeys.Mode m : SkyJewCommandKeys.Mode.values()) {
-                final SkyJewCommandKeys.Mode selectedMode = m;
-                addRenderableWidget(Button.builder(
-                    Component.literal((m == mode ? "✓ " : "") + modeName(m)),
-                    b -> {
-                        saveEditing();
-                        mode = selectedMode;
-                        init();
-                    }).bounds(right + ((m.ordinal() % 3) * 112),
-                        y + ((m.ordinal() / 3) * 25), 108, 20).build());
-            }
-
-            addRenderableWidget(Button.builder(Component.literal("Save"),
-                b -> {
-                    saveEditing();
-                    SkyJewCommandKeys.save();
-                    init();
-                }).bounds(right, 240, 100, 24).build());
+            y += 29;
+            if (y > bottom - 35) break;
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Save & Close"),
+        addRenderableWidget(Button.builder(Component.literal("Delete"),
+            b -> deleteMacro()).bounds(x, bottom - 26, w / 2 - 3, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Reset"),
             b -> {
-                saveEditing();
-                SkyJewCommandKeys.save();
-                onClose();
-            }).bounds(width - 150, height - 46, 120, 24).build());
+                SkyJewCommandKeys.load();
+                selectedMacro = -1;
+                init();
+            }).bounds(x + w / 2 + 3, bottom - 26, w / 2 - 3, 22).build());
     }
 
-    private String displayKey(SkyJewCommandKeys.Macro m) {
-        String base = SkyJewCommandKeys.keyName(m.keyCode);
-        if (m.modifier == 0) return base;
-        StringBuilder s = new StringBuilder();
-        if ((m.modifier & GLFW.GLFW_MOD_CONTROL) != 0) s.append("CTRL+");
-        if ((m.modifier & GLFW.GLFW_MOD_SHIFT) != 0) s.append("SHIFT+");
-        if ((m.modifier & GLFW.GLFW_MOD_ALT) != 0) s.append("ALT+");
-        if ((m.modifier & GLFW.GLFW_MOD_SUPER) != 0) s.append("SUPER+");
-        return s + base;
+    private void buildEditor(int x, int top, int w, int bottom) {
+        SkyJewCommandKeys.Macro m = macro();
+        if (m == null) {
+            return;
+        }
+
+        mode = m.mode == null ? SkyJewCommandKeys.Mode.SEND : m.mode;
+        conflict = m.conflict == null ? SkyJewCommandKeys.Conflict.ASSERT : m.conflict;
+
+        int fieldW = Math.max(180, w - 20);
+        int y = top + 30;
+
+        macroName = field(x, y, fieldW, m.name);
+        addRenderableWidget(macroName);
+        y += 32;
+
+        commands = field(x, y, fieldW, String.join("\n", m.commands));
+        commands.setMaxLength(4096);
+        addRenderableWidget(commands);
+        y += 56;
+
+        addRenderableWidget(Button.builder(
+            Component.literal(pickingKey ? "Press keyboard key..." : "Keyboard: " + keyDisplay(m)),
+            b -> {
+                pickingKey = true;
+                pickingMouse = false;
+            }).bounds(x, y, Math.min(210, fieldW), 24).build());
+
+        addRenderableWidget(Button.builder(
+            Component.literal("Mouse"),
+            b -> {
+                pickingMouse = true;
+                pickingKey = false;
+            }).bounds(x + Math.min(218, fieldW - 100), y, 80, 24).build());
+
+        delay = field(x + Math.min(304, Math.max(0, fieldW - 180)), y, 90,
+            String.valueOf(m.delayMs));
+        addRenderableWidget(delay);
+        y += 34;
+
+        gButtons(x, y, fieldW);
+        y += 78;
+
+        addRenderableWidget(Button.builder(
+            Component.literal("✓ Apply changes"), b -> {
+                saveEditor();
+                save();
+                init();
+            }).bounds(x, bottom - 26, Math.min(150, fieldW), 22).build());
     }
 
-    private String modeName(SkyJewCommandKeys.Mode mode) {
-        return switch (mode) {
+    private void gButtons(int x, int y, int w) {
+        addRenderableWidget(Button.builder(
+            Component.literal("Mode: " + modeName(mode)), b -> cycleMode())
+            .bounds(x, y, Math.min(180, w), 24).build());
+
+        addRenderableWidget(Button.builder(
+            Component.literal("Conflict: " + conflictName(conflict)), b -> cycleConflict())
+            .bounds(x + Math.min(188, Math.max(0, w - 150)), y, Math.min(150, w), 24).build());
+    }
+
+    private EditBox field(int x, int y, int w, String value) {
+        EditBox e = new EditBox(font, x, y, Math.max(70, w), 22, Component.empty());
+        e.setValue(value == null ? "" : value);
+        return e;
+    }
+
+    private void addProfile() {
+        SkyJewCommandKeys.Profile p = new SkyJewCommandKeys.Profile();
+        p.name = "Profile " + (SkyJewCommandKeys.data().profiles.size() + 1);
+        SkyJewCommandKeys.data().profiles.add(p);
+        selectedProfile = SkyJewCommandKeys.data().profiles.size() - 1;
+        selectedMacro = -1;
+        save();
+        init();
+    }
+
+    private void addMacro() {
+        SkyJewCommandKeys.Macro m = new SkyJewCommandKeys.Macro();
+        m.name = "Macro " + (profile().macros.size() + 1);
+        profile().macros.add(m);
+        selectedMacro = profile().macros.size() - 1;
+        save();
+        init();
+    }
+
+    private void copyMacro() {
+        SkyJewCommandKeys.Macro source = macro();
+        if (source == null) return;
+
+        SkyJewCommandKeys.Macro copy = new SkyJewCommandKeys.Macro();
+        copy.name = source.name + " Copy";
+        copy.keyCode = GLFW.GLFW_KEY_UNKNOWN;
+        copy.mouseButton = source.mouseButton;
+        copy.modifier = source.modifier;
+        copy.mode = source.mode;
+        copy.delayMs = source.delayMs;
+        copy.conflict = source.conflict;
+        copy.commands = new ArrayList<>(source.commands);
+        profile().macros.add(copy);
+        selectedMacro = profile().macros.size() - 1;
+        save();
+        init();
+    }
+
+    private void deleteMacro() {
+        if (selectedMacro >= 0 && selectedMacro < profile().macros.size()) {
+            profile().macros.remove(selectedMacro);
+            selectedMacro = Math.min(selectedMacro, profile().macros.size() - 1);
+            save();
+            init();
+        }
+    }
+
+    private void saveEditor() {
+        SkyJewCommandKeys.Macro m = macro();
+        if (m == null) return;
+
+        if (macroName != null) m.name = macroName.getValue().trim();
+        if (m.name == null || m.name.isBlank()) m.name = "Unnamed macro";
+
+        if (commands != null) {
+            List<String> result = new ArrayList<>();
+            for (String line : commands.getValue().replace("\r", "").split("\\n", -1)) {
+                // Empty lines are meaningful in TYPE mode but not in normal send
+                // mode; preserve them only for TYPE.
+                if (m.mode == SkyJewCommandKeys.Mode.TYPE || !line.isBlank()) {
+                    result.add(line);
+                }
+            }
+            if (result.isEmpty()) result.add("/help");
+            m.commands = result;
+        }
+
+        try {
+            m.delayMs = Math.max(0, Integer.parseInt(delay == null ? "250" : delay.getValue().trim()));
+        } catch (Exception ignored) {
+            m.delayMs = 250;
+        }
+
+        m.mode = mode == null ? SkyJewCommandKeys.Mode.SEND : mode;
+        m.conflict = conflict == null ? SkyJewCommandKeys.Conflict.ASSERT : conflict;
+
+        SkyJewCommandKeys.Profile p = profile();
+        if (profileName != null) p.name = profileName.getValue().trim();
+        if (profileMatch != null) p.match = profileMatch.getValue().trim();
+    }
+
+    private void cycleMode() {
+        saveEditor();
+        SkyJewCommandKeys.Mode[] values = SkyJewCommandKeys.Mode.values();
+        mode = values[(mode.ordinal() + 1) % values.length];
+        init();
+    }
+
+    private void cycleConflict() {
+        saveEditor();
+        SkyJewCommandKeys.Conflict[] values = SkyJewCommandKeys.Conflict.values();
+        conflict = values[(conflict.ordinal() + 1) % values.length];
+        init();
+    }
+
+    private String modeName(SkyJewCommandKeys.Mode m) {
+        return switch (m) {
             case SEND -> "Send";
             case TYPE -> "Type";
             case EDIT -> "Edit";
@@ -233,65 +349,44 @@ public final class SkyJewCommandKeysScreen extends Screen {
         };
     }
 
-    private EditBox box(int x, int y, int w, String value) {
-        EditBox e = new EditBox(font, x, y, w, 20, Component.literal(""));
-        e.setValue(value == null ? "" : value);
-        e.setMaxLength(4000);
-        addRenderableWidget(e);
-        return e;
+    private String conflictName(SkyJewCommandKeys.Conflict c) {
+        return switch (c) {
+            case SUBMIT -> "Submit";
+            case ASSERT -> "Assert";
+            case VETO -> "Veto";
+            case AVOID -> "Avoid";
+        };
     }
 
-    private void addMacro() {
-        SkyJewCommandKeys.Macro m = new SkyJewCommandKeys.Macro();
-        m.name = "Macro " + (keybinds().size() + 1);
-        keybinds().add(m);
-        selected = keybinds().size() - 1;
+    private String keyDisplay(SkyJewCommandKeys.Macro m) {
+        if (m == null || m.keyCode == GLFW.GLFW_KEY_UNKNOWN) return "Unbound";
+        String base = m.mouseButton
+            ? "MOUSE " + m.keyCode
+            : SkyJewCommandKeys.keyName(m.keyCode);
+        StringBuilder s = new StringBuilder();
+        if ((m.modifier & GLFW.GLFW_MOD_CONTROL) != 0) s.append("CTRL+");
+        if ((m.modifier & GLFW.GLFW_MOD_SHIFT) != 0) s.append("SHIFT+");
+        if ((m.modifier & GLFW.GLFW_MOD_ALT) != 0) s.append("ALT+");
+        if ((m.modifier & GLFW.GLFW_MOD_SUPER) != 0) s.append("SUPER+");
+        return s + base;
+    }
+
+    private void save() {
+        saveEditor();
         SkyJewCommandKeys.save();
-        init();
-    }
-
-    private void deleteMacro() {
-        if (selected >= 0 && selected < keybinds().size()) {
-            keybinds().remove(selected);
-            selected = Math.max(0, selected - 1);
-            SkyJewCommandKeys.save();
-            init();
-        }
-    }
-
-    private void saveEditing() {
-        if (editing == null) return;
-
-        editing.name = name == null ? editing.name : name.getValue();
-        editing.commands = new ArrayList<>();
-        String[] lines = command == null
-                ? new String[]{"/help"}
-                : command.getValue().replace("\r", "").split("\\n", -1);
-        for (String line : lines) {
-            if (!line.isBlank()) editing.commands.add(line);
-        }
-        if (editing.commands.isEmpty()) editing.commands.add("/help");
-
-        try {
-            editing.delayMs = Math.max(0, Integer.parseInt(delay == null ? "250" : delay.getValue().trim()));
-        } catch (Exception ignored) {
-            editing.delayMs = 250;
-        }
-
-        editing.mode = mode;
-        if (profileName != null) profile().name = profileName.getValue();
-        if (profileMatch != null) profile().match = profileMatch.getValue();
     }
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (pickingKey && event.key() != GLFW.GLFW_KEY_ESCAPE && editing != null) {
-            editing.keyCode = event.key();
-            editing.modifier = event.modifiers()
-                    & (GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_CONTROL
-                    | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER);
+        if (pickingKey && event.key() != GLFW.GLFW_KEY_ESCAPE && macro() != null) {
+            SkyJewCommandKeys.Macro m = macro();
+            m.keyCode = event.key();
+            m.mouseButton = false;
+            m.modifier = event.modifiers() &
+                (GLFW.GLFW_MOD_SHIFT | GLFW.GLFW_MOD_CONTROL |
+                 GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER);
             pickingKey = false;
-            SkyJewCommandKeys.save();
+            save();
             init();
             return true;
         }
@@ -305,68 +400,67 @@ public final class SkyJewCommandKeysScreen extends Screen {
     }
 
     @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (pickingMouse && macro() != null) {
+            SkyJewCommandKeys.Macro m = macro();
+            m.keyCode = event.button();
+            m.mouseButton = true;
+            m.modifier = 0;
+            pickingMouse = false;
+            save();
+            init();
+            return true;
+        }
+        if (pickingKey) {
+            // A mouse click while keyboard capture is active is ignored so the
+            // capture button itself does not become the binding.
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
     public void onClose() {
-        saveEditing();
-        SkyJewCommandKeys.save();
+        save();
         super.onClose();
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xFF10151F);
-        int panelW = Math.min(560, width - 32);
-        int left = (width - panelW) / 2;
+        g.fill(0, 0, width, height, BG);
 
-        g.fill(left, 8, left + panelW, height - 8, 0xFF1A2230);
-        g.fill(left + 1, 9, left + panelW - 1, height - 9, 0xFF111722);
+        int margin = 18;
+        int top = 32;
+        int bottom = height - 34;
+        int leftW = Math.min(190, Math.max(160, width / 5));
+        int centreW = Math.min(300, Math.max(220, width / 4));
+        int centreX = margin + leftW + 10;
+        int rightX = centreX + centreW + 10;
+        int rightW = width - margin - rightX;
 
-        String title = profileView ? "CommandKeys Options" :
-            "CommandKeys • " + (profile().name == null ? "Profile" : profile().name);
-        g.text(font, title, width / 2 - font.width(title) / 2, 18, 0xFFFFFFFF, true);
+        panel(g, margin, top, leftW, bottom - top, "Profiles");
+        panel(g, centreX, top, centreW, bottom - top, "Macros");
 
-        if (profileView) {
-            g.text(font, "Default Options", left + 24, 42, 0xFFFFFFFF, true);
-            g.text(font, "Profiles", left + 24, 112, 0xFFFFFFFF, true);
-            g.text(font, "S = singleplayer default   M = multiplayer default", left + 24,
-                height - 92, 0xFF8D9AAF, false);
-        } else {
-            g.text(font, "Keybinds", 28, 52, 0xFFFFFFFF, true);
-            g.text(font, "Macro", Math.min(355, width / 2 + 25), 52, 0xFFFFFFFF, true);
-            if (editing != null) {
-                g.text(font, "Name", Math.min(355, width / 2 + 25), 68, 0xFF8D9AAF, false);
-                g.text(font, "Messages / commands (one per line)", Math.min(355, width / 2 + 25),
-                    100, 0xFF8D9AAF, false);
-                g.text(font, "Keybind and delay", Math.min(355, width / 2 + 25), 132, 0xFF8D9AAF, false);
-                g.text(font, "Send mode", Math.min(355, width / 2 + 25), 168, 0xFF8D9AAF, false);
-                g.text(font, "Commands beginning with / are sent through the command packet.",
-                    Math.min(355, width / 2 + 25), 272, 0xFF57F287, false);
+        if (rightW > 200) {
+            panel(g, rightX, top, rightW, bottom - top, macro() == null ? "Macro editor" : "Macro editor");
+            if (macro() != null) {
+                SkyJewCommandKeys.Macro m = macro();
+                g.text(font, "Name", rightX + 2, top + 4, MUTED, false);
+                g.text(font, "Messages / commands", rightX + 2, top + 64, MUTED, false);
+                g.text(font, "Binding", rightX + 2, top + 122, MUTED, false);
+                g.text(font, "Activation", rightX + 2, top + 188, MUTED, false);
+                g.text(font, "Type '/' to send a command, otherwise a normal chat message.",
+                    rightX + 2, bottom - 55, GREEN, false);
             }
         }
 
+        g.text(font, Component.literal("SKYJEW  •  COMMAND KEYS"), margin, 16, ACCENT, true);
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
-    @Override
-    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-        if (profileView) return super.mouseClicked(event, doubleClick);
-
-        int left = 28;
-        int listRight = Math.min(330, width / 2 - 20);
-
-        if (event.button() == 0
-                && event.x() >= left + 8
-                && event.x() <= listRight - 8
-                && event.y() >= 90
-                && event.y() < height - 60) {
-            int index = (int) ((event.y() - 90) / 36);
-            if (index >= 0 && index < keybinds().size()) {
-                saveEditing();
-                selected = index;
-                init();
-                return true;
-            }
-        }
-
-        return super.mouseClicked(event, doubleClick);
+    private void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, String title) {
+        g.fill(x, y, x + w, y + h, PANEL);
+        g.fill(x, y, x + w, y + 1, BORDER);
+        g.text(font, Component.literal(title), x + 8, y + 8, TEXT, true);
     }
 }
