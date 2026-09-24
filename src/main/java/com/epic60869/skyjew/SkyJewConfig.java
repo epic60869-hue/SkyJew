@@ -96,6 +96,38 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Mouse Lock", desc = "Reduce camera sensitivity while using supported farming tools.")
         public MouseLock mouseLock = new MouseLock();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mining Commissions HUD", desc = "Show Dwarven Mines, Crystal Hollows, and Glacite commission progress read from the Hypixel tab list.")
+        public MiningCommissions commissions = new MiningCommissions();
+    }
+
+    public static final class MiningCommissions {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show the commission HUD when commission data is present in the tab list.")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "Background", desc = "Draw a dark background behind the commission HUD.")
+        @ConfigEditorBoolean
+        public boolean background = true;
+
+        @Expose
+        @ConfigOption(name = "Scale", desc = "Scale the commission HUD.")
+        @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
+        public float scale = 1.0f;
+
+        @Expose
+        public int x = 8;
+
+        @Expose
+        public int y = 80;
+
+        @ConfigOption(name = "Edit Position", desc = "Open the HUD editor and drag the Mining Commissions HUD.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable editPosition = () -> openHudEditor();
     }
 
     public static final class FarmingRng {
