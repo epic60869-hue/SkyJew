@@ -94,6 +94,18 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyJew emoji sprites and provide emoji autocomplete while typing chat.")
         @ConfigEditorBoolean
         public boolean chatEmoji = true;
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Custom Chat", desc = "Control how SkyJew command output from other players appears in chat.")
+        public CustomChat customChat = new CustomChat();
+    }
+
+    public static final class CustomChat {
+        @Expose
+        @ConfigOption(name = "Hide Other Players' Commands", desc = "Hide SkyJew command result messages when they belong to another player. Your own command results remain visible.")
+        @ConfigEditorBoolean
+        public boolean hideOtherCommands = true;
     }
 
     public static final class Farming {
