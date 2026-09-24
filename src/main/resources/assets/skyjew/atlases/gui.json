@@ -1,0 +1,9 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "skyjew:item_background_circular",
+      "sprite": "skyjew:item_background_circular"
+    }
+  ]
+}
