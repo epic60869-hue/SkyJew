@@ -83,9 +83,10 @@ public final class SkyJewItemIconSelectScreen extends Screen {
                 continue;
             }
 
+            var itemId = BuiltInRegistries.ITEM.getKey(entry.getValue());
             Identifier model = Identifier.fromNamespaceAndPath(
-                entry.getKey().location().getNamespace(),
-                entry.getKey().location().getPath()
+                itemId.getNamespace(),
+                itemId.getPath()
             );
             options.add(new ItemOption(new ItemStack(entry.getValue()), model, name, id));
         }
