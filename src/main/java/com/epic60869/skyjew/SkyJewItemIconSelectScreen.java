@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Items;
 import com.epic60869.skyjew.mixin.SkyJewModelManagerAccessor;
 import net.minecraft.network.chat.Component;
@@ -89,9 +90,9 @@ public final class SkyJewItemIconSelectScreen extends Screen {
         // display name, while still using the complete baked-model list above.
         if (mc.player != null && query.isEmpty()) {
             List<ItemOption> inventory = new ArrayList<>();
-            for (ItemStack stack : mc.player.getInventory()) addStackOption(inventory, stack);
-            addStackOption(inventory, mc.player.getMainHandItem());
-            addStackOption(inventory, mc.player.getOffhandItem());
+            for (ItemStack stack : mc.player.getInventory()) addStackOption(inventory, stack, query);
+            addStackOption(inventory, mc.player.getMainHandItem(), query);
+            addStackOption(inventory, mc.player.getOffhandItem(), query);
 
             java.util.LinkedHashMap<String, ItemOption> merged = new java.util.LinkedHashMap<>();
             for (ItemOption option : inventory) merged.put(option.model().toString(), option);
@@ -101,11 +102,7 @@ public final class SkyJewItemIconSelectScreen extends Screen {
         }
     }
 
-    private void addStackOption(ItemStack stack, String query) {
-        addStackOption(options, stack, query);
-    }
-
-    private void addStackOption(List<ItemOption> target, ItemStack stack) {
+    private void addStackOption(List<ItemOption> target, ItemStack stack, String query) {
         if (stack == null || stack.isEmpty()) return;
         String name = stack.getHoverName().getString();
         String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
