@@ -6,12 +6,35 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public final class SkyJewNickScreen extends Screen {
+    private static final Map<String, Integer> COLORS = new LinkedHashMap<>();
+    static {
+        COLORS.put("Black", 0x000000);
+        COLORS.put("Dark Blue", 0x0000AA);
+        COLORS.put("Dark Green", 0x00AA00);
+        COLORS.put("Dark Aqua", 0x00AAAA);
+        COLORS.put("Dark Red", 0xAA0000);
+        COLORS.put("Dark Purple", 0xAA00AA);
+        COLORS.put("Gold", 0xFFAA00);
+        COLORS.put("Gray", 0xAAAAAA);
+        COLORS.put("Dark Gray", 0x555555);
+        COLORS.put("Blue", 0x5555FF);
+        COLORS.put("Green", 0x55FF55);
+        COLORS.put("Aqua", 0x55FFFF);
+        COLORS.put("Red", 0xFF5555);
+        COLORS.put("Light Purple", 0xFF55FF);
+        COLORS.put("Yellow", 0xFFFF55);
+        COLORS.put("White", 0xFFFFFF);
+    }
+
     private final Screen parent;
-    private EditBox nameBox, hexBox;
+    private EditBox nameBox;
     private boolean enabled;
+    private String selectedStyle = "Plain";
 
     public SkyJewNickScreen(Screen parent) {
         super(Component.literal("SkyJew Nick"));
@@ -24,84 +47,130 @@ public final class SkyJewNickScreen extends Screen {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null) return;
 
-        int left = width / 2 - 250;
-        int top = height / 2 - 145;
+        int w = Math.min(760, width - 30);
+        int left = (width - w) / 2;
+        int top = Math.max(12, (height - 430) / 2);
 
-        nameBox = new EditBox(font, left + 22, top + 68, 300, 24, Component.literal("Nickname"));
+        nameBox = new EditBox(font, left + 24, top + 78, 330, 24, Component.literal("Nickname"));
         nameBox.setValue(config.misc.nickname.name == null ? "" : config.misc.nickname.name);
         nameBox.setMaxLength(32);
         addRenderableWidget(nameBox);
 
         enabled = config.misc.nickname.enabled;
-        addRenderableWidget(Button.builder(Component.literal("TAB nickname: " + (enabled ? "ON" : "OFF")), b -> {
+        selectedStyle = config.misc.nickname.style == null ? "Plain" : config.misc.nickname.style;
+
+        addRenderableWidget(Button.builder(Component.literal(enabled ? "TAB nickname: ON" : "TAB nickname: OFF"), b -> {
             enabled = !enabled;
-            b.setMessage(Component.literal("TAB nickname: " + (enabled ? "ON" : "OFF")));
-        }).bounds(left + 22, top + 100, 180, 22).build());
+            b.setMessage(Component.literal(enabled ? "TAB nickname: ON" : "TAB nickname: OFF"));
+        }).bounds(left + 370, top + 78, 180, 24).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Plain"), b -> setStyle("Plain"))
-            .bounds(left + 22, top + 132, 72, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Rainbow"), b -> setStyle("Rainbow"))
-            .bounds(left + 100, top + 132, 90, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Rainbow"), b -> selectedStyle = "Rainbow")
+            .bounds(left + 560, top + 78, 105, 24).build());
 
-        hexBox = new EditBox(font, left + 200, top + 132, 122, 22, Component.literal("#RRGGBB"));
-        String hex = config.misc.nickname.customHex;
-        hexBox.setValue(hex != null && hex.matches("#[0-9a-fA-F]{6}") ? hex.toUpperCase(Locale.ROOT) : "#FFFFFF");
-        hexBox.setMaxLength(7);
-        addRenderableWidget(hexBox);
+        int gridX = left + 24;
+        int gridY = top + 140;
+        int col = 0, row = 0;
+        for (String style : COLORS.keySet()) {
+            int bx = gridX + col * 118;
+            int by = gridY + row * 31;
+            addRenderableWidget(Button.builder(Component.literal(style), b -> selectedStyle = style)
+                .bounds(bx, by, 112, 25).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
+            col++;
+            if (col == 4) {
+                col = 0;
+                row++;
+            }
+        }
+
+        int bottom = gridY + ((COLORS.size() + 3) / 4) * 31 + 8;
+        addRenderableWidget(Button.builder(Component.literal("Disable"), b -> {
             nameBox.setValue("");
             enabled = false;
-        }).bounds(left + 22, top + 165, 72, 22).build());
+        }).bounds(left + 24, bottom, 112, 25).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Reset colour"), b -> selectedStyle = "Plain")
+            .bounds(left + 142, bottom, 112, 25).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> minecraft.gui.setScreen(parent))
+            .bounds(left + w - 238, bottom, 105, 25).build());
 
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveAndClose())
-            .bounds(left + 232, top + 165, 90, 22).build());
-    }
-
-    private void setStyle(String style) {
-        SkyJewConfig config = SkyJewConfig.current();
-        if (config != null) config.misc.nickname.style = style;
+            .bounds(left + w - 125, bottom, 105, 25).build());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xFF080A0E);
-        int w = 500, h = 300, left = (width - w) / 2, top = (height - h) / 2;
-        g.fill(left, top, left + w, top + h, 0xFF171A20);
+        int w = Math.min(760, width - 30);
+        int h = Math.min(430, height - 24);
+        int left = (width - w) / 2;
+        int top = (height - h) / 2;
+
+        g.fill(0, 0, width, height, 0xFF07090D);
+        g.fill(left, top, left + w, top + h, 0xFF181B21);
         g.fill(left, top, left + w, top + 2, 0xFF55FFFF);
 
-        g.text(font, Component.literal("SkyJew Nick"), left + 22, top + 18, 0xFFFFFFFF, true);
-        g.text(font, Component.literal("Your Hypixel rank stays intact; only your username text is replaced."),
-            left + 22, top + 38, 0xFF9EA5B2, false);
-        g.text(font, Component.literal("Nickname"), left + 22, top + 55, 0xFFE5E7EB, true);
+        g.text(font, Component.literal("SkyJew Nickname"), left + 24, top + 18, 0xFFFFFFFF, true);
+        g.text(font, Component.literal("Pick a colour — no HEX code required"), left + 24, top + 39, 0xFF9EA6B2, false);
 
         SkyJewConfig config = SkyJewConfig.current();
-        String preview = config == null || config.misc.nickname.name == null || config.misc.nickname.name.isBlank()
-            ? "2m3s" : config.misc.nickname.name;
-        Component previewComp = SkyJewNick.styled(preview,
-            config == null ? "Plain" : config.misc.nickname.style,
-            config == null ? "" : config.misc.nickname.customHex);
+        String previewName = nameBox == null || nameBox.getValue().isBlank()
+            ? (config == null || config.misc.nickname.name == null || config.misc.nickname.name.isBlank()
+                ? MinecraftName() : config.misc.nickname.name)
+            : nameBox.getValue();
 
-        g.text(font, Component.literal("TAB preview"), left + 350, top + 72, 0xFFB8C0CC, true);
-        g.text(font, Component.literal("[MVP++] "), left + 350, top + 100, 0xFF55FFFF, false);
-        g.text(font, previewComp, left + 405, top + 100, 0xFFFFFFFF, false);
+        Component preview = "Rainbow".equalsIgnoreCase(selectedStyle)
+            ? SkyJewNick.styled(previewName, "Rainbow", "")
+            : SkyJewNick.styled(previewName, selectedStyle, "");
+
+        int previewX = left + 500;
+        g.text(font, Component.literal("TAB preview"), previewX, top + 125, 0xFFB8C0CC, true);
+        g.text(font, Component.literal("[MVP++] "), previewX, top + 151, 0xFF55FFFF, false);
+        g.text(font, preview, previewX + 55, top + 151, 0xFFFFFFFF, false);
+
+        g.text(font, Component.literal("Selected: " + selectedStyle), left + 24, top + 118, 0xFFE5E7EB, true);
+
+        int gridX = left + 24;
+        int gridY = top + 140;
+        int col = 0, row = 0;
+        for (String style : COLORS.keySet()) {
+            int bx = gridX + col * 118;
+            int by = gridY + row * 31;
+            int rgb = COLORS.get(style);
+            g.fill(bx + 4, by + 8, bx + 10, by + 14, 0xFF000000 | rgb);
+            if (style.equals(selectedStyle)) {
+                g.fill(bx + 1, by + 1, bx + 3, by + 24, 0xFFFFFFFF);
+            }
+            col++;
+            if (col == 4) {
+                col = 0;
+                row++;
+            }
+        }
 
         super.extractRenderState(g, mouseX, mouseY, delta);
+    }
+
+    private String MinecraftName() {
+        return minecraft == null ? "YourName" : minecraft.getUser().getName();
     }
 
     private void saveAndClose() {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
-            config.misc.nickname.name = nameBox.getValue().trim();
-            config.misc.nickname.enabled = enabled && !config.misc.nickname.name.isBlank();
-            String hex = hexBox.getValue().trim();
-            if (!hex.startsWith("#")) hex = "#" + hex;
-            if (hex.matches("#[0-9a-fA-F]{6}")) config.misc.nickname.customHex = hex.toUpperCase(Locale.ROOT);
+            String name = nameBox.getValue().trim();
+            config.misc.nickname.name = name;
+            config.misc.nickname.enabled = enabled && !name.isBlank();
+            config.misc.nickname.style = selectedStyle;
+            config.misc.nickname.customHex = "";
             SkyJewConfig.saveCurrent(config);
             SkyJewGlobalChat.sendNicknameUpdate();
         }
         minecraft.gui.setScreen(parent);
     }
 
-    @Override public void onClose() { saveAndClose(); }
+    @Override
+    public void onClose() {
+        saveAndClose();
+    }
 }
