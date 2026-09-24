@@ -84,6 +84,11 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
         @ConfigEditorBoolean
         public boolean compactChat = true;
+
+        @Expose
+        @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyJew emoji sprites and provide emoji autocomplete while typing chat.")
+        @ConfigEditorBoolean
+        public boolean chatEmoji = true;
     }
 
     public static final class Farming {
