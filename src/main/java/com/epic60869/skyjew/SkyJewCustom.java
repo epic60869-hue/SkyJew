@@ -272,6 +272,24 @@ public final class SkyJewCustom {
         return ITEM_MODELS.get(uuid(stack));
     }
 
+    public static void setItemIcon(ItemStack stack, String itemId) {
+        String id = uuid(stack);
+        if (id.isBlank()) return;
+        if (itemId == null || itemId.isBlank()) ITEM_MODELS.remove(id);
+        else ITEM_MODELS.put(id, itemId.trim().toLowerCase(Locale.ROOT));
+        save();
+    }
+
+    public static Identifier getItemIcon(ItemStack stack) {
+        String value = getItemModel(stack);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Identifier.parse(value);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     public static void setGlint(ItemStack stack, Boolean enabled) {
         String id = uuid(stack);
         if (id.isBlank()) return;
