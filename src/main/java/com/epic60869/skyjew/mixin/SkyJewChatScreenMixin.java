@@ -48,12 +48,4 @@ public abstract class SkyJewChatScreenMixin {
         ((ChatScreen) (Object) this).onClose();
         cir.setReturnValue(true);
     }
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void skyjew$imagePreview(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        if (!SkyJewGlobalChat.isInSkyJewChannel()) return;
-        net.minecraft.network.chat.Style style =
-            Minecraft.getInstance().gui.getChat().getClickedComponentStyleAt(mouseX, mouseY);
-        SkyJewImagePreview.render(graphics, style, mouseX, mouseY);
-    }
-
 }
