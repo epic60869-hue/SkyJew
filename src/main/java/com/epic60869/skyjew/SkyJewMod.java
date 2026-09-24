@@ -276,6 +276,11 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewCustom.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
         SkyJewTabWidgetManager.tick(minecraft);
+        if (minecraft.getConnection() != null) {
+            for (var info : minecraft.getConnection().getOnlinePlayers()) {
+                SkyJewNick.applyToTab(info);
+            }
+        }
         SkyJewMouseLock.tick(minecraft);
         SkyJewMouseReset.tick(minecraft);
         SkyJewGlobalChat.tick();
