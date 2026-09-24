@@ -207,7 +207,23 @@ public final class SkyJewRecipeCommand {
         return input.matches("[A-Za-z0-9_:.\\-]+") ? input.toUpperCase(Locale.ROOT) : null;
     }
 
-    public static boolean hasSelectedRecipe() {\n        return selectedRecipe != null && selectedId != null;\n    }\n\n    public static String selectedId() { return selectedId; }\n    public static String selectedName() { return selectedName == null ? "Recipe" : selectedName; }\n    public static int selectedAmount() { return selectedAmount; }\n    public static RecipeData selectedRecipe() { return selectedRecipe; }\n\n    public static void clearSelected() {\n        selectedId = null;\n        selectedName = null;\n        selectedAmount = 1;\n        selectedRecipe = null;\n    }\n\n    public static String displayName(String id) {
+    public static boolean hasSelectedRecipe() {
+        return selectedRecipe != null && selectedId != null;
+    }
+
+    public static String selectedId() { return selectedId; }
+    public static String selectedName() { return selectedName == null ? "Recipe" : selectedName; }
+    public static int selectedAmount() { return selectedAmount; }
+    public static RecipeData selectedRecipe() { return selectedRecipe; }
+
+    public static void clearSelected() {
+        selectedId = null;
+        selectedName = null;
+        selectedAmount = 1;
+        selectedRecipe = null;
+    }
+
+    public static String displayName(String id) {
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(id)) return item.name();
         }
