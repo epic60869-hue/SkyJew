@@ -84,7 +84,7 @@ public final class SkyJewNotesScreen extends Screen {
         int maxScroll = Math.max(0, noteLines.size() - visible);
         scrollOffset = Math.min(scrollOffset, maxScroll);
 
-        int left = Math.max(30, width / 2 - 350);
+        int left = Math.max(30, width / 2 - 350) + 50;
         int fieldWidth = Math.min(700, width - left - 30);
         int top = 76;
 
