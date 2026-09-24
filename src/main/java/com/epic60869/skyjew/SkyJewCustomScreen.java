@@ -3,7 +3,6 @@ package com.epic60869.skyjew;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -17,7 +16,7 @@ public final class SkyJewCustomScreen extends Screen {
     private int tab;
     private int selectedArmor;
     private EditBox itemName, dyeHex, trimMaterial, trimPattern, animatedStart, animatedEnd, animatedDuration;
-    private Checkbox cycleBack;
+    private boolean cycleBack;
     private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
     public SkyJewCustomScreen(Screen parent) { super(Component.literal("SkyJew Customization")); this.parent = parent; }
@@ -97,7 +96,7 @@ public final class SkyJewCustomScreen extends Screen {
     private void applyAnimatedDye(ItemStack stack) {
         Integer a = parseHex(animatedStart.getValue()), b = parseHex(animatedEnd.getValue()); if (a == null || b == null) return;
         float duration; try { duration = Float.parseFloat(animatedDuration.getValue()); } catch (Exception e) { duration = 5f; }
-        SkyJewCustom.setAnimatedDye(stack, a, b, duration, cycleBack.selected(), 0);
+        SkyJewCustom.setAnimatedDye(stack, a, b, duration, cycleBack, 0);
     }
 
     private static Integer parseHex(String value) {
