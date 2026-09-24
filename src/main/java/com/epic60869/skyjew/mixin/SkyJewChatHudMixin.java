@@ -13,6 +13,8 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -23,6 +25,16 @@ public abstract class SkyJewChatHudMixin {
 
     @Shadow
     private void refreshTrimmedMessages() {}
+    @ModifyArgs(
+        method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+        at = @At(value = "HEAD")
+    )
+    private void skyjew$replaceEmojiArgs(Args args) {
+        if (args.size() > 0 && args.get(0) instanceof Component message) {
+            args.set(0, SkyJewNopoFeatures.replaceChatEmojis(message));
+        }
+    }
+
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
         at = @At("HEAD"),
