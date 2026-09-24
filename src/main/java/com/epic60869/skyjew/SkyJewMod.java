@@ -74,6 +74,7 @@ public final class SkyJewMod implements ClientModInitializer {
             .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
 
         root.then(customCommand());
+        root.then(ClientCommands.literal("custom2").executes(context -> openSkyblockerCustom()));
         return root;
     }
 
