@@ -91,7 +91,7 @@ public final class SkyJewGlobalChat {
         JsonObject packet = new JsonObject();
         packet.addProperty("type", "nickname");
         packet.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
-        packet.addProperty("enabled", SkyJewNick.outgoingName() != username);
+        packet.addProperty("enabled", !SkyJewNick.outgoingName().equals(username));
         packet.addProperty("name", SkyJewNick.outgoingName());
         packet.addProperty("mode", SkyJewNick.mode());
         packet.addProperty("customHex", SkyJewNick.customHex());
