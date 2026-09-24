@@ -85,7 +85,7 @@ public abstract class SkyJewChatHudMixin {
         GuiMessage previous = allMessages.get(1);
         if (!SkyJewChatCompactor.same(newest.content(), previous.content())) return;
 
-        Component compacted = SkyJewChatCompactor.withCount(previous.content(), count);
+        Component compacted = SkyJewChatCompactor.withCount(newest.content(), count);
         allMessages.set(0, new GuiMessage(
             newest.addedTime(), compacted, newest.signature(), newest.source(), newest.tag()
         ));
