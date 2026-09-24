@@ -47,6 +47,7 @@ public final class SkyJewNopoFeatures {
 
     private static final Set<String> EMOJIS = new HashSet<>();
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([A-Za-z0-9_+\\-]+):");
+    private static final Map<String, String> EMOJI_SYMBOLS = new LinkedHashMap<>();
     private static final Map<String, SlayerData> SLAYERS = new LinkedHashMap<>();
     private static final Map<String, List<Long>> CROP_TIMES = new LinkedHashMap<>();
     private static String currentSlayer = null;
@@ -499,6 +500,36 @@ public final class SkyJewNopoFeatures {
         }
     }
 
+    private static void addDefaultEmoji(String name, String symbol) {
+        EMOJIS.add(name);
+        EMOJI_SYMBOLS.put(name, symbol);
+    }
+
+    private static void loadDefaultEmojiSymbols() {
+        addDefaultEmoji("wave", "👋");
+        addDefaultEmoji("smile", "😄");
+        addDefaultEmoji("grin", "😁");
+        addDefaultEmoji("joy", "😂");
+        addDefaultEmoji("heart", "❤️");
+        addDefaultEmoji("fire", "🔥");
+        addDefaultEmoji("sob", "😭");
+        addDefaultEmoji("cry", "😢");
+        addDefaultEmoji("angry", "😠");
+        addDefaultEmoji("laughing", "😆");
+        addDefaultEmoji("rofl", "🤣");
+        addDefaultEmoji("wink", "😉");
+        addDefaultEmoji("thinking", "🤔");
+        addDefaultEmoji("eyes", "👀");
+        addDefaultEmoji("thumbsup", "👍");
+        addDefaultEmoji("+1", "👍");
+        addDefaultEmoji("thumbsdown", "👎");
+        addDefaultEmoji("-1", "👎");
+        addDefaultEmoji("clap", "👏");
+        addDefaultEmoji("pray", "🙏");
+        addDefaultEmoji("ok_hand", "👌");
+        addDefaultEmoji("sunglasses", "😎");
+    }
+
     public static Component replaceChatEmojis(Component message) {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.chat.chatEmoji) return message;
@@ -516,11 +547,8 @@ public final class SkyJewNopoFeatures {
                 }
                 String name = matcher.group(1);
                 if (EMOJIS.contains(name)) {
-                    MutableComponent emoji = Component.object(new AtlasSprite(
-                        Identifier.fromNamespaceAndPath("minecraft", "gui"),
-                        Identifier.fromNamespaceAndPath("skyjew", name)
-                    ));
-                    out.append(emoji.withStyle(style));
+                    String symbol = EMOJI_SYMBOLS.get(name);
+                    out.append(Component.literal(symbol == null ? matcher.group() : symbol).withStyle(style));
                 } else {
                     out.append(Component.literal(matcher.group()).withStyle(style));
                 }
