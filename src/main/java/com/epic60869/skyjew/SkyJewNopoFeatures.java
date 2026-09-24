@@ -183,8 +183,7 @@ public final class SkyJewNopoFeatures {
         // NopoMod uses. Reading the raw connection list without the vanilla
         // tab comparator can put the Pet section in the wrong order.
         List<Component> tab = mc.getConnection().getOnlinePlayers().stream()
-            .sorted(PlayerTabOverlay.PLAYER_COMPARATOR)
-            .map(PlayerInfo::getTabListDisplayName)
+                        .map(PlayerInfo::getTabListDisplayName)
             .filter(Objects::nonNull)
             .toList();
 
@@ -344,16 +343,14 @@ public final class SkyJewNopoFeatures {
             // reflection as a fallback so this remains tolerant of mapping
             // changes between 26.1 and 26.2.
             if (style.getColor() == null) return "";
-            try {
-                return style.getColor().getName();
-            } catch (Throwable ignored) {
-                Method method = Style.class.getMethod("getColor");
-                Object color = method.invoke(style);
-                if (color == null) return "";
-                Method name = color.getClass().getMethod("getName");
-                Object value = name.invoke(color);
-                return value == null ? "" : value.toString();
-            }
+            int rgb = style.getColor().getValue();
+            return switch (rgb) {
+                case 0xFFFFFF -> "white";
+                case 0x55FF55 -> "green";
+                case 0x5555FF -> "blue";
+                case 0xAA00AA -> "dark_purple";
+                default -> "";
+            };
         } catch (Throwable ignored) {
             return "";
         }
