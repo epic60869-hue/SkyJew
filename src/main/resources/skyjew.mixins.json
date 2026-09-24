@@ -17,6 +17,7 @@
     "SkyJewPlayerInfoMixin",
     "SkyJewPlayerTabOverlayMixin",
     "SkyJewPlayerTabOverlayAccessor",
-    "SkyJewItemHighlightMixin"
+    "SkyJewItemHighlightMixin",
+    "SkyJewRecipeOverlayMixin"
   ]
 }
