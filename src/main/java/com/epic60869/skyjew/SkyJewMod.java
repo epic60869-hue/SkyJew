@@ -275,6 +275,7 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewStorageSearch.tick(minecraft);
         SkyJewCustom.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
+        SkyJewTabWidgetManager.tick(minecraft);
         SkyJewMouseLock.tick(minecraft);
         SkyJewMouseReset.tick(minecraft);
         SkyJewGlobalChat.tick();
