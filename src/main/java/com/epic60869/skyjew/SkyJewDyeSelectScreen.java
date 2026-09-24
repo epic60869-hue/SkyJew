@@ -4,138 +4,202 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ScrollableLayout;
-import net.minecraft.client.gui.components.StringWidget;
-import net.minecraft.client.gui.layouts.LayoutSettings;
-import net.minecraft.client.gui.layouts.LinearLayout;
-import net.minecraft.client.gui.layouts.SpacerElement;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-/**
- * Skyblocker-inspired dye picker.
- *
- * Static and animated dye data comes directly from the Hypixel/NEU dye
- * definitions, so new dyes do not require a SkyJew release to be added.
- */
 public final class SkyJewDyeSelectScreen extends Screen {
+    private static final int COLUMNS = 4;
+    private static final int CELL_W = 188;
+    private static final int CELL_H = 28;
+    private static final int PANEL_W = COLUMNS * CELL_W + 32;
+    private static final int PANEL_H = 430;
+
     private final Screen parent;
     private final net.minecraft.world.item.ItemStack item;
+    private final boolean animatedOnly;
 
-    private ScrollableLayout list;
-    private StringWidget title;
-    private Button close;
-    private Button applyColor;
-    private EditBox hex;
+    private final List<DyeEntry> entries = new ArrayList<>();
+    private final List<Button> dyeButtons = new ArrayList<>();
+
+    private EditBox search;
+    private Button back;
+    private int left;
+    private int top;
+    private int scroll;
     private boolean waitingForDyes;
 
     public SkyJewDyeSelectScreen(Screen parent, net.minecraft.world.item.ItemStack item) {
-        super(Component.literal("SkyJew Dye Selection"));
+        this(parent, item, false);
+    }
+
+    public SkyJewDyeSelectScreen(Screen parent, net.minecraft.world.item.ItemStack item, boolean animatedOnly) {
+        super(Component.literal(animatedOnly ? "Hypixel Animated Dyes" : "Hypixel Static Dyes"));
         this.parent = parent;
         this.item = item;
+        this.animatedOnly = animatedOnly;
     }
 
     @Override
     protected void init() {
         waitingForDyes = !SkyJewCustom.dyeDataLoaded();
-        hex = new EditBox(font, 0, 0, 150, 20, Component.literal("Any HEX colour"));
-        hex.setHint(Component.literal("#RRGGBB"));
-        hex.setMaxLength(7);
-        addRenderableWidget(hex);
+        rebuildEntries();
+        rebuildWidgets();
+    }
 
-        addRenderableWidget(applyColor = Button.builder(Component.literal("Apply Colour"), b -> applyCustom()).bounds(0, 0, 100, 20).build());
-        addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).width(75).build());
+    private void rebuildEntries() {
+        entries.clear();
 
-        LinearLayout layout = LinearLayout.vertical().spacing(3);
-        layout.defaultCellSetting().alignHorizontallyCenter();
+        String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
 
-        layout.addChild(new StringWidget(Component.literal("Any Colour"), font),
-            layout.defaultCellSetting().copy().paddingBottom(3));
+        if (!SkyJewCustom.dyeDataLoaded()) return;
 
-        if (!SkyJewCustom.dyeDataLoaded()) {
-            layout.addChild(new StringWidget(Component.literal("Loading Hypixel dye data..."), font));
-        } else {
-            layout.addChild(new StringWidget(Component.literal("Hypixel Static Dyes"), font),
-                layout.defaultCellSetting().copy().paddingBottom(2));
-
-            for (Map.Entry<String, Integer> entry : SkyJewCustom.hypixelStaticDyes().entrySet()) {
-                layout.addChild(new DyeButton(SkyJewCustom.dyeDisplayName(entry.getKey()), List.of(entry.getValue()),
-                    b -> applyStatic(entry.getValue())));
-            }
-
-            layout.addChild(SpacerElement.height(10));
-            layout.addChild(new StringWidget(Component.literal("Hypixel Animated Dyes"), font),
-                layout.defaultCellSetting().copy().paddingBottom(2));
-
+        if (animatedOnly) {
             for (Map.Entry<String, List<Integer>> entry : SkyJewCustom.hypixelAnimatedDyes().entrySet()) {
-                layout.addChild(new DyeButton(SkyJewCustom.dyeDisplayName(entry.getKey()), entry.getValue(),
-                    b -> applyAnimated(entry.getValue())));
+                String name = SkyJewCustom.dyeDisplayName(entry.getKey());
+                if (query.isEmpty() || name.toLowerCase(Locale.ROOT).contains(query)
+                        || entry.getKey().toLowerCase(Locale.ROOT).contains(query)) {
+                    entries.add(new DyeEntry(name, entry.getValue(), true));
+                }
+            }
+        } else {
+            for (Map.Entry<String, Integer> entry : SkyJewCustom.hypixelStaticDyes().entrySet()) {
+                String name = SkyJewCustom.dyeDisplayName(entry.getKey());
+                if (query.isEmpty() || name.toLowerCase(Locale.ROOT).contains(query)
+                        || entry.getKey().toLowerCase(Locale.ROOT).contains(query)) {
+                    entries.add(new DyeEntry(name, List.of(entry.getValue()), false));
+                }
             }
         }
+    }
 
-        list = new ScrollableLayout(minecraft, layout, 0);
-        list.visitWidgets(this::addRenderableWidget);
-        addRenderableWidget(title = new StringWidget(Component.literal("Pick a Dye"), font));
-        addRenderableWidget(close = Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).width(75).build());
+    private void rebuildWidgets() {
+        clearWidgets();
 
-        repositionElements();
+        left = (width - PANEL_W) / 2;
+        top = (height - PANEL_H) / 2;
+
+        search = new EditBox(font, left + 16, top + 38, PANEL_W - 32, 24, Component.literal("Search"));
+        search.setHint(Component.literal("Search Hypixel dyes..."));
+        search.setResponder(value -> {
+            scroll = 0;
+            rebuildEntries();
+            rebuildWidgets();
+        });
+        addRenderableWidget(search);
+
+        dyeButtons.clear();
+
+        int visibleRows = visibleRows();
+        int start = scroll * COLUMNS;
+        int end = Math.min(entries.size(), start + visibleRows * COLUMNS);
+
+        for (int i = start; i < end; i++) {
+            DyeEntry entry = entries.get(i);
+            final int index = i;
+            int local = i - start;
+            int col = local % COLUMNS;
+            int row = local / COLUMNS;
+
+            int x = left + 16 + col * CELL_W;
+            int y = top + 78 + row * CELL_H;
+
+            int color = entry.colors().isEmpty() ? 0xFFFFFF : entry.colors().getFirst();
+            Component message = Component.literal("■ ").withStyle(s -> s.withColor(color))
+                .append(Component.literal(entry.name() + (entry.animated() ? "  (animated)" : ""))
+                    .withColor(0xFFFFFFFF));
+
+            Button button = Button.builder(message, b -> apply(index))
+                .bounds(x, y, CELL_W - 6, 24)
+                .build();
+
+            addRenderableWidget(button);
+            dyeButtons.add(button);
+        }
+
+        back = Button.builder(Component.literal("Back"), b -> onClose())
+            .bounds(left + PANEL_W - 100, top + PANEL_H - 34, 84, 24).build();
+        addRenderableWidget(back);
+    }
+
+    private int visibleRows() {
+        return Math.max(1, (PANEL_H - 130) / CELL_H);
+    }
+
+    private int maxScroll() {
+        int rows = (entries.size() + COLUMNS - 1) / COLUMNS;
+        return Math.max(0, rows - visibleRows());
+    }
+
+    private void apply(int index) {
+        if (index < 0 || index >= entries.size()) return;
+
+        DyeEntry entry = entries.get(index);
+        if (entry.animated()) {
+            SkyJewCustom.setDye(item, null);
+            SkyJewCustom.setAnimatedDye(item, entry.colors(), 10f,
+                entry.colors().size() % 2 == 0, 0f);
+        } else {
+            int color = entry.colors().getFirst();
+            SkyJewCustom.setAnimatedDye(item, null, null, 1f, false, 0f);
+            SkyJewCustom.setDye(item, color);
+        }
+
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
     public void tick() {
         super.tick();
+
         if (waitingForDyes && SkyJewCustom.dyeDataLoaded()) {
             waitingForDyes = false;
-            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(parent, item));
+            rebuildEntries();
+            rebuildWidgets();
         }
     }
 
-    private void applyCustom() {
-        try {
-            int color = SkyJewCustom.parseHex(hex.getValue());
-            SkyJewCustom.setDye(item, color);
-            SkyJewCustom.setAnimatedDye(item, (Integer) null, (Integer) null, 1f, false, 0f);
-            onClose();
-        } catch (IllegalArgumentException ignored) {
-            hex.setValue("#FF00FF");
-            hex.setCursorPosition(7);
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+        g.fill(0, 0, width, height, 0xFF07090D);
+        g.fill(left, top, left + PANEL_W, top + PANEL_H, 0xFF202328);
+        g.fill(left, top, left + PANEL_W, top + 3, 0xFF55FFFF);
+
+        g.text(font, animatedOnly ? "Hypixel Animated Dyes" : "Hypixel Static Dyes",
+            left + 16, top + 16, 0xFFF2F3F5, true);
+
+        if (!SkyJewCustom.dyeDataLoaded()) {
+            g.text(font, "Loading Hypixel dye data...", left + 16, top + 68, 0xFFFFAA00, false);
+        } else if (entries.isEmpty()) {
+            g.text(font, "No dyes match your search.", left + 16, top + 90, 0xFFAAAAAA, false);
+        } else {
+            g.text(font, entries.size() + " dyes  •  click one to apply it immediately",
+                left + 16, top + PANEL_H - 58, 0xFF9DA3AA, false);
         }
-    }
 
-    private void applyStatic(int color) {
-        SkyJewCustom.setAnimatedDye(item, null, null, 1f, false, 0f);
-        SkyJewCustom.setDye(item, color);
-        onClose();
-    }
-
-    private void applyAnimated(List<Integer> colors) {
-        SkyJewCustom.setDye(item, null);
-        SkyJewCustom.setAnimatedDye(item, colors, 10f, colors.size() % 2 == 0, 0f);
-        onClose();
+        super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
     @Override
-    protected void repositionElements() {
-        if (list == null) return;
-        list.setMaxHeight(Math.min(330, (int) (height * 0.68)));
-        list.arrangeElements();
-        list.setPosition((width - list.getWidth()) / 2, Math.max(55, (height - list.getHeight()) / 2));
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (scrollY == 0) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
 
-        title.setPosition((width - title.getWidth()) / 2, list.getY() - 28);
-        close.setPosition((width - close.getWidth()) / 2, list.getY() + list.getHeight() + 10);
-
-        hex.setPosition(width / 2 - 155, 22);
-        applyColor.setPosition(width / 2 + 5, 22);
+        int next = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.signum(scrollY)));
+        if (next != scroll) {
+            scroll = next;
+            rebuildWidgets();
+        }
+        return true;
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        graphics.fill(0, 0, width, height, 0xFF07090D);
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -143,33 +207,5 @@ public final class SkyJewDyeSelectScreen extends Screen {
         minecraft.gui.setScreen(parent);
     }
 
-    private static class DyeButton extends Button.Plain {
-        private final List<Integer> colors;
-        private int index;
-        private float elapsed;
-
-        DyeButton(String name, List<Integer> colors, OnPress onPress) {
-            super(0, 0, 220, 20, Component.empty(), onPress, _ -> Component.empty());
-            this.colors = colors;
-            int color = colors.isEmpty() ? 0xFFFFFF : colors.getFirst();
-            setMessage(Component.literal(name).withColor(color));
-        }
-
-        @Override
-        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-            extractDefaultSprite(graphics);
-            int color = colors.isEmpty() ? 0xFFFFFF : colors.get(index);
-            graphics.fill(getX() + 5, getY() + 5, getX() + 19, getY() + 19, 0xFF000000 | color);
-
-            if (colors.size() > 1) {
-                elapsed += delta;
-                if (elapsed >= 2f) {
-                    elapsed = 0f;
-                    index = (index + 1) % colors.size();
-                    setMessage(Component.literal(getMessage().getString()).withColor(colors.get(index)));
-                }
-            }
-            graphics.text(Minecraft.getInstance().font, getMessage(), getX() + 25, getY() + 6, 0xFFFFFFFF, false);
-        }
-    }
+    private record DyeEntry(String name, List<Integer> colors, boolean animated) {}
 }
