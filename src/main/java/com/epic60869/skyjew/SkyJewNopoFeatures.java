@@ -84,6 +84,7 @@ public final class SkyJewNopoFeatures {
     public static void init(Path dir) {
         configDir = dir;
         loadJson();
+        loadDefaultEmojiSymbols();
         loadEmojis();
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
         registerOverflowPets();
@@ -553,7 +554,14 @@ public final class SkyJewNopoFeatures {
                 String name = matcher.group(1);
                 if (EMOJIS.contains(name)) {
                     String symbol = EMOJI_SYMBOLS.get(name);
-                    out.append(Component.literal(symbol == null ? matcher.group() : symbol).withStyle(style));
+                    if (EMOJI_SYMBOLS.containsKey(name)) {
+                        out.append(Component.object(new AtlasSprite(
+                            AtlasSprite.DEFAULT_ATLAS,
+                            Identifier.fromNamespaceAndPath("skyjew", "gui/sprites/" + name)
+                        )).withStyle(style));
+                    } else {
+                        out.append(Component.literal(symbol == null ? matcher.group() : symbol).withStyle(style));
+                    }
                 } else {
                     out.append(Component.literal(matcher.group()).withStyle(style));
                 }
