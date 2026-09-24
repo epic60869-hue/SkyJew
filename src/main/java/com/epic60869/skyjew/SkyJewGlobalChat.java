@@ -268,15 +268,6 @@ public final class SkyJewGlobalChat {
         return result;
     }
 
-    private static Component linkifyComponent(Component input) {
-        MutableComponent out = Component.empty();
-        for (Component child : input.getSiblings()) {
-            out.append(child.copy());
-        }
-        if (input.getSiblings().isEmpty()) return linkify(input.getString());
-        return out;
-    }
-
     private static void mcMessage(Component message) {
         Minecraft.getInstance().execute(() -> {
             Minecraft mc = Minecraft.getInstance();
@@ -396,7 +387,7 @@ public final class SkyJewGlobalChat {
                 MutableComponent line = Component.literal(prefix + " [")
                     .append(shownName)
                     .append(Component.literal("] " + message));
-                mcMessage(linkifyComponent(line));
+                mcMessage(line);
             } catch (Exception ignored) {
             }
         }
