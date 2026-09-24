@@ -227,7 +227,7 @@ public final class SkyJewConfig extends Config {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Reduce camera sensitivity while using supported farming tools.")
         @ConfigEditorBoolean
-        public boolean enabled = true;
+        public boolean enabled = false;
 
         @Expose
         @ConfigOption(name = "Ground Only", desc = "Only apply Mouse Lock while the player is on the ground.")
@@ -251,7 +251,7 @@ public final class SkyJewConfig extends Config {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Enable automatic mouse reset for selected menus.")
         @ConfigEditorBoolean
-        public boolean enabled = false;
+        public boolean enabled = true;
 
         @Expose
         @ConfigOption(name = "Accessory Bag", desc = "Reset the cursor when the Accessory Bag opens.")
