@@ -108,6 +108,7 @@ public final class SkyJewNotesScreen extends Screen {
 
         if (!visibleLines.isEmpty()) {
             visibleLines.get(0).setFocused(true);
+            setFocused(visibleLines.get(0));
         }
     }
 
@@ -141,6 +142,7 @@ public final class SkyJewNotesScreen extends Screen {
         int focusedIndex = insertAt - scrollOffset;
         if (focusedIndex >= 0 && focusedIndex < visibleLines.size()) {
             visibleLines.get(focusedIndex).setFocused(true);
+            setFocused(visibleLines.get(focusedIndex));
         }
     }
 
