@@ -60,6 +60,10 @@ public final class SkyJewTabWidgetManager {
             ordered.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
         } catch (Throwable ignored) {
         }
+        for (PlayerInfo entry : ordered) {
+            SkyJewNick.applyToTab(entry);
+        }
+
         players = List.copyOf(ordered);
         updateWidgetsFrom(ordered);
     }
@@ -78,7 +82,11 @@ public final class SkyJewTabWidgetManager {
 
         for (PlayerInfo entry : lines) {
             Component display = entry.getTabListDisplayName();
-            if (display == null) continue;
+            if (display == null) {
+                String profileName = entry.getProfile() == null ? "" : entry.getProfile().name();
+                if (profileName.isBlank()) continue;
+                display = Component.literal(profileName);
+            }
 
             String string = display.getString();
             if (string.isBlank()) continue;
@@ -134,10 +142,11 @@ public final class SkyJewTabWidgetManager {
             put(currentName, sideThing, contents, raw, currentColor);
         }
 
-        // The parser above is intentionally generic. These aliases make
-        // lookups tolerant of Hypixel occasionally appending punctuation.
+        // Recover the two HUD widgets directly from the raw ordered rows if
+        // Hypixel has emitted a slightly different TAB component shape.
+        recoverWidget("Commissions", lines);
+        recoverWidget("Pet", lines);
         alias("Commission", "Commissions");
-        alias("Pet", "Pet");
     }
 
     private static void put(String name, Component detail, List<Component> lines,
@@ -212,6 +221,61 @@ public final class SkyJewTabWidgetManager {
         MutableComponent out = Component.empty();
         parts.forEach(out::append);
         return out;
+    }
+
+
+    private static void recoverWidget(String wanted, List<PlayerInfo> lines) {
+        if (widgets.containsKey(wanted) && !widgets.get(wanted).lines().isEmpty()) return;
+
+        List<Component> recovered = new ArrayList<>();
+        List<PlayerInfo> raw = new ArrayList<>();
+        Component detail = Component.empty();
+        int color = 0xFFFF00;
+        boolean active = false;
+
+        for (PlayerInfo entry : lines) {
+            Component display = entry.getTabListDisplayName();
+            if (display == null && entry.getProfile() != null) {
+                display = Component.literal(entry.getProfile().name());
+            }
+            if (display == null) continue;
+
+            String text = display.getString().strip();
+            if (text.isBlank()) continue;
+
+            if (text.equalsIgnoreCase(wanted + ":") || text.equalsIgnoreCase(wanted)) {
+                active = true;
+                detail = Component.empty();
+                color = getColor(display, 0xFFFF00);
+                continue;
+            }
+
+            if (!active) continue;
+            if (!text.startsWith(" ") && text.contains(":")) break;
+
+            if (wanted.equals("Pet") &&
+                (text.startsWith("[Lvl ") || text.contains(" XP"))) {
+                recovered.add(trim(display));
+                raw.add(entry);
+            } else if (wanted.equals("Commissions") &&
+                text.matches(".*:\\s*(?:DONE|[0-9]+(?:\\.[0-9]+)?%?).*")) {
+                recovered.add(trim(display));
+                raw.add(entry);
+            }
+        }
+
+        if (!recovered.isEmpty()) {
+            widgets.put(wanted, new Widget(detail, recovered, raw, color));
+        }
+    }
+
+    private static int getColor(Component component, int fallback) {
+        final AtomicInteger color = new AtomicInteger(fallback);
+        component.visit((style, value) -> {
+            if (style.getColor() != null) color.set(style.getColor().getValue());
+            return Optional.empty();
+        }, Style.EMPTY);
+        return color.get();
     }
 
     private record NameAndInfo(String name, Component detail, int color) {}
