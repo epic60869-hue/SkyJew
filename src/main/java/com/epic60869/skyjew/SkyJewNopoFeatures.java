@@ -140,9 +140,9 @@ public final class SkyJewNopoFeatures {
 
     private static void renderPetHud(GuiGraphicsExtractor context) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.pets.display) return;
+        if (config == null || !config.pets.display.enabled) return;
         if (!isHypixel() || petDisplay == null || petDisplay.isEmpty()) return;
-        renderPetHudAt(context, config.pets.x, config.pets.y, false);
+        renderPetHudAt(context, config.pets.display.x, config.pets.display.y, false);
     }
 
     public static void renderPetHudPreview(GuiGraphicsExtractor context, int x, int y) {
@@ -170,7 +170,7 @@ public final class SkyJewNopoFeatures {
 
     private static void updatePetDisplay(Minecraft mc) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.pets.display || !config.pets.autoDisplay) {
+        if (config == null || !config.pets.display || !config.pets.display.autoDisplay) {
             petDisplay = null;
             return;
         }
@@ -182,7 +182,7 @@ public final class SkyJewNopoFeatures {
         // Hypixel's pet widget is built from the same sorted tab-list rows that
         // NopoMod uses. Reading the raw connection list without the vanilla
         // tab comparator can put the Pet section in the wrong order.
-        List<Component> tab = mc.getConnection().getOnlinePlayers().stream()
+        List<Component> tab = mc.getConnection().getListedOnlinePlayers().stream()
                         .map(PlayerInfo::getTabListDisplayName)
             .filter(Objects::nonNull)
             .toList();
@@ -192,7 +192,7 @@ public final class SkyJewNopoFeatures {
         for (Component line : tab) {
             String text = line.getString();
             if (!inPetWidget) {
-                if (text.equals("Pet:") || text.trim().equals("Pet:")) {
+                if (text.trim().equalsIgnoreCase("Pet:") || text.trim().startsWith("Pet:")) {
                     inPetWidget = true;
                     petLines.add(line);
                 }
