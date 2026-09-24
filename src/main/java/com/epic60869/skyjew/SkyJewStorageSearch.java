@@ -273,7 +273,9 @@ public final class SkyJewStorageSearch {
         List<ItemStack> contents = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             ItemStack stack = slots.get(i).getItem();
-            contents.add(stack == null ? ItemStack.EMPTY : stack.copy());
+            // Persist only real storage contents. GUI filler/navigation controls are
+            // deliberately written as empty slots so they can never pollute search.
+            contents.add(isSearchableStorageItem(stack) ? stack.copy() : ItemStack.EMPTY);
         }
 
         String key = cacheKey(mc, target.type(), target.number());
@@ -347,6 +349,32 @@ public final class SkyJewStorageSearch {
             };
         }
         return "Inventory · slot " + (slot + 1);
+    }
+
+    private static boolean isSearchableStorageItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+
+        String name = stack.getHoverName().getString()
+                .replaceAll("§[0-9A-FK-ORa-fk-or]", "")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        String id = "";
+        try {
+            id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .getKey(stack.getItem()).getPath().toLowerCase(Locale.ROOT);
+        } catch (Throwable ignored) {}
+
+        // SkyBlock storage GUIs use these as navigation/decorative controls.
+        if (id.endsWith("stained_glass_pane") || id.equals("barrier")) return false;
+
+        return !(name.equals("go back")
+                || name.equals("back")
+                || name.equals("close")
+                || name.equals("previous page")
+                || name.equals("next page")
+                || name.startsWith("previous page")
+                || name.startsWith("next page")
+                || name.startsWith("page "));
     }
 
     private static String cacheKey(Minecraft mc, String type, int number) {
