@@ -8,7 +8,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.util.ARGB;
+
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,12 +29,19 @@ public abstract class SkyJewItemHighlightMixin {
         if (!isSkyBlockRarityColor(rgb)) return;
 
         GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
-        TextureAtlasSprite sprite = Minecraft.getInstance()
-            .getAtlasManager()
-            .getAtlasOrThrow(AtlasIds.GUI)
-            .getSprite(net.minecraft.resources.Identifier.fromNamespaceAndPath("skyjew", "item_background_circular"));
 
-        self.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 16, 16, ARGB.color(128, rgb));
+        // Do not rely on the GUI texture atlas here. Custom textures are not
+        // guaranteed to be present in the atlas on every resource-pack setup.
+        // Draw a small anti-aliased-looking circle from horizontal strips so
+        // the rarity background works in every inventory/GUI render path.
+        int color = ARGB.color(150, rgb);
+        self.fill(x + 5, y + 1, x + 11, y + 2, color);
+        self.fill(x + 3, y + 2, x + 13, y + 3, color);
+        self.fill(x + 2, y + 3, x + 14, y + 5, color);
+        self.fill(x + 1, y + 5, x + 15, y + 11, color);
+        self.fill(x + 2, y + 11, x + 14, y + 13, color);
+        self.fill(x + 3, y + 13, x + 13, y + 14, color);
+        self.fill(x + 5, y + 14, x + 11, y + 15, color);
     }
 
     private static boolean isSkyBlockRarityColor(int rgb) {
