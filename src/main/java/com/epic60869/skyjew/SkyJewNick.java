@@ -87,6 +87,11 @@ public final class SkyJewNick {
         message("Nickname set to " + name + ("Rainbow".equals(style) ? " (rainbow)" : ""), 0x55FF55);
     }
 
+    public static boolean enabled() {
+        return config() != null && config().misc.nickname.enabled
+            && config().misc.nickname.name != null && !config().misc.nickname.name.isBlank();
+    }
+
     public static String mode() {
         return config().misc.nickname.style == null ? "Plain" : config().misc.nickname.style;
     }
