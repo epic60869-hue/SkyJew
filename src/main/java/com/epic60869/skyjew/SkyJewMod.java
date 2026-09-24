@@ -27,9 +27,11 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewRngHud.register(config);
         SkyJewCommissionHud.register(config);
         SkyJewCommandKeys.init(configDir);
+        SkyJewSearchKeybind.init();
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
         SkyJewNopoFeatures.init(configDir);
+        SkyJewRecipe.init();
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
         SkyJewGlobalChat.init();
@@ -50,7 +52,7 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> commandTree(String name) {
-        return ClientCommands.literal(name)
+        var root = ClientCommands.literal(name)
             .executes(context -> openMenu())
             .then(ClientCommands.literal("notes").executes(context -> openNotes()))
             .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
@@ -68,8 +70,11 @@ public final class SkyJewMod implements ClientModInitializer {
                 .then(ClientCommands.argument("value", StringArgumentType.greedyString())
                     .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
             .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
-            .then(ClientCommands.literal("gui").executes(context -> openHudEditor()))
-            .then(customCommand());
+            .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
+
+        SkyJewRecipe.register(root);
+        root.then(customCommand());
+        return root;
     }
 
     private com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> customCommand() {
@@ -242,9 +247,6 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        // Do not show the first-boot screen during Minecraft's startup/resource
-        // loading. The loading screen replaces custom screens at that stage,
-        // which also causes the first-boot sound to be stopped.
         if (!config.general.firstBootAcknowledged
             && !firstBootScreenShown
             && minecraft.gui.screen() instanceof TitleScreen) {
@@ -259,7 +261,9 @@ public final class SkyJewMod implements ClientModInitializer {
             SkyJewSounds.tickFirstBoot();
             return;
         }
+
         SkyJewCommandKeys.tick(minecraft);
+        SkyJewSearchKeybind.tick(minecraft);
         SkyJewStorageSearch.tick(minecraft);
         SkyJewCustom.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
