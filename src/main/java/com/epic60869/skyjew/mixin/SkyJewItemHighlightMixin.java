@@ -22,31 +22,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class SkyJewItemHighlightMixin {
-    @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
-    private void skyjew$rarityBackground(ItemStack stack, int x, int y, CallbackInfo ci) {
+    @Inject(
+        method = "extractSlot",
+        at = @At("HEAD")
+    )
+    private void skyjew$rarityBackgroundOnContainerSlot(
+        GuiGraphicsExtractor graphics,
+        net.minecraft.world.inventory.Slot slot,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    ) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.misc.itemRarityBackground || stack == null || stack.isEmpty()) return;
+        if (config == null || !config.misc.itemRarityBackground || slot == null) return;
+
+        ItemStack stack = slot.getItem();
+        if (stack == null || stack.isEmpty()) return;
 
         int rgb = rarityColor(stack);
         if (rgb < 0) return;
 
-        GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
         try {
-            // Draw the circle as a normal GUI texture, exactly like NoammAddons.
-            // Do not use the GUI atlas here: a normal texture cannot become a
-            // missing-texture sprite if another inventory renderer changes the atlas.
             Identifier circleTexture = Identifier.fromNamespaceAndPath(
                 "skyjew", "textures/gui/item_background_circular.png");
-            self.blit(
+            graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
                 circleTexture,
-                x, y,
+                slot.x, slot.y,
                 0, 0,
                 16, 16,
                 16, 16,
                 ARGB.color(128, rgb));
         } catch (Throwable ignored) {
-            // The GUI atlas is loaded asynchronously during resource reload.
+            // Resource reloads must never break inventory rendering.
         }
     }
 
