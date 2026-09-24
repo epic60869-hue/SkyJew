@@ -13,9 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyArgs;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
@@ -29,23 +27,24 @@ public abstract class SkyJewChatHudMixin {
      * overload. The previous mixin only covered the 4-argument path, which is
      * why emojis appeared in SkyJew relay chat but not normal server chat.
      */
-    @ModifyArg(
+    @ModifyVariable(
         method = "addMessage(Lnet/minecraft/network/chat/Component;)V",
         at = @At("HEAD"),
-        index = 0
+        argsOnly = true,
+        ordinal = 0
     )
     private Component skyjew$replaceSimpleChat(Component message) {
         return SkyJewNopoFeatures.replaceChatEmojis(message);
     }
 
-    @ModifyArgs(
+    @ModifyVariable(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
-        at = @At("HEAD")
+        at = @At("HEAD"),
+        argsOnly = true,
+        ordinal = 0
     )
-    private void skyjew$replaceFullChat(Args args) {
-        if (args.size() > 0 && args.get(0) instanceof Component message) {
-            args.set(0, SkyJewNopoFeatures.replaceChatEmojis(message));
-        }
+    private Component skyjew$replaceFullChat(Component message) {
+        return SkyJewNopoFeatures.replaceChatEmojis(message);
     }
 
     @Inject(
