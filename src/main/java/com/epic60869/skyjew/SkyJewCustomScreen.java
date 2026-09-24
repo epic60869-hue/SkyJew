@@ -217,7 +217,8 @@ public final class SkyJewCustomScreen extends Screen {
             b -> minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
                 SkyJewCustom.setItemModel(selected, identifier.toString());
                 rebuild();
-            })).bounds(x, y + 136, 150, 25).build());
+            })))
+            .bounds(x, y + 136, 150, 25).build());
 
         addRenderableWidget(Button.builder(Component.literal("Reset Item Icon"),
             b -> { SkyJewCustom.setItemModel(selected, null); rebuild(); })
