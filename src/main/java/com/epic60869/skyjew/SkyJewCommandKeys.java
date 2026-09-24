@@ -164,11 +164,17 @@ public final class SkyJewCommandKeys {
 
         for (Macro macro : profile.macros) {
             if (macro.keyCode == GLFW.GLFW_KEY_UNKNOWN || !modifierDown(window, macro.modifier)) continue;
-            boolean down = isDown(window, macro.keyCode);
-            boolean wasDown = previousKeys.contains(macro.keyCode);
-            if ((macro.mode == Mode.RELEASE && !down && wasDown) || (macro.mode != Mode.RELEASE && down && !wasDown)) {
+            boolean down = macro.mouseButton
+                ? isMouseDown(window, macro.keyCode)
+                : isDown(window, macro.keyCode);
+            boolean wasDown = macro.mouseButton
+                ? previousMouseButtons.contains(macro.keyCode)
+                : previousKeys.contains(macro.keyCode);
+
+            if ((macro.mode == Mode.RELEASE && !down && wasDown)
+                || (macro.mode != Mode.RELEASE && down && !wasDown)) {
                 if (macro.conflict == Conflict.AVOID) continue;
-                if (macro.conflict == Conflict.AVOID) continue;
+
                 if (macro.mode == Mode.REPEAT) {
                     macro.repeating = !macro.repeating;
                     if (macro.repeating) {
@@ -182,8 +188,14 @@ public final class SkyJewCommandKeys {
         }
 
         for (Macro macro : profile.macros) {
-            if (isDown(window, macro.keyCode)) previousKeys.add(macro.keyCode);
-            else previousKeys.remove(macro.keyCode);
+            if (macro.keyCode == GLFW.GLFW_KEY_UNKNOWN) continue;
+            if (macro.mouseButton) {
+                if (isMouseDown(window, macro.keyCode)) previousMouseButtons.add(macro.keyCode);
+                else previousMouseButtons.remove(macro.keyCode);
+            } else {
+                if (isDown(window, macro.keyCode)) previousKeys.add(macro.keyCode);
+                else previousKeys.remove(macro.keyCode);
+            }
         }
 
         if (data.editKeyCode != GLFW.GLFW_KEY_UNKNOWN && isDown(window, data.editKeyCode)
@@ -191,6 +203,10 @@ public final class SkyJewCommandKeys {
             mc.gui.setScreen(new SkyJewCommandKeysScreen(configDir));
             previousKeys.add(data.editKeyCode);
         }
+    }
+
+    private static boolean isMouseDown(long window, int button) {
+        return button >= 0 && GLFW.glfwGetMouseButton(window, button) == GLFW.GLFW_PRESS;
     }
 
     private static boolean isDown(long window, int key) {
