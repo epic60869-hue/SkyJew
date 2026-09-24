@@ -112,7 +112,9 @@ public final class SkyJewNick {
     public static Component tabDisplayName(Component original, UUID uuid, String actualName) {
         if (original == null || uuid == null || actualName == null || actualName.isBlank()) return original;
 
-        boolean local = uuid.equals(Minecraft.getInstance().getUser().getProfileId());
+        Minecraft mc = Minecraft.getInstance();
+        boolean local = uuid.equals(mc.getUser().getProfileId())
+            || (mc.player != null && uuid.equals(mc.player.getUUID()));
         // A local setting is authoritative for our own TAB entry; do not let a
         // delayed relay packet overwrite the local nickname/style.
         RemoteNick remote = local ? null : REMOTE_NICKS.get(uuid);
@@ -167,7 +169,15 @@ public final class SkyJewNick {
             return java.util.Optional.empty();
         }, Style.EMPTY);
 
-        return replaced[0] ? result : original;
+        // Some server-side TAB implementations expose a display component
+        // which does not contain the GameProfile name as a leaf. In that case
+        // still show the local nickname rather than silently falling back to
+        // the original username.
+        if (replaced[0]) return result;
+        if (local) {
+            return styled(finalNickName, finalNickMode, finalNickHex);
+        }
+        return original;
     }
 
     public static Component displayName(String actualName) {
