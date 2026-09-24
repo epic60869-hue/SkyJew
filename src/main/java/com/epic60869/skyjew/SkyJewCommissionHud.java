@@ -53,56 +53,26 @@ public final class SkyJewCommissionHud {
         if (!commissions.isEmpty()) render(g, commissions, x(), y());
     }
 
-    /** Mirrors Skyblocker's PlayerListManager: vanilla TAB ordering, then the named widget. */
+    /** Uses the same cached named-widget model as the standalone Skyblocker port. */
     private static void updateFromTab(Minecraft mc) {
-        if (mc.getConnection() == null) return;
-
-        List<PlayerInfo> ordered = new ArrayList<>(mc.getConnection().getOnlinePlayers());
-        try {
-            ordered.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
-        } catch (Throwable ignored) {}
-
-        boolean inWidget = false;
+        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Commissions");
         List<Commission> found = new ArrayList<>();
-
-        for (PlayerInfo info : ordered) {
-            Component component = info.getTabListDisplayName();
-            if (component == null) continue;
-
-            String string = component.getString();
-            if (string.isBlank()) continue;
-
-            if (!inWidget) {
-                if (string.strip().equalsIgnoreCase("Commissions") || string.strip().startsWith("Commissions:")) {
-                    inWidget = true;
-                }
-                continue;
-            }
-
-            // PlayerListManager.trim() feeds only indented lines to a widget.
-            if (!string.startsWith(" ")) break;
-
-            String line = string.strip();
-            Matcher matcher = COMM_PATTERN.matcher(line);
+        for (Component line : widget.lines()) {
+            Matcher matcher = COMM_PATTERN.matcher(line.getString());
             if (!matcher.matches()) continue;
-
             String name = matcher.group("name").strip();
             String progress = matcher.group("progress").strip();
             if (name.isEmpty()) continue;
-
-            if ("DONE".equalsIgnoreCase(progress)) {
+            if (progress.equalsIgnoreCase("DONE")) {
                 found.add(new Commission(name, "DONE", 100f));
                 continue;
             }
-
-            String numeric = progress.endsWith("%")
-                ? progress.substring(0, progress.length() - 1) : progress;
+            String numeric = progress.endsWith("%") ? progress.substring(0, progress.length() - 1) : progress;
             try {
                 float percent = Math.max(0f, Math.min(100f, Float.parseFloat(numeric)));
                 found.add(new Commission(name, progress.endsWith("%") ? progress : progress + "%", percent));
             } catch (NumberFormatException ignored) {}
         }
-
         commissions = found;
     }
 
