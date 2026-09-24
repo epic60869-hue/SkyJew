@@ -226,7 +226,7 @@ public final class SkyJewTabWidgetManager {
         public Widget {
             detail = detail == null ? Component.empty() : detail.copy();
             lines = lines == null ? List.of()
-                : lines.stream().map(Component::copy).toList();
+                : lines.stream().map(line -> (Component) line.copy()).toList();
             playerListEntries = playerListEntries == null ? List.of()
                 : List.copyOf(playerListEntries);
         }
