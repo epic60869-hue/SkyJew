@@ -2,7 +2,6 @@ package com.epic60869.skyjew;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -12,7 +11,7 @@ import java.util.Locale;
 public final class SkyJewNickScreen extends Screen {
     private final Screen parent;
     private EditBox nameBox, hexBox;
-    private Checkbox enabledBox;
+    private boolean enabled;
 
     public SkyJewNickScreen(Screen parent) {
         super(Component.literal("SkyJew Nick"));
@@ -33,9 +32,11 @@ public final class SkyJewNickScreen extends Screen {
         nameBox.setMaxLength(32);
         addRenderableWidget(nameBox);
 
-        enabledBox = Checkbox.builder(Component.literal("Enable nickname in TAB"), font)
-            .pos(left + 22, top + 100).selected(config.misc.nickname.enabled).build();
-        addRenderableWidget(enabledBox);
+        enabled = config.misc.nickname.enabled;
+        addRenderableWidget(Button.builder(Component.literal("TAB nickname: " + (enabled ? "ON" : "OFF")), b -> {
+            enabled = !enabled;
+            b.setMessage(Component.literal("TAB nickname: " + (enabled ? "ON" : "OFF")));
+        }).bounds(left + 22, top + 100, 180, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Plain"), b -> setStyle("Plain"))
             .bounds(left + 22, top + 132, 72, 22).build());
@@ -50,7 +51,7 @@ public final class SkyJewNickScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Clear"), b -> {
             nameBox.setValue("");
-            enabledBox.onPress();
+            enabled = false;
         }).bounds(left + 22, top + 165, 72, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Save"), b -> saveAndClose())
@@ -92,7 +93,7 @@ public final class SkyJewNickScreen extends Screen {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
             config.misc.nickname.name = nameBox.getValue().trim();
-            config.misc.nickname.enabled = enabledBox.selected() && !config.misc.nickname.name.isBlank();
+            config.misc.nickname.enabled = enabled && !config.misc.nickname.name.isBlank();
             String hex = hexBox.getValue().trim();
             if (!hex.startsWith("#")) hex = "#" + hex;
             if (hex.matches("#[0-9a-fA-F]{6}")) config.misc.nickname.customHex = hex.toUpperCase(Locale.ROOT);
