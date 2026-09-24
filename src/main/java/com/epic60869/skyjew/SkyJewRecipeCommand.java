@@ -78,9 +78,7 @@ public final class SkyJewRecipeCommand {
         return literal("recipe")
             .then(argument("item", StringArgumentType.greedyString())
                 .suggests(SkyJewRecipeCommand::suggestItems)
-                .executes(context -> run(context, 1))
-                .then(argument("amount", IntegerArgumentType.integer(1))
-                    .executes(SkyJewRecipeCommand::run)));
+                .executes(context -> run(context)));
     }
 
     private static CompletableFuture<Suggestions> suggestItems(CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
@@ -96,11 +94,16 @@ public final class SkyJewRecipeCommand {
     }
 
     private static int run(CommandContext<FabricClientCommandSource> context) {
-        return run(context, IntegerArgumentType.getInteger(context, "amount"));
-    }
-
-    private static int run(CommandContext<FabricClientCommandSource> context, int amount) {
-        String input = StringArgumentType.getString(context, "item").trim();
+        String raw = StringArgumentType.getString(context, "item").trim();
+        int amount = 1;
+        String input = raw;
+        String last = raw.substring(raw.lastIndexOf(' ') + 1);
+        try {
+            if (raw.contains(" ") && Integer.parseInt(last) > 0) {
+                amount = Integer.parseInt(last);
+                input = raw.substring(0, raw.lastIndexOf(' ')).trim();
+            }
+        } catch (NumberFormatException ignored) {}
         String id = resolveId(input);
         Minecraft mc = Minecraft.getInstance();
         if (id == null || mc.player == null) {
