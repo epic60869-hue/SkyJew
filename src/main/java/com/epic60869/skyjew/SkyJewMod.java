@@ -71,7 +71,6 @@ public final class SkyJewMod implements ClientModInitializer {
                 .executes(context -> openNick())
                 .then(ClientCommands.argument("value", StringArgumentType.greedyString())
                     .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
-            .then(ClientCommands.literal("discord").executes(context -> openDiscord()))
             .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
 
         root.then(customCommand());
@@ -98,6 +97,8 @@ public final class SkyJewMod implements ClientModInitializer {
                     .executes(context -> customTrim(
                         StringArgumentType.getString(context, "material"),
                         StringArgumentType.getString(context, "pattern"))))));
+
+        custom.then(ClientCommands.literal("skyblocker").executes(context -> openSkyblockerCustom()));
 
         custom.then(ClientCommands.literal("animatedDye")
             .then(ClientCommands.argument("hex1", StringArgumentType.word())
@@ -135,6 +136,12 @@ public final class SkyJewMod implements ClientModInitializer {
     private int openCustom() {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> SkyJewCustom.open(mc, mc.gui.screen()));
+        return 1;
+    }
+
+    private int openSkyblockerCustom() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> SkyJewCustom.openSkyblocker(mc, mc.gui.screen()));
         return 1;
     }
 
