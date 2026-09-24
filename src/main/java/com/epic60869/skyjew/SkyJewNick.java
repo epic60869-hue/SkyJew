@@ -220,14 +220,27 @@ public final class SkyJewNick {
         if (mc.getConnection() == null) return message;
 
         Component result = message;
+        // Use the relay's UUID -> username mapping first. This is important for
+        // Hypixel /msg and guild messages: those are server/game messages and
+        // the target player may not be present in the local tab list.
+        for (RemoteNick remote : REMOTE_NICKS.values()) {
+            if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank()) continue;
+            if (isLocalUuid(remote.uuid)) continue;
+            result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex));
+        }
+
+        // Fill in missing usernames from the live tab list for older persisted
+        // nickname records which were created before usernames were persisted.
         for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
             if (info == null || info.getProfile() == null) continue;
             UUID uuid = info.getProfile().id();
             String actualName = info.getProfile().name();
-            if (uuid == null || actualName == null || actualName.isBlank()) continue;
-
             RemoteNick remote = REMOTE_NICKS.get(uuid);
-            if (remote == null || !remote.enabled || remote.name.isBlank()) continue;
+            if (remote == null || !remote.enabled || remote.name.isBlank()
+                || actualName == null || actualName.isBlank() || isLocalUuid(uuid)) continue;
+            if (!remote.username.equals(actualName)) {
+                REMOTE_NICKS.put(uuid, remote.withUsername(actualName));
+            }
             result = replaceExactName(result, actualName, styled(remote.name, remote.mode, remote.customHex));
         }
         return result;
@@ -323,12 +336,21 @@ public final class SkyJewNick {
     }
 
     public static void updateRemote(UUID uuid, boolean enabled, String name, String mode, String customHex) {
+        updateRemote(uuid, "", enabled, name, mode, customHex);
+    }
+
+    public static void updateRemote(UUID uuid, String username, boolean enabled, String name, String mode, String customHex) {
         if (uuid == null) return;
         if (!enabled || name == null || name.isBlank()) {
             REMOTE_NICKS.remove(uuid);
             return;
         }
+        String safeUsername = username == null ? "" : cleanUsername(username);
+        RemoteNick previous = REMOTE_NICKS.get(uuid);
+        if (safeUsername.isBlank() && previous != null) safeUsername = previous.username;
         REMOTE_NICKS.put(uuid, new RemoteNick(
+            uuid,
+            safeUsername,
             clean(name),
             cleanMode(mode),
             cleanHex(customHex),
@@ -413,5 +435,20 @@ public final class SkyJewNick {
         }
     }
 
-    private record RemoteNick(String name, String mode, String customHex, boolean enabled) {}
+    private static boolean isLocalUuid(UUID uuid) {
+        Minecraft mc = Minecraft.getInstance();
+        return uuid != null && (uuid.equals(mc.getUser().getProfileId())
+            || (mc.player != null && uuid.equals(mc.player.getUUID())));
+    }
+
+    private static String cleanUsername(String value) {
+        return value == null ? "" : value.replaceAll("[^A-Za-z0-9_]", "").substring(
+            0, Math.min(16, value.replaceAll("[^A-Za-z0-9_]", "").length()));
+    }
+
+    private record RemoteNick(UUID uuid, String username, String name, String mode, String customHex, boolean enabled) {
+        private RemoteNick withUsername(String value) {
+            return new RemoteNick(uuid, value, name, mode, customHex, enabled);
+        }
+    }
 }
