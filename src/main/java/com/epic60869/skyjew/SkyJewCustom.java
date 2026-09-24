@@ -44,6 +44,7 @@ public final class SkyJewCustom {
     private static final Map<String, Integer> DYE_COLORS = new LinkedHashMap<>();
     private static final Map<String, TrimId> ARMOR_TRIMS = new LinkedHashMap<>();
     private static final Map<String, AnimatedDye> ANIMATED_DYES = new LinkedHashMap<>();
+    private static final Map<String, String> ITEM_MODELS = new LinkedHashMap<>();
 
     private static Path configDir;
     private static boolean initialized;
@@ -157,6 +158,18 @@ public final class SkyJewCustom {
 
     public static AnimatedDye getAnimatedDye(ItemStack stack) {
         return ANIMATED_DYES.get(uuid(stack));
+    }
+
+    public static void setItemModel(ItemStack stack, String model) {
+        String id = uuid(stack);
+        if (id.isBlank()) return;
+        if (model == null || model.isBlank()) ITEM_MODELS.remove(id);
+        else ITEM_MODELS.put(id, model.trim());
+        save();
+    }
+
+    public static String getItemModel(ItemStack stack) {
+        return ITEM_MODELS.get(uuid(stack));
     }
 
     public static Component customName(ItemStack stack, Component original) {
@@ -279,7 +292,7 @@ public final class SkyJewCustom {
     }
 
     private static void load() {
-        ITEM_NAMES.clear(); DYE_COLORS.clear(); ARMOR_TRIMS.clear(); ANIMATED_DYES.clear();
+        ITEM_NAMES.clear(); DYE_COLORS.clear(); ARMOR_TRIMS.clear(); ANIMATED_DYES.clear(); ITEM_MODELS.clear();
         if (configDir == null) return;
         Path file = configDir.resolve(FILE_NAME);
         if (!Files.exists(file)) return;
@@ -292,6 +305,7 @@ public final class SkyJewCustom {
                 JsonObject v = e.getValue().getAsJsonObject();
                 ARMOR_TRIMS.put(e.getKey(), new TrimId(v.get("material").getAsString(), v.get("pattern").getAsString()));
             });
+            if (root.has("itemModels")) root.getAsJsonObject("itemModels").entrySet().forEach(e -> ITEM_MODELS.put(e.getKey(), e.getValue().getAsString()));
             if (root.has("animatedDyes")) root.getAsJsonObject("animatedDyes").entrySet().forEach(e -> {
                 JsonObject v = e.getValue().getAsJsonObject();
                 JsonObject a = v.getAsJsonObject("first");
@@ -339,6 +353,9 @@ public final class SkyJewCustom {
                 animated.add(k,o);
             });
             root.add("animatedDyes", animated);
+            JsonObject models = new JsonObject();
+            ITEM_MODELS.forEach(models::addProperty);
+            root.add("itemModels", models);
             Files.writeString(configDir.resolve(FILE_NAME), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.err.println("[SkyJew] Failed to save custom config: " + e.getMessage());
