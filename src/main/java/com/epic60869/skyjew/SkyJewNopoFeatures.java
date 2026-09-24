@@ -16,6 +16,8 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.contents.objects.AtlasSprite;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.objects.AtlasSprite;
 import net.minecraft.resources.Identifier;
@@ -547,10 +549,20 @@ public final class SkyJewNopoFeatures {
                     // Nopo's implementation uses the vanilla GUI atlas. SkyJew
                     // ships the same sprites under its own namespace, so aliases
                     // resolve to the canonical sprite without a Nopo dependency.
-                    String unicode = EMOJI_UNICODE.get(canonical);
-                    if (unicode == null) unicode = EMOJI_SYMBOLS.get(canonical);
-                    if (unicode == null) unicode = "❔";
-                    out.append(Component.literal(unicode).withStyle(style.withColor(ChatFormatting.WHITE)));
+                    // Use Nopo's actual atlas-sprite approach rather than Unicode.
+                    // Minecraft's normal font does not reliably contain the emoji glyphs.
+                    // The build downloads the pinned Nopo sprite sheet into SkyJew's namespace.
+                    try {
+                        Identifier spriteId = Identifier.fromNamespaceAndPath("skyjew", canonical);
+                        MutableComponent emoji = Component.object(new AtlasSprite(
+                                Identifier.withDefaultNamespace("gui"), spriteId));
+                        out.append(emoji.withStyle(style.withColor(ChatFormatting.WHITE)));
+                    } catch (Throwable ignored) {
+                        String unicode = EMOJI_UNICODE.get(canonical);
+                        if (unicode == null) unicode = EMOJI_SYMBOLS.get(canonical);
+                        if (unicode == null) unicode = "❔";
+                        out.append(Component.literal(unicode).withStyle(style.withColor(ChatFormatting.WHITE)));
+                    }
                 } else {
                     out.append(Component.literal(matcher.group()).withStyle(style));
                 }
