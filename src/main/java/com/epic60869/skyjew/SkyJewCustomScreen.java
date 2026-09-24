@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.Locale;
 
@@ -108,34 +109,45 @@ public final class SkyJewCustomScreen extends Screen {
 
         if (selected.isEmpty()) return;
 
-        addRenderableWidget(Button.builder(Component.literal("Hypixel Static Dye"), b ->
-                minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, false)))
-            .bounds(mainX, top + 176, 205, 28).build());
+        if (selected.is(Items.PLAYER_HEAD)) {
+            addRenderableWidget(Button.builder(Component.literal("Helmet Skins"), b ->
+                    minecraft.gui.setScreen(new SkyJewHelmetSkinSelectScreen(this, selected)))
+                .bounds(mainX, top + 176, 205, 28).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Hypixel Animated Dye"), b ->
-                minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, true)))
-            .bounds(mainX + 215, top + 176, 205, 28).build());
+            addRenderableWidget(Button.builder(Component.literal("Reset Helmet Skin"), b -> {
+                SkyJewCustom.setHelmetSkin(selected, null);
+                rebuild();
+            }).bounds(mainX + 215, top + 176, 150, 28).build());
+        } else {
+            addRenderableWidget(Button.builder(Component.literal("Hypixel Static Dye"), b ->
+                    minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, false)))
+                .bounds(mainX, top + 176, 205, 28).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
-            SkyJewCustom.setDye(selected, null);
-            SkyJewCustom.setAnimatedDye(selected, (Integer) null, (Integer) null, 1f, false, 0f);
-            rebuild();
-        }).bounds(mainX, top + 210, 120, 24).build());
+            addRenderableWidget(Button.builder(Component.literal("Hypixel Animated Dye"), b ->
+                    minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, true)))
+                .bounds(mainX + 215, top + 176, 205, 28).build());
 
-        animatedStart = box("Start #RRGGBB", mainX, top + 258, 145, "");
-        animatedEnd = box("End #RRGGBB", mainX + 153, top + 258, 145, "");
-        animatedDuration = box("Seconds", mainX + 306, top + 258, 88, "5");
-        cycleBack = Checkbox.builder(Component.literal("Cycle back"), font)
-            .pos(mainX + 402, top + 260).selected(true).build();
+            addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
+                SkyJewCustom.setDye(selected, null);
+                SkyJewCustom.setAnimatedDye(selected, (Integer) null, (Integer) null, 1f, false, 0f);
+                rebuild();
+            }).bounds(mainX, top + 210, 120, 24).build());
 
-        addRenderableWidget(animatedStart);
-        addRenderableWidget(animatedEnd);
-        addRenderableWidget(animatedDuration);
-        addRenderableWidget(cycleBack);
+            animatedStart = box("Start #RRGGBB", mainX, top + 258, 145, "");
+            animatedEnd = box("End #RRGGBB", mainX + 153, top + 258, 145, "");
+            animatedDuration = box("Seconds", mainX + 306, top + 258, 88, "5");
+            cycleBack = Checkbox.builder(Component.literal("Cycle back"), font)
+                .pos(mainX + 402, top + 260).selected(true).build();
 
-        addRenderableWidget(Button.builder(Component.literal("Apply custom animation"), b ->
-                applyAnimatedDye(selected))
-            .bounds(mainX, top + 292, 180, 25).build());
+            addRenderableWidget(animatedStart);
+            addRenderableWidget(animatedEnd);
+            addRenderableWidget(animatedDuration);
+            addRenderableWidget(cycleBack);
+
+            addRenderableWidget(Button.builder(Component.literal("Apply custom animation"), b ->
+                    applyAnimatedDye(selected))
+                .bounds(mainX, top + 292, 180, 25).build());
+        }
     }
 
     private void buildItem(int left, int top, int panelW) {
@@ -291,8 +303,15 @@ public final class SkyJewCustomScreen extends Screen {
                     g.text(font, "No custom dye selected", px + 68, py + 34, MUTED, false);
                 }
 
-                g.text(font, "Dye", left + 235, top + 160, TEXT, true);
-                g.text(font, "Choose a Hypixel dye below. The picker applies it immediately.", left + 235, top + 195, MUTED, false);
+                if (selected.is(Items.PLAYER_HEAD)) {
+                    g.text(font, "Helmet skin", left + 235, top + 160, TEXT, true);
+                    g.text(font, SkyJewCustom.helmetSkinDataLoaded()
+                        ? "Choose from the Hypixel helmet skin list."
+                        : "Loading the Hypixel helmet skin list...", left + 235, top + 195, MUTED, false);
+                } else {
+                    g.text(font, "Dye", left + 235, top + 160, TEXT, true);
+                    g.text(font, "Choose a Hypixel dye below. The picker applies it immediately.", left + 235, top + 195, MUTED, false);
+                }
             } else {
                 g.text(font, "No item selected", left + 235, top + 135, TEXT, true);
                 g.text(font, "Equip an armour piece or click Select inventory item.", left + 235, top + 157, MUTED, false);
