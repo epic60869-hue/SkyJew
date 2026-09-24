@@ -8,6 +8,7 @@
     "SkyJewDataComponentHolderMixin",
     "SkyJewChatHudMixin",
     "SkyJewChatScreenMixin",
+    "SkyJewEmojiSuggestionsMixin",
     "SkyJewMouseHandlerMixin",
     "SkyJewExperimentScreenMixin",
     "SkyJewContainerScreenAccessor",
