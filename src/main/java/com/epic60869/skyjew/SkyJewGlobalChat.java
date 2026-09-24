@@ -226,16 +226,18 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
                 hello.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
-                hello.addProperty("nicknameEnabled", !SkyJewNick.outgoingName().equals(username));
+                hello.addProperty("nicknameEnabled", SkyJewNick.enabled());
                 hello.addProperty("nickname", SkyJewNick.outgoingName());
                 hello.addProperty("nicknameMode", SkyJewNick.mode());
                 hello.addProperty("nicknameHex", SkyJewNick.customHex());
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
-                // /sj nick may have been saved while the WebSocket was offline.
-                if (nicknameUpdatePending) {
-                    sendNicknameUpdate();
-                }
+                // Always publish the current nickname state after a connection
+                // is established. This makes the relay authoritative for both
+                // newly joined clients and clients reconnecting after a drop.
+                nicknameUpdatePending = false;
+                lastNicknameSync = System.currentTimeMillis();
+                sendNicknameUpdate();
             });
     }
 
@@ -414,7 +416,14 @@ public final class SkyJewGlobalChat {
                             ? packet.get("nicknameMode").getAsString() : "Plain";
                         String nickHex = packet.has("nicknameHex")
                             ? packet.get("nicknameHex").getAsString() : "";
-                        SkyJewNick.updateRemote(messageUuid, nickEnabled, displayName, nickMode, nickHex);
+
+                        // nicknameUpdate is the authoritative state packet.
+                        // A chat message from an older/stale connection may not
+                        // contain nickname styling, so it must never erase a
+                        // nickname that was already synced from the relay.
+                        if (nickEnabled) {
+                            SkyJewNick.updateRemote(messageUuid, true, displayName, nickMode, nickHex);
+                        }
                     }
                 } catch (Exception ignored) {}
 
