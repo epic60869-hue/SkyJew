@@ -110,8 +110,11 @@ public final class SkyJewGlobalChat {
         JsonObject packet = new JsonObject();
         packet.addProperty("type", "message");
         packet.addProperty("username", username);
+        packet.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
         packet.addProperty("nickname", SkyJewNick.outgoingName());
+        packet.addProperty("nicknameEnabled", !SkyJewNick.outgoingName().equals(username));
         packet.addProperty("nicknameMode", SkyJewNick.mode());
+        packet.addProperty("nicknameHex", SkyJewNick.customHex());
         packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
         ws.sendText(GSON.toJson(packet), true);
     }
@@ -390,6 +393,20 @@ public final class SkyJewGlobalChat {
                 String message = packet.has("message") ? packet.get("message").getAsString() : "";
                 if (message.isBlank()) return;
 
+                UUID messageUuid = null;
+                try {
+                    if (packet.has("minecraftUuid")) {
+                        messageUuid = UUID.fromString(packet.get("minecraftUuid").getAsString());
+                        boolean nickEnabled = packet.has("nicknameEnabled")
+                            && packet.get("nicknameEnabled").getAsBoolean();
+                        String nickMode = packet.has("nicknameMode")
+                            ? packet.get("nicknameMode").getAsString() : "Plain";
+                        String nickHex = packet.has("nicknameHex")
+                            ? packet.get("nicknameHex").getAsString() : "";
+                        SkyJewNick.updateRemote(messageUuid, nickEnabled, displayName, nickMode, nickHex);
+                    }
+                } catch (Exception ignored) {}
+
                 name = name.replaceAll("[^A-Za-z0-9_]", "");
                 if (name.isBlank()) name = "Unknown";
 
@@ -398,9 +415,7 @@ public final class SkyJewGlobalChat {
 
                 Component shownName;
                 try {
-                    UUID uuid = packet.has("minecraftUuid")
-                        ? UUID.fromString(packet.get("minecraftUuid").getAsString()) : null;
-                    shownName = SkyJewNick.displayName(uuid, displayName);
+                    shownName = SkyJewNick.displayName(messageUuid, displayName);
                 } catch (Exception ignored) {
                     shownName = SkyJewNick.displayName(displayName);
                 }
