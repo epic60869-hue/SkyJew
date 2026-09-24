@@ -42,15 +42,15 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
-            elements.add(new EditableHud("Pet Display", () -> config.pets.x, () -> config.pets.y,
-                (x, y) -> { config.pets.x = Math.max(0, x); config.pets.y = Math.max(0, y); },
+            elements.add(new EditableHud("Pet Display", () -> config.pets.display.x, () -> config.pets.display.y,
+                (x, y) -> { config.pets.display.x = Math.max(0, x); config.pets.display.y = Math.max(0, y); },
                 () -> 260, () -> 44, SkyJewNopoFeatures::renderPetHudPreview, "pet"));
         }
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xFF15171C);
+        g.fill(0, 0, width, height, 0x00000000);
         g.fill(width / 2 - 1, 0, width / 2 + 1, height, 0x18FFFFFF);
         g.fill(0, height / 2 - 1, width, height / 2 + 1, 0x18FFFFFF);
 
