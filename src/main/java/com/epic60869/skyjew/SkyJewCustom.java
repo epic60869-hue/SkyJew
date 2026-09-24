@@ -100,9 +100,12 @@ public final class SkyJewCustom {
 
     public static String uuid(ItemStack stack) {
         try {
-            if (stack == null) return "";
-            CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-            return data == null ? "" : data.copyTag().getStringOr("uuid", "");
+            if (stack == null || stack.isEmpty()) return "";
+            // Use Minecraft's native SkyBlock UUID accessor, the same path
+            // Skyblocker uses for custom dye/model data. This is more reliable
+            // than manually reading CustomData and works with Hypixel item UUIDs.
+            String value = stack.getUuid();
+            return value == null ? "" : value;
         } catch (Throwable ignored) {
             return "";
         }
