@@ -247,31 +247,63 @@ public final class SkyJewNick {
     }
 
     private static Component replaceExactName(Component message, String actualName, Component replacement) {
-        MutableComponent result = Component.empty();
-        final boolean[] changed = {false};
+        if (message == null || actualName == null || actualName.isBlank()) return message;
 
+        // Hypixel splits chat into many styled component leaves. Usernames can
+        // cross a leaf boundary, so matching each leaf separately is unreliable.
+        List<StyledRun> runs = new java.util.ArrayList<>();
+        StringBuilder plain = new StringBuilder();
         message.visit((style, value) -> {
-            if (value == null || value.isEmpty()) return java.util.Optional.empty();
-            int start = 0;
-            while (start < value.length()) {
-                int at = value.indexOf(actualName, start);
-                if (at < 0) break;
-                int end = at + actualName.length();
-                boolean leftOk = at == 0 || !isNameChar(value.charAt(at - 1));
-                boolean rightOk = end >= value.length() || !isNameChar(value.charAt(end));
-                if (!leftOk || !rightOk) {
-                    start = end;
-                    continue;
-                }
-                if (at > start) result.append(Component.literal(value.substring(start, at)).setStyle(style));
-                result.append(replacement.copy());
-                changed[0] = true;
-                start = end;
+            if (value != null && !value.isEmpty()) {
+                runs.add(new StyledRun(value, style));
+                plain.append(value);
             }
-            if (start < value.length()) result.append(Component.literal(value.substring(start)).setStyle(style));
             return java.util.Optional.empty();
         }, Style.EMPTY);
-        return changed[0] ? result : message;
+
+        String text = plain.toString();
+        MutableComponent result = Component.empty();
+        int cursor = 0;
+        boolean changed = false;
+
+        while (cursor < text.length()) {
+            int at = text.indexOf(actualName, cursor);
+            if (at < 0) break;
+            int end = at + actualName.length();
+            boolean leftOk = at == 0 || !isNameChar(text.charAt(at - 1));
+            boolean rightOk = end >= text.length() || !isNameChar(text.charAt(end));
+            if (!leftOk || !rightOk) {
+                cursor = at + 1;
+                continue;
+            }
+
+            appendStyledRange(result, runs, cursor, at);
+            result.append(replacement.copy());
+            changed = true;
+            cursor = end;
+        }
+
+        if (!changed) return message;
+        appendStyledRange(result, runs, cursor, text.length());
+        return result;
+    }
+
+    private static void appendStyledRange(MutableComponent out, List<StyledRun> runs,
+                                          int start, int end) {
+        if (start >= end) return;
+        int offset = 0;
+        for (StyledRun run : runs) {
+            int runStart = offset;
+            int runEnd = offset + run.text.length();
+            int from = Math.max(start, runStart);
+            int to = Math.min(end, runEnd);
+            if (from < to) {
+                out.append(Component.literal(run.text.substring(from - runStart, to - runStart))
+                    .setStyle(run.style));
+            }
+            offset = runEnd;
+            if (offset >= end) break;
+        }
     }
 
     private static boolean isNameChar(char c) {
@@ -284,35 +316,11 @@ public final class SkyJewNick {
             return message;
         }
 
-        Minecraft mc = Minecraft.getInstance();
-        String actualName = mc.getUser().getName();
+        String actualName = Minecraft.getInstance().getUser().getName();
         if (actualName == null || actualName.isBlank()) return message;
 
-        String nickname = config().misc.nickname.name;
-        MutableComponent result = Component.empty();
-        final boolean[] replaced = {false};
-
-        message.visit((style, value) -> {
-            if (value == null || value.isEmpty()) return java.util.Optional.empty();
-
-            if (!replaced[0]) {
-                int at = value.indexOf(actualName);
-                if (at >= 0) {
-                    if (at > 0) result.append(Component.literal(value.substring(0, at)).setStyle(style));
-                    result.append(styled(nickname, mode(), customHex()));
-                    if (at + actualName.length() < value.length()) {
-                        result.append(Component.literal(value.substring(at + actualName.length())).setStyle(style));
-                    }
-                    replaced[0] = true;
-                    return java.util.Optional.empty();
-                }
-            }
-
-            result.append(Component.literal(value).setStyle(style));
-            return java.util.Optional.empty();
-        }, Style.EMPTY);
-
-        return replaced[0] ? result : message;
+        return replaceExactName(message, actualName,
+            styled(config().misc.nickname.name, mode(), customHex()));
     }
 
     public static Component displayName(String actualName) {
@@ -445,6 +453,8 @@ public final class SkyJewNick {
         return value == null ? "" : value.replaceAll("[^A-Za-z0-9_]", "").substring(
             0, Math.min(16, value.replaceAll("[^A-Za-z0-9_]", "").length()));
     }
+
+    private record StyledRun(String text, Style style) {}
 
     private record RemoteNick(UUID uuid, String username, String name, String mode, String customHex, boolean enabled) {
         private RemoteNick withUsername(String value) {
