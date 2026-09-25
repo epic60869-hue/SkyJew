@@ -85,11 +85,20 @@ public final class SkyJewCommissionHud {
             if (line.isBlank()) continue;
 
             if (!inCommissions) {
-                if (line.equalsIgnoreCase("Commissions")
-                    || line.equalsIgnoreCase("Commissions:")) {
+                if (line.equalsIgnoreCase("Commissions") || line.equalsIgnoreCase("Commissions:")) {
                     inCommissions = true;
+                    continue;
                 }
-                continue;
+                // Hypixel sometimes sends the header and its first value in the
+                // same TAB component. Do not treat the value (for example
+                // "Gemstone") as a commission.
+                if (line.regionMatches(true, 0, "Commissions:", 0, "Commissions:".length())) {
+                    inCommissions = true;
+                    line = line.substring("Commissions:".length()).strip();
+                    if (line.isBlank()) continue;
+                } else {
+                    continue;
+                }
             }
 
             // These are TAB section headers/data that can also match the generic
@@ -107,6 +116,15 @@ public final class SkyJewCommissionHud {
 
             Matcher matcher = COMM_PATTERN.matcher(line);
             if (!matcher.matches()) continue;
+
+            String lowerName = matcher.group("name").strip().toLowerCase(java.util.Locale.ROOT);
+            // Resource/currency headings are not commissions even when Hypixel
+            // formats them as "Name: value".
+            if (lowerName.equals("gemstone") || lowerName.equals("mithril")
+                || lowerName.equals("glacite") || lowerName.equals("powder")
+                || lowerName.equals("bank") || lowerName.equals("purse")) {
+                continue;
+            }
 
             String name = matcher.group("name").strip();
             String progress = matcher.group("progress").strip();
