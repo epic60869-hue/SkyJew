@@ -197,6 +197,19 @@ public final class SkyJewCustom {
         save();
     }
 
+    public static void setAnimatedDyeKeyframes(ItemStack stack, List<Keyframe> keyframes, float duration, boolean cycleBack, float delay) {
+        String id = uuid(stack);
+        if (id.isBlank()) return;
+        if (keyframes == null || keyframes.size() < 2) {
+            ANIMATED_DYES.remove(id);
+        } else {
+            List<Keyframe> copy = new ArrayList<>(keyframes);
+            copy.sort(java.util.Comparator.comparingDouble(Keyframe::time));
+            ANIMATED_DYES.put(id, new AnimatedDye(List.copyOf(copy), cycleBack, Math.max(0.1f, duration), Math.max(0f, delay)));
+        }
+        save();
+    }
+
     public static Map<String, Integer> hypixelStaticDyes() {
         return HYPIXEL_STATIC_DYES;
     }
