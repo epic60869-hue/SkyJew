@@ -62,9 +62,6 @@ public final class SkyJewTabWidgetManager {
             ordered.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
         } catch (Throwable ignored) {
         }
-        for (PlayerInfo entry : ordered) {
-            SkyJewNick.applyToTab(entry);
-        }
 
         players = List.copyOf(ordered);
         updateWidgetsFrom(ordered);

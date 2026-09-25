@@ -163,6 +163,10 @@ public final class SkyJewNickScreen extends Screen {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
             String name = nameBox.getValue().trim();
+            if (SkyJewNickFilter.isBlocked(name)) {
+                minecraft.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("[SkyJew] That nickname isn't allowed.").withStyle(net.minecraft.ChatFormatting.RED));
+                return;
+            }
             config.misc.nickname.name = name;
             config.misc.nickname.enabled = enabled && !name.isBlank();
             config.misc.nickname.style = selectedStyle;

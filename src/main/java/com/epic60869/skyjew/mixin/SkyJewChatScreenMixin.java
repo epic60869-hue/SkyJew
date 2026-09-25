@@ -48,4 +48,16 @@ public abstract class SkyJewChatScreenMixin {
         ((ChatScreen) (Object) this).onClose();
         cir.setReturnValue(true);
     }
+
+    @Shadow
+    private net.minecraft.client.gui.components.ChatComponent.DisplayMode displayMode;
+
+    /** Image preview when hovering an image link in chat. */
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void skyjew$imagePreview(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        var finder = new net.minecraft.client.gui.ActiveTextCollector.ClickableStyleFinder(mc.font, mouseX, mouseY);
+        mc.gui.hud.getChat().captureClickableText(finder, mc.getWindow().getGuiScaledHeight(), mc.gui.hud.getGuiTicks(), displayMode);
+        com.epic60869.skyjew.SkyJewImagePreview.render(graphics, finder.result(), mouseX, mouseY);
+    }
 }

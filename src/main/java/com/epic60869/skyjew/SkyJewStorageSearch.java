@@ -419,7 +419,8 @@ public final class SkyJewStorageSearch {
 
         // Names may be decorated with arrows or page counters ("» Next Page (2/9)").
         String words = name.replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
-        if (words.contains("next page") || words.contains("previous page") || words.contains("prev page")) {
+        if (words.contains("next page") || words.contains("previous page") || words.contains("prev page")
+                || words.contains("first page") || words.contains("last page")) {
             return false;
         }
 
@@ -542,6 +543,21 @@ public final class SkyJewStorageSearch {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Item counts by SkyBlock id across the cached Ender Chest and Backpack pages (used by the craft helper). */
+    public static Map<String, Integer> storedItemCounts() {
+        Map<String, Integer> counts = new java.util.HashMap<>();
+        for (Page page : new ArrayList<>(pages.values())) {
+            List<ItemStack> contents = decode(page.blob());
+            if (contents == null) continue;
+            for (ItemStack stack : contents) {
+                if (stack == null || stack.isEmpty()) continue;
+                String id = com.epic60869.skyjew.custom.util.Compat.neuName(stack);
+                if (!id.isEmpty()) counts.merge(id, stack.getCount(), Integer::sum);
+            }
+        }
+        return counts;
     }
 
     private static List<ItemStack> decode(String blob) {

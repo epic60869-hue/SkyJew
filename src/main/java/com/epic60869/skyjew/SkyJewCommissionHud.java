@@ -67,6 +67,8 @@ public final class SkyJewCommissionHud {
     private static void extract(GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
         if (config == null || !config.mining.commissions.enabled || mc.player == null) return;
+        if (config.mining.features.commissionsAreaOnly
+            && !com.epic60869.skyjew.features.core.SkyJewLocation.inMiningIsland()) return;
         updateFromTab();
         if (!commissions.isEmpty()) render(g, commissions, x(), y());
     }

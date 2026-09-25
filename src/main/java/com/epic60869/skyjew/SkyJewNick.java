@@ -80,6 +80,10 @@ public final class SkyJewNick {
         }
 
         name = clean(name);
+        if (SkyJewNickFilter.isBlocked(name)) {
+            message("That nickname isn't allowed.", 0xFF5555);
+            return;
+        }
         config().misc.nickname.enabled = true;
         config().misc.nickname.name = name;
         config().misc.nickname.style = style;
@@ -105,6 +109,10 @@ public final class SkyJewNick {
 
     public static void applyGuiName(String name) {
         String value = clean(name);
+        if (SkyJewNickFilter.isBlocked(value)) {
+            message("That nickname isn't allowed.", 0xFF5555);
+            return;
+        }
         config().misc.nickname.name = value;
         config().misc.nickname.enabled = !value.isBlank();
         save();
@@ -147,12 +155,19 @@ public final class SkyJewNick {
         }
 
         if (nickName == null) {
-            // Hypixel tab entries are fake profiles, so fall back to matching usernames in the text.
-            if (local || config() == null || !config().misc.nickname.seeOtherNicks) return original;
+            // Hypixel tab entries are fake profiles, so match usernames in the text instead.
+            // Only the name is replaced; the level, rank and colours around it are kept.
+            if (local || config() == null) return original;
             Component result = original;
-            for (RemoteNick r : REMOTE_NICKS.values()) {
-                if (!r.enabled || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
-                result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex));
+            if (localNickActive()) {
+                result = replaceExactName(result, mc.getUser().getName(),
+                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
+            }
+            if (config().misc.nickname.seeOtherNicks) {
+                for (RemoteNick r : REMOTE_NICKS.values()) {
+                    if (!r.enabled || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
+                    result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex));
+                }
             }
             return result;
         }
@@ -164,11 +179,30 @@ public final class SkyJewNick {
         Component replacement = styled(finalNickName, finalNickMode, finalNickHex);
         Component result = replaceExactName(original, actualName, replacement);
 
-        if (result != original) return result;
-        if (local) {
-            return styled(finalNickName, finalNickMode, finalNickHex);
+        // If the name is not in the text, leave the entry alone rather than replacing its formatting.
+        return result;
+    }
+
+    /**
+     * Name shown above a player's head. Replaces only the username inside the display name,
+     * keeping any team prefix, rank and colours.
+     */
+    public static Component nameTag(Component original, UUID uuid, String actualName) {
+        if (original == null || uuid == null || actualName == null || config() == null) return original;
+        if (isLocalUuid(uuid)) {
+            if (!localNickActive()) return original;
+            return replaceExactName(original, actualName,
+                styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
         }
-        return original;
+        if (!config().misc.nickname.seeOtherNicks) return original;
+        RemoteNick remote = REMOTE_NICKS.get(uuid);
+        if (remote == null || !remote.enabled || remote.name.isBlank()) return original;
+        return replaceExactName(original, actualName, styled(remote.name, remote.mode, remote.customHex));
+    }
+
+    private static boolean localNickActive() {
+        return config() != null && config().misc.nickname.enabled
+            && config().misc.nickname.name != null && !config().misc.nickname.name.isBlank();
     }
 
     /**
@@ -176,21 +210,6 @@ public final class SkyJewNick {
      * Hypixel can periodically replace PlayerInfo display names, so this is
      * re-applied from the client tick instead of relying only on a render mixin.
      */
-    public static void applyToTab(PlayerInfo info) {
-        if (info == null) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.getUser() == null || info.getProfile() == null) return;
-        if (!info.getProfile().id().equals(mc.getUser().getProfileId())
-            && !info.getProfile().name().equals(mc.getUser().getName())) return;
-
-        Component original = info.getTabListDisplayName();
-        if (original == null) original = Component.literal(info.getProfile().name());
-
-        Component replacement = tabDisplayName(original, info.getProfile().id(), info.getProfile().name());
-        if (replacement != null && !replacement.equals(original)) {
-            info.setTabListDisplayName(replacement);
-        }
-    }
 
     /**
      * Replaces the local player's name in normal Minecraft chat so /sj nick
@@ -368,7 +387,8 @@ public final class SkyJewNick {
 
     public static void updateRemote(UUID uuid, String username, boolean enabled, String name, String mode, String customHex) {
         if (uuid == null) return;
-        if (!enabled || name == null || name.isBlank()) {
+        // Nicknames with blocked words are not shown; the player's real name is used instead.
+        if (!enabled || name == null || name.isBlank() || SkyJewNickFilter.isBlocked(name)) {
             REMOTE_NICKS.remove(uuid);
             return;
         }

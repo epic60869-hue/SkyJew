@@ -15,7 +15,8 @@
   },
   "mixins": [
     "skyjew.mixins.json",
-    "skyjew.commandkeys.mixins.json"
+    "skyjew.commandkeys.mixins.json",
+    "skyjew.sb.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",

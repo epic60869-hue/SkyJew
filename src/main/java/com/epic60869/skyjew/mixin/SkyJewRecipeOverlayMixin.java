@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class SkyJewRecipeOverlayMixin {
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    @Inject(method = "extractContents", at = @At("TAIL"))
     private void skyjew$renderRecipeOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         SkyJewRecipeOverlay.render(graphics, (AbstractContainerScreen<?>) (Object) this, mouseX, mouseY, delta);
     }
@@ -20,6 +20,13 @@ public abstract class SkyJewRecipeOverlayMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void skyjew$recipeOverlayClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (SkyJewRecipeOverlay.mouseClicked((AbstractContainerScreen<?>) (Object) this, event.x(), event.y(), event.button())) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void skyjew$recipeOverlayScroll(double mouseX, double mouseY, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
+        if (SkyJewRecipeOverlay.mouseScrolled((AbstractContainerScreen<?>) (Object) this, mouseX, mouseY, scrollY)) {
             cir.setReturnValue(true);
         }
     }

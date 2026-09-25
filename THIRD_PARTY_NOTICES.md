@@ -36,6 +36,14 @@ Changes made for SkyJew: repackaged, mod ID changed to `skyjew_commandkeys`, the
 
 SkyJew's rarity item backgrounds, calendar date calculator and commission HUD style are ported from Skyblocker (see above).
 
+## Skyblocker dungeon and experimentation features
+
+SkyJew's dungeon map, puzzle solvers, secret waypoints, room detection, terminal and device solvers, and experimentation table solvers (the `com.epic60869.skyjew.sb` package and the `assets/skyjew/dungeons` room data) are ported from Skyblocker v6.10.4+26.2 (LGPL-3.0), keeping Skyblocker's source structure. Skyblocker's config, location, scheduler and rendering classes are replaced by small SkyJew stand-ins, and its custom world renderer is replaced by one built on Minecraft's gizmos.
+
+## SkyHanni repository data
+
+Several SkyJew features use chat and item patterns, slayer XP and spawn costs, and the sea creature list published in SkyHanni's data repository (https://github.com/hannibal002/SkyHanni-REPO, MIT License). The sea creature list is downloaded at runtime; the patterns and slayer values are included in SkyJew's source.
+
 ## SkyHanni GUI Position Editor
 
 SkyJew's /sj gui position editor is an adaptation of the SkyHanni GUI position editor interaction model, including draggable HUD boxes, hover information, keyboard movement, and scroll-wheel scaling.
@@ -55,4 +63,6 @@ SkyJew's search-keybind and recipe-command workflows are adapted from the corres
 - Recipe command: src/main/kotlin/me/owdding/skyocean/commands/CraftHelperCommand.kt
 - Recipe autocomplete: src/main/kotlin/me/owdding/skyocean/utils/suggestions/RecipeNameSuggestionProvider.kt
 
-SkyJew uses an independent Java implementation and does not add SkyOcean as a runtime dependency. SkyOcean's repository is licensed under its published project terms.
+SkyJew's /sj recipe craft helper is a Java port of SkyOcean's craft helper (src/main/kotlin/me/owdding/skyocean/features/recipe/crafthelper/ and commands/CraftHelperCommand.kt): the recipe tree with leftover carry-over, the have/need evaluation, and the tree display. SkyOcean's code is licensed under the MIT License (SkyOcean License v1, section 1); SkyJew reads recipes from the NEU repository instead of SkyOcean's repo library.
+
+Copyright notice for the ported code: Copyright (c) meowdding / SkyOcean contributors. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

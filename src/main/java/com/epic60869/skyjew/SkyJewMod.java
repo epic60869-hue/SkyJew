@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
 import java.nio.file.Path;
@@ -14,17 +13,16 @@ import java.nio.file.Path;
 public final class SkyJewMod implements ClientModInitializer {
 
     private SkyJewConfig config;
-    private boolean firstBootScreenShown;
 
     @Override
     public void onInitializeClient() {
         Minecraft minecraft = Minecraft.getInstance();
         Path configDir = minecraft.gameDirectory.toPath().resolve("config");
         config = SkyJewConfig.load(configDir.resolve("skyjew-mod.json"));
-        SkyJewSounds.initialize();
         // Register key mappings during client initialization, before GameOptions is initialized.
         SkyJewKeyMappings.init();
         SkyJewRecipeCommand.init();
+        SkyJewCraftHelper.init(configDir);
 
         FarmingRngTracker.get().register();
         SkyJewRngHud.register(config);
@@ -38,6 +36,24 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
         SkyJewDateCalculator.init();
+
+        // Shared infrastructure for the skill features.
+        com.epic60869.skyjew.features.core.SkyJewLocation.init();
+        com.epic60869.skyjew.features.core.SkyJewChat.init();
+        com.epic60869.skyjew.features.core.SkyJewAlerts.init();
+        com.epic60869.skyjew.features.core.SkyJewHuds.init(configDir);
+        com.epic60869.skyjew.features.core.SkyJewWorldRender.init();
+
+        com.epic60869.skyjew.features.combat.CombatFeatures.init();
+        com.epic60869.skyjew.features.combat.ZealotCounter.init(configDir);
+        com.epic60869.skyjew.features.slayer.SlayerFeatures.init();
+        com.epic60869.skyjew.features.garden.GardenFeatures.init();
+        com.epic60869.skyjew.features.fishing.FishingFeatures.init();
+        com.epic60869.skyjew.features.mining.MiningFeatures.init();
+        com.epic60869.skyjew.features.skills.SkillFeatures.init();
+        com.epic60869.skyjew.features.dungeons.SkyJewDungeons.init();
+        com.epic60869.skyjew.features.dungeons.DungeonFeatures.init(configDir);
+        com.epic60869.skyjew.features.misc.PartyCommands.init();
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
@@ -51,9 +67,27 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void registerCommands() {
+        // /chat sj enters the SkyJew channel; switching to any other channel with /chat leaves it.
+        // Done by intercepting the command rather than registering /chat, so Hypixel still gets /chat a, /chat g, ...
+        net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
+            String lower = command.trim().toLowerCase(java.util.Locale.ROOT);
+            if (lower.equals("chat sj") || lower.equals("chat skyjew")) {
+                Minecraft.getInstance().execute(this::enterSkyJewChat);
+                return false;
+            }
+            if (lower.startsWith("chat ") && SkyJewGlobalChat.isInSkyJewChannel()) {
+                SkyJewGlobalChat.leaveSkyJewChannel();
+            }
+            return true;
+        });
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(commandTree("sj"));
             dispatcher.register(commandTree("skyjew"));
+            // /sjc: shortcut for /sj chat.
+            dispatcher.register(ClientCommands.literal("sjc")
+                .executes(context -> enterSkyJewChat())
+                .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                    .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))));
         });
     }
 
@@ -75,7 +109,8 @@ public final class SkyJewMod implements ClientModInitializer {
                 .executes(context -> openNick())
                 .then(ClientCommands.argument("value", StringArgumentType.greedyString())
                     .executes(context -> setNick(StringArgumentType.getString(context, "value")))))
-            .then(ClientCommands.literal("gui").executes(context -> openHudEditor()));
+            .then(ClientCommands.literal("gui").executes(context -> openHudEditor()))
+            .then(ClientCommands.literal("debug").executes(context -> SkyJewDebug.run()));
 
         return root;
     }
@@ -173,32 +208,12 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private void tick(Minecraft minecraft) {
-        if (!config.general.firstBootAcknowledged
-            && !firstBootScreenShown
-            && minecraft.gui.screen() instanceof TitleScreen) {
-            firstBootScreenShown = true;
-            Screen currentScreen = minecraft.gui.screen();
-            minecraft.gui.setScreen(new SkyJewFirstBootScreen(config, currentScreen));
-            return;
-        }
-
-        if (!config.general.firstBootAcknowledged
-            && minecraft.gui.screen() instanceof SkyJewFirstBootScreen) {
-            SkyJewSounds.tickFirstBoot();
-            return;
-        }
-
         while (SkyJewKeyMappings.SEARCH.consumeClick()) {
             openStorageSearch();
         }
         SkyJewStorageSearch.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
         SkyJewTabWidgetManager.tick(minecraft);
-        if (minecraft.getConnection() != null) {
-            for (var info : minecraft.getConnection().getOnlinePlayers()) {
-                SkyJewNick.applyToTab(info);
-            }
-        }
         SkyJewMouseLock.tick(minecraft);
         SkyJewMouseReset.tick(minecraft);
         SkyJewGlobalChat.tick();

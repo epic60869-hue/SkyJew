@@ -40,16 +40,48 @@ public final class SkyJewConfig extends Config {
     public Chat chat = new Chat();
 
     @Expose
-    @Category(name = "Farming", desc = "Farming overlays and RNG tools.")
+    @Category(name = "Combat", desc = "Arrow counter, legion display, cocoon alerts and rare drops.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Combat combat = new com.epic60869.skyjew.features.FeatureConfigs.Combat();
+
+    @Expose
+    @Category(name = "Slayers", desc = "Slayer tracker, boss phases, profit and drop tracking.")
+    public Slayers slayers = new Slayers();
+
+    @Expose
+    @Category(name = "Farming", desc = "Garden HUDs, mouse lock and farming RNG tools.")
     public Farming farming = new Farming();
 
     @Expose
-    @Category(name = "Mining", desc = "Mining overlays and commission tools.")
+    @Category(name = "Fishing", desc = "Fishing stats, hook timer, bait and rare creature alerts.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Fishing fishing = new com.epic60869.skyjew.features.FeatureConfigs.Fishing();
+
+    @Expose
+    @Category(name = "Mining", desc = "Commissions, Crystal Hollows map, Divan tools and mineshaft timer.")
     public Mining mining = new Mining();
 
     @Expose
-    @Category(name = "Slayers", desc = "Slayer utilities and future drop tracking.")
-    public Slayers slayers = new Slayers();
+    @Category(name = "Foraging", desc = "Sweep display.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Foraging foraging = new com.epic60869.skyjew.features.FeatureConfigs.Foraging();
+
+    @Expose
+    @Category(name = "Enchanting", desc = "Experimentation table solvers.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Enchanting enchanting = new com.epic60869.skyjew.features.FeatureConfigs.Enchanting();
+
+    @Expose
+    @Category(name = "Alchemy", desc = "Alchemy 50 estimate.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Alchemy alchemy = new com.epic60869.skyjew.features.FeatureConfigs.Alchemy();
+
+    @Expose
+    @Category(name = "Runecrafting", desc = "Valuable rune alerts.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Runecrafting runecrafting = new com.epic60869.skyjew.features.FeatureConfigs.Runecrafting();
+
+    @Expose
+    @Category(name = "Hunting", desc = "Safari critter tracker and Hunting Box value.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Hunting hunting = new com.epic60869.skyjew.features.FeatureConfigs.Hunting();
+
+    @Expose
+    @Category(name = "Dungeons", desc = "Map, puzzle solvers, secrets, terminals, splits and timers.")
+    public com.epic60869.skyjew.features.FeatureConfigs.Dungeons dungeons = new com.epic60869.skyjew.features.FeatureConfigs.Dungeons();
 
     @Expose
     @Category(name = "Pets", desc = "Pet displays and overflow XP tools.")
@@ -125,8 +157,13 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
-        @ConfigOption(name = "Mouse Lock", desc = "Reduce camera sensitivity while using supported farming tools.")
+        @ConfigOption(name = "Mouse Lock", desc = "Fully lock the camera while holding a farming tool.")
         public MouseLock mouseLock = new MouseLock();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Garden", desc = "Yaw/pitch, pest cooldown, blocks per second and special drop animations.")
+        public com.epic60869.skyjew.features.FeatureConfigs.Garden garden = new com.epic60869.skyjew.features.FeatureConfigs.Garden();
 
     }
 
@@ -135,6 +172,11 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Mining Commissions", desc = "Show and configure the Mining Commission HUD.")
         public MiningCommissions commissions = new MiningCommissions();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mining Features", desc = "Crystal Hollows map, Divan tools alert and mineshaft timer.")
+        public com.epic60869.skyjew.features.FeatureConfigs.MiningFeatures features = new com.epic60869.skyjew.features.FeatureConfigs.MiningFeatures();
     }
 
     public static final class MiningCommissions {
@@ -195,6 +237,11 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
         @ConfigEditorBoolean
         public boolean killsSinceDrop = true;
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker, boss phase and profit HUDs.")
+        public com.epic60869.skyjew.features.FeatureConfigs.Slayer huds = new com.epic60869.skyjew.features.FeatureConfigs.Slayer();
     }
 
     public static final class Pets {
@@ -235,9 +282,14 @@ public final class SkyJewConfig extends Config {
 
     public static final class MouseLock {
         @Expose
-        @ConfigOption(name = "Enabled", desc = "Reduce camera sensitivity while using supported farming tools.")
+        @ConfigOption(name = "Enabled", desc = "Fully lock the camera while holding a farming tool.")
         @ConfigEditorBoolean
         public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "Garden Only", desc = "Only lock the camera on the Garden.")
+        @ConfigEditorBoolean
+        public boolean gardenOnly = true;
 
         @Expose
         @ConfigOption(name = "Ground Only", desc = "Only apply Mouse Lock while the player is on the ground.")
@@ -245,26 +297,38 @@ public final class SkyJewConfig extends Config {
         public boolean groundOnly = true;
     }
 
+    public static final class ItemRarity {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show a background behind SkyBlock items in your inventory, containers and hotbar using the item's rarity color.")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "Style", desc = "The shape of the item rarity background.")
+        @ConfigEditorDropdown
+        public SkyJewItemBackgrounds.Style style = SkyJewItemBackgrounds.Style.SQUARE;
+
+        @Expose
+        @ConfigOption(name = "Opacity", desc = "How opaque the item rarity background is.")
+        @ConfigEditorSlider(minValue = 0f, maxValue = 1f, minStep = 0.05f)
+        public float opacity = 0.5f;
+    }
+
     public static final class Misc {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Party Commands", desc = "Let party members use !warp, !allinvite and !pt when you are leader.")
+        public com.epic60869.skyjew.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyjew.features.FeatureConfigs.PartyCommands();
+
         @Expose
         @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
         @ConfigEditorBoolean
         public boolean calendarTimeToRealTime = true;
 
         @Expose
-        @ConfigOption(name = "Item Rarity Background", desc = "Show a background behind SkyBlock items in your inventory, containers and hotbar using the item's rarity color.")
-        @ConfigEditorBoolean
-        public boolean itemRarityBackground = true;
-
-        @Expose
-        @ConfigOption(name = "Item Background Style", desc = "The shape of the item rarity background.")
-        @ConfigEditorDropdown
-        public SkyJewItemBackgrounds.Style itemBackgroundStyle = SkyJewItemBackgrounds.Style.SQUARE;
-
-        @Expose
-        @ConfigOption(name = "Item Background Opacity", desc = "How opaque the item rarity background is.")
-        @ConfigEditorSlider(minValue = 0f, maxValue = 1f, minStep = 0.05f)
-        public float itemBackgroundOpacity = 0.5f;
+        @Accordion
+        @ConfigOption(name = "Item Rarity", desc = "Rarity-coloured backgrounds behind SkyBlock items.")
+        public ItemRarity itemRarity = new ItemRarity();
 
         @Expose
         @Accordion

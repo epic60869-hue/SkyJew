@@ -45,6 +45,28 @@ public final class SkyJewHudEditorScreen extends Screen {
             elements.add(new EditableHud("Pet Display", () -> config.pets.display.x, () -> config.pets.display.y,
                 (x, y) -> { config.pets.display.x = Math.max(0, x); config.pets.display.y = Math.max(0, y); },
                 SkyJewNopoFeatures::petHudWidth, SkyJewNopoFeatures::petHudHeight, SkyJewNopoFeatures::renderPetHudPreview, "pet"));
+
+            var map = config.dungeons.map;
+            elements.add(new EditableHud("Dungeon Map", () -> map.x, () -> map.y,
+                (x, y) -> { map.x = Math.max(0, x); map.y = Math.max(0, y); },
+                () -> Math.round(128 * map.scale), () -> Math.round(128 * map.scale),
+                (g, x, y) -> {
+                    int size = Math.round(128 * map.scale);
+                    g.fill(x, y, x + size, y + size, 0x80202020);
+                    g.centeredText(font, Component.literal("Dungeon Map"), x + size / 2, y + size / 2 - 4, 0xFFFFFFFF);
+                }, "dmap"));
+        }
+
+        for (var hud : com.epic60869.skyjew.features.core.SkyJewHuds.elements()) {
+            var placement = com.epic60869.skyjew.features.core.SkyJewHuds.placement(hud.id());
+            elements.add(new EditableHud(hud.name(), () -> placement.x, () -> placement.y,
+                (x, y) -> { placement.x = Math.max(0, x); placement.y = Math.max(0, y); },
+                () -> com.epic60869.skyjew.features.core.SkyJewHuds.editorWidth(hud),
+                () -> com.epic60869.skyjew.features.core.SkyJewHuds.editorHeight(hud),
+                (g, x, y) -> {
+                    if (hud.custom() != null) com.epic60869.skyjew.features.core.SkyJewHuds.renderCustom(g, hud, true);
+                    else com.epic60869.skyjew.features.core.SkyJewHuds.render(g, com.epic60869.skyjew.features.core.SkyJewHuds.editorLines(hud), x, y, placement.scale);
+                }, "hud:" + hud.id()));
         }
     }
 
@@ -172,6 +194,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     private void save() {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) SkyJewConfig.saveCurrent(config);
+        com.epic60869.skyjew.features.core.SkyJewHuds.save();
     }
 
     @Override
@@ -223,6 +246,10 @@ public final class SkyJewHudEditorScreen extends Screen {
                 case "rng" -> c.farming.rng.scale = clamp(c.farming.rng.scale + d);
                 case "commissions" -> c.mining.commissions.scale = clamp(c.mining.commissions.scale + d);
                 case "pet" -> c.pets.display.scale = clamp(c.pets.display.scale + d);
+                case "dmap" -> c.dungeons.map.scale = clamp(c.dungeons.map.scale + d);
+                default -> {
+                    if (type.startsWith("hud:")) com.epic60869.skyjew.features.core.SkyJewHuds.changeScale(type.substring(4), d);
+                }
             }
             // Growing an element near an edge must not push it off screen.
             setClamped(x(), y());

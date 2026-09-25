@@ -117,7 +117,39 @@ public final class SkyJewGlobalChat {
         packet.addProperty("nicknameMode", SkyJewNick.mode());
         packet.addProperty("nicknameHex", SkyJewNick.customHex());
         packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
+        int[] level = ownLevel();
+        if (level != null) {
+            packet.addProperty("level", level[0]);
+            packet.addProperty("levelColor", String.format("#%06X", level[1] & 0xFFFFFF));
+        }
         ws.sendText(GSON.toJson(packet), true);
+    }
+
+    private static final java.util.regex.Pattern TAB_LEVEL = java.util.regex.Pattern.compile("^\\[(\\d+)\\] (\\w+)");
+
+    /** Your SkyBlock level and its colour, read from your own tab-list entry ("[279] name"), or null. */
+    private static int[] ownLevel() {
+        String me = Minecraft.getInstance().getUser().getName();
+        for (var info : SkyJewTabWidgetManager.players()) {
+            Component name = info.getTabListDisplayName();
+            if (name == null) continue;
+            String text = net.minecraft.ChatFormatting.stripFormatting(name.getString()).trim();
+            java.util.regex.Matcher m = TAB_LEVEL.matcher(text);
+            if (!m.find() || !m.group(2).equalsIgnoreCase(me)) continue;
+            int level = Integer.parseInt(m.group(1));
+            // Colour of the level number itself.
+            final int[] colour = {0xAAAAAA};
+            final boolean[] found = {false};
+            name.visit((style, value) -> {
+                if (!found[0] && value.chars().anyMatch(Character::isDigit)) {
+                    if (style.getColor() != null) colour[0] = style.getColor().getValue();
+                    found[0] = true;
+                }
+                return java.util.Optional.empty();
+            }, Style.EMPTY);
+            return new int[]{level, colour[0]};
+        }
+        return null;
     }
 
     private static void flushPending(WebSocket ws) {
@@ -433,6 +465,7 @@ public final class SkyJewGlobalChat {
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
                 String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
 
+                if (SkyJewNickFilter.isBlocked(displayName)) displayName = name;
                 Component shownName;
                 try {
                     shownName = SkyJewNick.displayName(messageUuid, displayName);
@@ -440,8 +473,25 @@ public final class SkyJewGlobalChat {
                     shownName = SkyJewNick.displayName(displayName);
                 }
                 Component messageComponent = SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message));
-                MutableComponent line = Component.literal(prefix + " [")
-                    .append(shownName)
+                MutableComponent line = Component.literal(prefix + " ");
+                int level = packet.has("level") ? packet.get("level").getAsInt() : 0;
+                if (level > 0) {
+                    int levelColor = 0xAAAAAA;
+                    try {
+                        String hex = packet.has("levelColor") ? packet.get("levelColor").getAsString() : "";
+                        if (hex.matches("#[0-9a-fA-F]{6}")) levelColor = Integer.parseInt(hex.substring(1), 16);
+                    } catch (Exception ignored) {}
+                    line.append(Component.literal("[" + level + "] ").withStyle(Style.EMPTY.withColor(levelColor)));
+                }
+                // Hovering the sender shows their real Minecraft name.
+                MutableComponent sender = Component.empty().withStyle(Style.EMPTY
+                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(
+                        Component.literal("Real name: ").withStyle(Style.EMPTY.withColor(0xAAAAAA))
+                            .append(Component.literal(name).withStyle(Style.EMPTY.withColor(0xFFFFFF)))))
+                    .withClickEvent(new net.minecraft.network.chat.ClickEvent.SuggestCommand("/msg " + name + " ")));
+                sender.append(shownName);
+                line.append(Component.literal("["))
+                    .append(sender)
                     .append(Component.literal("]: "))
                     .append(linkify(messageComponent));
                 mcMessage(line);

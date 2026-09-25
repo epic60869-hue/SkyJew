@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.data.AtlasIds;
@@ -50,18 +51,35 @@ public final class SkyJewItemBackgrounds {
         }
     }
 
+    private static AbstractContainerScreen<?> currentContainer;
+
+    public static void beginContainer(AbstractContainerScreen<?> screen) {
+        currentContainer = screen;
+    }
+
+    public static void endContainer() {
+        currentContainer = null;
+    }
+
+    /** Called for every item drawn; draws only while an inventory screen is rendering, skipping the item on the cursor (drawn outside extractContents anyway). */
+    public static void drawInContainer(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y) {
+        AbstractContainerScreen<?> screen = currentContainer;
+        if (screen == null || stack == screen.getMenu().getCarried()) return;
+        draw(graphics, stack, x, y);
+    }
+
     public static void draw(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y) {
         SkyJewConfig config = SkyJewConfig.current();
-        if (config == null || !config.misc.itemRarityBackground || stack == null || stack.isEmpty()) return;
+        if (config == null || !config.misc.itemRarity.enabled || stack == null || stack.isEmpty()) return;
         if (!Compat.isOnSkyblock()) return;
 
         SkyJewItemRarity rarity = CACHE.computeIfAbsent(stack, SkyJewItemBackgrounds::rarity);
         if (rarity == SkyJewItemRarity.UNKNOWN) return;
 
-        Style style = config.misc.itemBackgroundStyle == null ? Style.SQUARE : config.misc.itemBackgroundStyle;
+        Style style = config.misc.itemRarity.style == null ? Style.SQUARE : config.misc.itemRarity.style;
         var sprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.GUI).getSprite(style.sprite);
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 16, 16,
-            ARGB.color(config.misc.itemBackgroundOpacity, rarity.color));
+            ARGB.color(config.misc.itemRarity.opacity, rarity.color));
     }
 
     public static SkyJewItemRarity rarity(ItemStack stack) {

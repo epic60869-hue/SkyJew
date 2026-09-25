@@ -56,11 +56,18 @@ public final class SkyJewCustom {
         mc.execute(() -> mc.gui.setScreen(new CustomizeScreen(parent, false)));
     }
 
+    /**
+     * Whether the client is connected to Hypixel. Checks the server brand Hypixel sends as well as
+     * the address, since the address can carry a port, an alias or come through a proxy.
+     */
     public static boolean isHypixel(Minecraft mc) {
         try {
-            if (mc.getCurrentServer() == null || mc.getCurrentServer().ip == null) return false;
-            String ip = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
-            return ip.equals("hypixel.net") || ip.endsWith(".hypixel.net");
+            if (mc.getConnection() == null) return false;
+            String brand = mc.getConnection().serverBrand();
+            if (brand != null && brand.toLowerCase(Locale.ROOT).contains("hypixel")) return true;
+            if (mc.getCurrentServer() != null && mc.getCurrentServer().ip != null
+                && mc.getCurrentServer().ip.toLowerCase(Locale.ROOT).contains("hypixel")) return true;
+            return com.epic60869.skyjew.features.core.SkyJewLocation.onSkyblock();
         } catch (Throwable ignored) {
             return false;
         }

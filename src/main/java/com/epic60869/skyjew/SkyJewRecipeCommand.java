@@ -34,10 +34,6 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
  * crashes and allowing the requested amount to be shown.
  */
 public final class SkyJewRecipeCommand {
-    private static volatile String selectedId;
-    private static volatile String selectedName;
-    private static volatile int selectedAmount = 1;
-    private static volatile RecipeData selectedRecipe;
     private static final HttpClient HTTP = HttpClient.newBuilder()
         .connectTimeout(java.time.Duration.ofSeconds(5)).build();
     private static final List<ItemEntry> ITEMS = new ArrayList<>();
@@ -86,9 +82,23 @@ public final class SkyJewRecipeCommand {
         }
     }
 
+    /** /sj recipe, following SkyOcean's /skyocean recipe: item (with optional amount), amount, clear. */
     public static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> command() {
         return literal("recipe")
-            .then(literal("clear").executes(context -> { clearSelected(); return 1; }))
+            .then(literal("clear").executes(context -> {
+                SkyJewCraftHelper.clear();
+                message("Cleared current recipe!", 0xFFFFFF);
+                return 1;
+            }))
+            .then(literal("amount").then(argument("amount", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
+                .executes(context -> {
+                    if (!SkyJewCraftHelper.active()) {
+                        message("No recipe selected. Use /sj recipe <item>.", 0xFF5555);
+                        return 0;
+                    }
+                    SkyJewCraftHelper.setAmount(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "amount"));
+                    return 1;
+                })))
             .then(argument("item", StringArgumentType.greedyString())
                 .suggests(SkyJewRecipeCommand::suggestItems)
                 .executes(SkyJewRecipeCommand::run));
@@ -97,11 +107,12 @@ public final class SkyJewRecipeCommand {
     private static CompletableFuture<Suggestions> suggestItems(
         CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
         String input = builder.getRemaining().toLowerCase(Locale.ROOT);
+        int shown = 0;
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) {
-                if (item.name().toLowerCase(Locale.ROOT).contains(input)
-                    || item.id().toLowerCase(Locale.ROOT).contains(input)) {
-                    builder.suggest(item.id(), Component.literal(item.name()));
+                if (item.name().toLowerCase(Locale.ROOT).contains(input)) {
+                    builder.suggest(item.name());
+                    if (++shown >= 200) break;
                 }
             }
         }
@@ -110,93 +121,40 @@ public final class SkyJewRecipeCommand {
 
     private static int run(CommandContext<FabricClientCommandSource> context) {
         String raw = StringArgumentType.getString(context, "item").trim();
+        // "<item>" or "<item> <amount>", as in SkyOcean.
+        String id = resolveId(raw);
         int amount = 1;
-        String input = raw;
-
-        int split = raw.lastIndexOf(' ');
-        if (split > 0) {
-            try {
-                int parsed = Integer.parseInt(raw.substring(split + 1));
-                if (parsed > 0) {
-                    amount = parsed;
-                    input = raw.substring(0, split).trim();
-                }
-            } catch (NumberFormatException ignored) {}
-        }
-
-        String id = resolveId(input);
-        Minecraft mc = Minecraft.getInstance();
-        if (id == null || mc.player == null) {
-            if (mc.player != null) {
-                mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
-                    "§c[SkyJew] Unknown SkyBlock item: §f" + input));
+        if (id == null || !knownId(id)) {
+            int split = raw.lastIndexOf(' ');
+            if (split > 0) {
+                try {
+                    amount = Math.max(1, Integer.parseInt(raw.substring(split + 1)));
+                    String byName = resolveId(raw.substring(0, split).trim());
+                    if (byName != null) id = byName;
+                } catch (NumberFormatException ignored) {}
             }
+        }
+        if (id == null) {
+            message("Unknown SkyBlock item: " + raw, 0xFF5555);
             return 0;
         }
-
-        final int finalAmount = amount;
-        final String finalId = id;
-        CompletableFuture.supplyAsync(() -> loadRecipe(finalId))
-            .thenAccept(recipe -> mc.execute(() -> {
-                if (recipe == null || recipe.isEmpty()) {
-                    mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
-                        "§c[SkyJew] No recipe data found for §f" + displayName(finalId)
-                            + "§c. The item may not be craftable."));
-                    return;
-                }
-                selectedId = finalId;
-                selectedName = displayName(finalId);
-                selectedAmount = finalAmount;
-                selectedRecipe = recipe;
-            }));
+        SkyJewCraftHelper.select(id, amount, true);
         return 1;
     }
 
-    private static RecipeData loadRecipe(String id) {
-        try {
-            String url = "https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/"
-                + java.net.URLEncoder.encode(id.toUpperCase(Locale.ROOT), java.nio.charset.StandardCharsets.UTF_8)
-                    .replace("+", "%20") + ".json";
-            HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .timeout(java.time.Duration.ofSeconds(8)).header("User-Agent", "SkyJew/1.0").GET().build();
-            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) return null;
-
-            JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
-            JsonObject recipe = root.getAsJsonObject("recipe");
-            if (recipe == null) {
-                JsonArray recipes = root.getAsJsonArray("recipes");
-                if (recipes != null && !recipes.isEmpty() && recipes.get(0).isJsonObject()) {
-                    recipe = recipes.get(0).getAsJsonObject();
-                }
-            }
-            if (recipe == null) return null;
-
-            List<Ingredient> ingredients = new ArrayList<>();
-            for (String row : new String[]{"A","B","C"}) {
-                for (String col : new String[]{"1","2","3"}) {
-                    String key = row + col;
-                    if (!recipe.has(key)) continue;
-                    String value = recipe.get(key).getAsString().trim();
-                    ingredients.add(parseIngredient(key, value));
-                }
-            }
-            return new RecipeData(ingredients);
-        } catch (Exception e) {
-            System.err.println("[SkyJew] Recipe load failed for " + id + ": " + e.getMessage());
-            return null;
+    private static boolean knownId(String id) {
+        synchronized (ITEMS) {
+            for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(id)) return true;
         }
+        return false;
     }
 
-    private static Ingredient parseIngredient(String slot, String value) {
-        if (value.isBlank()) return new Ingredient(slot, "", 0);
-        int split = value.lastIndexOf(':');
-        if (split > 0) {
-            try {
-                return new Ingredient(slot, value.substring(0, split), Integer.parseInt(value.substring(split + 1)));
-            } catch (NumberFormatException ignored) {}
+    private static void message(String text, int colour) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.gui.hud.getChat().addClientSystemMessage(com.epic60869.skyjew.custom.util.Compat.PREFIX.get()
+                .append(Component.literal(text).withColor(colour)));
         }
-        return new Ingredient(slot, value, 1);
     }
 
     private static String resolveId(String input) {
@@ -209,33 +167,14 @@ public final class SkyJewRecipeCommand {
         return input.matches("[A-Za-z0-9_:.\\-]+") ? input.toUpperCase(Locale.ROOT) : null;
     }
 
-    public static boolean hasSelectedRecipe() {
-        return selectedRecipe != null && selectedId != null;
-    }
-
-    public static String selectedId() { return selectedId; }
-    public static String selectedName() { return selectedName == null ? "Recipe" : selectedName; }
-    public static int selectedAmount() { return selectedAmount; }
-    public static RecipeData selectedRecipe() { return selectedRecipe; }
-
-    public static void clearSelected() {
-        selectedId = null;
-        selectedName = null;
-        selectedAmount = 1;
-        selectedRecipe = null;
-    }
-
     public static String displayName(String id) {
         synchronized (ITEMS) {
             for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(id)) return item.name();
+            // NEU repo ids use "-" for variants (INK_SACK-4) where Hypixel uses ":" (INK_SACK:4).
+            String hypixelId = id.replace('-', ':');
+            for (ItemEntry item : ITEMS) if (item.id().equalsIgnoreCase(hypixelId)) return item.name();
         }
         return id.replace('_', ' ');
     }
 
-    public record Ingredient(String slot, String id, int amount) {}
-    public record RecipeData(List<Ingredient> ingredients) {
-        public boolean isEmpty() {
-            return ingredients == null || ingredients.stream().noneMatch(i -> i.amount() > 0);
-        }
-    }
 }

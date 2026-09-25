@@ -95,8 +95,42 @@ public final class SkyJewNopoFeatures {
         initialized = true;
     }
 
+    // Active pet XP, read from the Pets menu, used to show overflow levels in the pet HUD.
+    private static String activePetName = "";
+    private static float activePetExp = -1;
+    private static String activePetTier = "LEGENDARY";
+
+    private static void scanPetsMenu(Minecraft mc) {
+        if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) return;
+        if (!screen.getTitle().getString().startsWith("Pets")) return;
+        for (var slot : screen.getMenu().slots) {
+            var custom = slot.getItem().get(DataComponents.CUSTOM_DATA);
+            if (custom == null) continue;
+            try {
+                String petInfo = custom.copyTag().getStringOr("petInfo", "");
+                if (petInfo.isBlank()) continue;
+                JsonObject json = JsonParser.parseString(petInfo).getAsJsonObject();
+                if (!json.has("active") || !json.get("active").getAsBoolean() || !json.has("exp")) continue;
+                activePetExp = json.get("exp").getAsFloat();
+                activePetTier = json.has("tier") ? json.get("tier").getAsString() : "LEGENDARY";
+                activePetName = clean(slot.getItem().getHoverName().getString()).replaceAll("^\\[Lvl \\d+\\]\\s*", "").trim();
+                return;
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    /** Overflow level for the active pet, or -1 if unknown or not above the normal maximum. */
+    private static int overflowLevel(String petName, int level) {
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config == null || !config.pets.display.overflowLevels) return -1;
+        if (activePetExp < 0 || !petName.equalsIgnoreCase(activePetName)) return -1;
+        int overflow = calcLevel(activePetExp, rarityOffset(activePetTier));
+        return overflow > level ? overflow : -1;
+    }
+
     public static void tick(Minecraft mc) {
         if (!initialized) return;
+        if (petTick % 5 == 0) scanPetsMenu(mc);
         petTick++;
         if (petTick >= 10) {
             petTick = 0;
@@ -248,7 +282,7 @@ public final class SkyJewNopoFeatures {
                 display.clear();
                 display.add(Component.literal("Pet:")
                     .withStyle(style -> style.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
-                display.add(stylePetLine(component, level, petName));
+                display.add(stylePetLine(component, level, petName, overflowLevel(petName, level)));
                 continue;
             }
 
@@ -272,7 +306,7 @@ public final class SkyJewNopoFeatures {
             if (normal.matches()) {
                 level = Integer.parseInt(normal.group("level"));
                 petName = normal.group("name").strip();
-                display.add(stylePetLine(component, level, petName));
+                display.add(stylePetLine(component, level, petName, overflowLevel(petName, level)));
                 continue;
             }
 
@@ -302,14 +336,21 @@ public final class SkyJewNopoFeatures {
         petDisplay = List.copyOf(display);
     }
 
-    private static Component stylePetLine(Component original, int level, String petName) {
+    private static Component stylePetLine(Component original, int level, String petName, int overflow) {
         // Hypixel's row already contains "[Lvl N]", so keep the original text from there
         // on instead of adding a second level prefix. Anything before it (e.g. "Pet: ")
         // is dropped because the HUD draws its own "Pet:" header.
         String full = original.getString();
         int lvlStart = full.indexOf("[Lvl");
         MutableComponent out = Component.literal(" ");
-        if (lvlStart < 0) {
+        if (overflow > 0) {
+            // Show the overflow level instead of Hypixel's capped one.
+            out.append(Component.literal("[Lvl ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(overflow + "✦").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal("] ").withStyle(ChatFormatting.GRAY));
+            int nameAt = full.indexOf(petName, Math.max(0, lvlStart));
+            if (nameAt >= 0) lvlStart = nameAt;
+        } else if (lvlStart < 0) {
             out.append(Component.literal("[Lvl " + level + "] ").withStyle(ChatFormatting.GRAY));
             lvlStart = 0;
         }
