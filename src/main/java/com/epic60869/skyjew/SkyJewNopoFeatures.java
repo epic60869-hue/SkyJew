@@ -188,7 +188,9 @@ public final class SkyJewNopoFeatures {
         } catch (Throwable ignored) {
         }
 
-        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+)$");
+        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$");
+        Pattern inlinePetRegex = Pattern.compile("^\\s*Pet:?\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
+        Pattern petXpRegex = Pattern.compile("^\\s*\\+?[\\d,.]+(?:[kKmMbB])?(?:\\s*/\\s*[\\d,.]+(?:[kKmMbB])?)?\\s+XP.*$", Pattern.CASE_INSENSITIVE);
         List<Component> display = new ArrayList<>();
         display.add(Component.literal("Pet:")
             .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
@@ -208,14 +210,32 @@ public final class SkyJewNopoFeatures {
             String text = raw.strip();
             if (text.isBlank()) continue;
 
+            // Hypixel can send the pet header either as its own TAB line
+            // ("Pet:") or with the pet name on the same line ("Pet: [Lvl 100] ...").
+            Matcher inlinePetMatch = inlinePetRegex.matcher(text);
             if (!inPet) {
+                if (inlinePetMatch.matches()) {
+                    inPet = true;
+                    level = Integer.parseInt(inlinePetMatch.group("level"));
+                    petName = inlinePetMatch.group("name").strip();
+                    display.add(Component.literal("Pet:")
+                        .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
+                    display.add(stylePetLine(lineComponent, level, petName));
+                    continue;
+                }
                 if (text.equalsIgnoreCase("Pet:") || text.equalsIgnoreCase("Pet")) {
                     inPet = true;
                 }
                 continue;
             }
 
-            if (!raw.startsWith(" ") && text.contains(":")) break;
+            // The next TAB section marks the end of the pet widget.
+            String lower = text.toLowerCase(Locale.ROOT);
+            if (!text.startsWith("[Lvl ") && !petXpRegex.matcher(text).matches()
+                && text.contains(":")
+                && !lower.startsWith("pet:")) {
+                break;
+            }
 
             Matcher petMatch = petNameRegex.matcher(text);
             if (petMatch.matches()) {
@@ -225,7 +245,7 @@ public final class SkyJewNopoFeatures {
                 continue;
             }
 
-            if (level >= 0 && text.matches("^\\+?[\\d,.]+(?:/[\\d,.]+[kKmMbB]?)?\\s+XP.*$")) {
+            if (level >= 0 && petXpRegex.matcher(text).matches()) {
                 display.add(lineComponent);
             }
         }
