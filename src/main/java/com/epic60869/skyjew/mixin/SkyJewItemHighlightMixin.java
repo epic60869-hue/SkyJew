@@ -12,6 +12,10 @@ import java.util.Locale;
 import java.util.Optional;
 import net.minecraft.util.ARGB;
 import net.minecraft.resources.Identifier;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.data.AtlasIds;
+import com.epic60869.skyjew.SkyJewItemRarity;
 
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,75 +41,51 @@ public abstract class SkyJewItemHighlightMixin {
 
         if (stack == null || stack.isEmpty()) return;
 
-        int rgb = rarityColor(stack);
-        if (rgb < 0) return;
-
-        // renderSlotContents runs after the slot background but before the item
-        // model itself, so the rarity fill cannot be painted underneath the
-        // vanilla slot background and cannot cover the item.
-        int color = ARGB.color(170, rgb);
-        int left = slot.x + 1;
-        int top = slot.y + 1;
-        graphics.fill(left + 3, top, left + 13, top + 1, color);
-        graphics.fill(left + 1, top + 2, left + 15, top + 14, color);
-        graphics.fill(left + 3, top + 14, left + 13, top + 15, color);
+        drawRarityBackground(graphics, stack, slot.x, slot.y);
     }
 
-    private static int rarityColor(ItemStack stack) {
-        // Match Skyblocker's approach: SkyBlock rarity is primarily encoded
-        // in the lore, not merely in the first component of the display name.
-        List<Component> lore = new java.util.ArrayList<>();
-        var loreData = stack.get(DataComponents.LORE);
-        if (loreData != null) lore.addAll(loreData.lines());
+    private static SkyJewItemRarity rarity(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return SkyJewItemRarity.UNKNOWN;
 
-        for (int i = lore.size() - 1; i >= 0; i--) {
-            String line = lore.get(i).getString().toUpperCase(Locale.ROOT);
-            int color = rarityNameColor(line);
-            if (color >= 0) return color;
+        var lore = stack.get(DataComponents.LORE);
+        if (lore != null) {
+            List<Component> lines = lore.lines();
+            for (int i = lines.size() - 1; i >= 0; i--) {
+                var found = SkyJewItemRarity.containsName(lines.get(i).getString());
+                if (found.isPresent()) return found.get();
+            }
         }
 
-        int tooltipStyleColor = tooltipStyleColor(stack);
-        if (tooltipStyleColor >= 0) return tooltipStyleColor;
+        Identifier tooltipStyle = stack.get(DataComponents.TOOLTIP_STYLE);
+        if (tooltipStyle != null && tooltipStyle.getNamespace().equals("skyblock")) {
+            return SkyJewItemRarity.containsName(
+                tooltipStyle.getPath().toUpperCase(Locale.ROOT)
+            ).orElse(SkyJewItemRarity.UNKNOWN);
+        }
 
-        final int[] found = {-1};
-        stack.getHoverName().visit((style, value) -> {
-            if (found[0] < 0 && style.getColor() != null) {
-                int rgb = style.getColor().getValue() & 0xFFFFFF;
-                if (isSkyBlockRarityColor(rgb)) found[0] = rgb;
-            }
-            return Optional.empty();
-        }, net.minecraft.network.chat.Style.EMPTY);
-        return found[0];
+        return SkyJewItemRarity.UNKNOWN;
     }
 
-    private static int rarityNameColor(String line) {
-        if (line.contains("VERY SPECIAL")) return 0xFF5555;
-        if (line.contains("SPECIAL")) return 0xFF5555;
-        if (line.contains("ULTIMATE")) return 0xAA0000;
-        if (line.contains("ADMIN")) return 0xAA0000;
-        if (line.contains("DIVINE")) return 0x55FFFF;
-        if (line.contains("MYTHIC")) return 0xFF55FF;
-        if (line.contains("LEGENDARY")) return 0xFFAA00;
-        if (line.contains("EPIC")) return 0xAA00AA;
-        if (line.contains("RARE")) return 0x5555FF;
-        if (line.contains("UNCOMMON")) return 0x55FF55;
-        if (line.contains("COMMON")) return 0xFFFFFF;
-        return -1;
-    }
+    private static void drawRarityBackground(
+        GuiGraphicsExtractor graphics,
+        ItemStack stack,
+        int x,
+        int y
+    ) {
+        SkyJewItemRarity rarity = rarity(stack);
+        if (rarity == SkyJewItemRarity.UNKNOWN) return;
 
-    private static int tooltipStyleColor(ItemStack stack) {
-        Identifier style = stack.get(DataComponents.TOOLTIP_STYLE);
-        if (style == null || !style.getNamespace().equals("skyblock")) return -1;
-        return rarityNameColor(style.getPath().toUpperCase(Locale.ROOT));
-    }
+        Minecraft mc = Minecraft.getInstance();
+        TextureAtlasSprite sprite = mc.getAtlasManager()
+            .getAtlasOrThrow(AtlasIds.GUI)
+            .getSprite(SkyJewItemRarity.BACKGROUND_SPRITE);
 
-    private static boolean isSkyBlockRarityColor(int rgb) {
-        return switch (rgb) {
-            case 0xFFFFFF, 0x55FF55, 0x5555FF, 0xAA00AA,
-                 0xFFAA00, 0xFF55FF, 0x55FFFF, 0xFF5555,
-                 0xAA0000 -> true;
-            default -> false;
-        };
+        graphics.blitSprite(
+            RenderPipelines.GUI_TEXTURED,
+            sprite,
+            x, y, 16, 16,
+            ARGB.color(170, rarity.color)
+        );
     }
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;II)V", at = @At("TAIL"))
