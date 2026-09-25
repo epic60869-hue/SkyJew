@@ -10,6 +10,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import java.util.Locale;
 
@@ -164,9 +172,15 @@ public final class SkyJewCustomScreen extends Screen {
             rebuild();
         }).bounds(x, y + 82, 110, 28).build());
 
-        label("CUSTOM ANIMATED DYE", x, y + 126, true);
+        label("TRIM", x, y + 122, true);
+        addRenderableWidget(new TrimSelectionWidget(x, y + 140, Math.min(390, availableWidth), 82, selected));
 
-        int fieldY = y + 150;
+        label("ANIMATED DYE", x, y + 230, true);
+        addRenderableWidget(new AnimatedDyeTimelineWidget(x, y + 248, Math.min(390, availableWidth), 34, selected));
+
+        label("ANIMATION", x, y + 288, true);
+
+        int fieldY = y + 306;
         int gap = 8;
         int fieldW = Math.max(100, (availableWidth - gap * 2 - 86) / 3);
 
@@ -186,7 +200,13 @@ public final class SkyJewCustomScreen extends Screen {
             .bounds(x + 82, fieldY + 27, 150, 25).build());
 
         label("ITEM MODEL", x, fieldY + 72, true);
-        label("Armor model override is kept client-side.", x, fieldY + 90, false);
+        addRenderableWidget(Button.builder(Component.literal("Select Model"), b ->
+            minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
+                SkyJewCustom.setItemModel(selected, identifier.toString());
+                rebuild();
+            }))).bounds(x, fieldY + 94, 130, 26).build());
+        label(SkyJewCustom.getItemModel(selected) == null ? "No model override" : SkyJewCustom.getItemModel(selected),
+            x + 140, fieldY + 101, false);
     }
 
     private void buildItem(int l, int t, int w) {
@@ -372,6 +392,62 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(l, b - 1, r, b, c);
         g.fill(l, t, l + 1, b, c);
         g.fill(r - 1, t, r, b, c);
+    }
+
+    private final class TrimSelectionWidget extends net.minecraft.client.gui.components.AbstractWidget {
+        private final ItemStack item;
+        private final List<Identifier> patterns = new ArrayList<>();
+        private final List<Identifier> materials = new ArrayList<>();
+        TrimSelectionWidget(int x,int y,int w,int h,ItemStack item) {
+            super(x,y,w,h,Component.literal("Trim Selection")); this.item=item.copy();
+            var lookup=minecraft.level!=null?minecraft.level.registryAccess():minecraft.getConnection()!=null?minecraft.getConnection().registryAccess():null;
+            if(lookup!=null) {
+                lookup.lookupOrThrow(Registries.TRIM_PATTERN).listElementIds().forEach(k->patterns.add(k.identifier()));
+                lookup.lookupOrThrow(Registries.TRIM_MATERIAL).listElementIds().forEach(k->materials.add(k.identifier()));
+            }
+            patterns.sort(Comparator.comparing(Identifier::toString)); materials.sort(Comparator.comparing(Identifier::toString));
+        }
+        @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g,int mx,int my,float d) {
+            g.fill(getX(),getY(),getRight(),getBottom(),0xFF24272C);
+            g.text(font,"PATTERNS",getX()+4,getY()+3,0xFFFFFFFF,true);
+            g.text(font,"MATERIALS",getX()+4,getY()+43,0xFFFFFFFF,true);
+            SkyJewCustom.TrimId cur=SkyJewCustom.getTrim(item);
+            for(int i=0;i<Math.min(patterns.size(),9);i++){int sx=getX()+4+i*28;int sy=getY()+15;boolean on=cur!=null&&cur.pattern().equals(patterns.get(i).toString());g.fill(sx,sy,sx+24,sy+24,on?0x5555FFFF:0xFF30343A);ItemStack icon=new ItemStack(Items.NETHERITE_CHESTPLATE);g.item(icon,sx+4,sy+4);}
+            for(int i=0;i<Math.min(materials.size(),9);i++){int sx=getX()+4+i*28;int sy=getY()+55;boolean on=cur!=null&&cur.material().equals(materials.get(i).toString());g.fill(sx,sy,sx+24,sy+24,on?0x5555FFFF:0xFF30343A);ItemStack icon=new ItemStack(switch(materials.get(i).getPath()){case "gold"->Items.GOLD_INGOT;case "diamond"->Items.DIAMOND;case "emerald"->Items.EMERALD;case "redstone"->Items.REDSTONE;case "copper"->Items.COPPER_INGOT;case "amethyst"->Items.AMETHYST_SHARD;case "iron"->Items.IRON_INGOT;default->Items.NETHERITE_INGOT;});g.item(icon,sx+4,sy+4);}
+            if(isHovered())g.fill(getX(),getY(),getRight(),getBottom(),0x18FFFFFF);handleCursor(g);
+        }
+        @Override public void onClick(MouseButtonEvent e,boolean d){
+            int row=e.y()-getY()<42?0:1; int i=(int)((e.x()-getX()-4)/28); if(i<0)return;
+            SkyJewCustom.TrimId cur=SkyJewCustom.getTrim(item);
+            if(row==0&&i<patterns.size()){String mat=cur==null?(materials.isEmpty()?"minecraft:quartz":materials.getFirst().toString()):cur.material();SkyJewCustom.setTrim(item,mat,patterns.get(i).toString());rebuild();}
+            else if(row==1&&i<materials.size()){String pat=cur==null?(patterns.isEmpty()?"minecraft:sentry":patterns.getFirst().toString()):cur.pattern();SkyJewCustom.setTrim(item,materials.get(i).toString(),pat);rebuild();}
+        }
+        @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput n){}
+    }
+
+    private final class AnimatedDyeTimelineWidget extends net.minecraft.client.gui.components.AbstractWidget {
+        private final ItemStack item;
+        AnimatedDyeTimelineWidget(int x,int y,int w,int h,ItemStack item){super(x,y,w,h,Component.literal("Animated Dye Timeline"));this.item=item.copy();}
+        @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g,int mx,int my,float d){
+            SkyJewCustom.AnimatedDye dye=SkyJewCustom.getAnimatedDye(item);
+            g.fill(getX(),getY(),getRight(),getBottom(),0xFF15171A);
+            if(dye!=null&&dye.keyframes().size()>1){
+                int steps=Math.max(1,getWidth()-6);
+                for(int px=0;px<steps;px++){float t=px/(float)(steps-1);int col=sample(dye.keyframes(),t);g.fill(getX()+3+px,getY()+3,getX()+4+px,getBottom()-3,0xFF000000|col);}
+                for(SkyJewCustom.Keyframe f:dye.keyframes()){int px=getX()+3+(int)(f.time()*(steps-1));g.fill(px-2,getY(),px+3,getBottom(),0xFFFFFFFF);}
+            } else {g.text(font,"Click to create animated dye",getX()+6,getY()+9,0xFFAAAAAA,false);}
+            handleCursor(g);
+        }
+        private int sample(List<SkyJewCustom.Keyframe> fs,float t){var a=fs.getFirst();var b=fs.getLast();for(int i=0;i<fs.size()-1;i++)if(t>=fs.get(i).time()&&t<=fs.get(i+1).time()){a=fs.get(i);b=fs.get(i+1);break;}float q=b.time()<=a.time()?0:(t-a.time())/(b.time()-a.time());return lerp(a.color(),b.color(),q);}
+        private int lerp(int a,int b,float t){int r=(int)(((a>>16&255)+((b>>16&255)-(a>>16&255))*t));int gr=(int)(((a>>8&255)+((b>>8&255)-(a>>8&255))*t));int bl=(int)(((a&255)+((b&255)-(a&255))*t));return r<<16|gr<<8|bl;}
+        @Override public void onClick(MouseButtonEvent e,boolean d){
+            float t=Math.max(0,Math.min(1,(float)(e.x()-getX()-3)/Math.max(1,getWidth()-7)));
+            SkyJewCustom.AnimatedDye old=SkyJewCustom.getAnimatedDye(item);
+            if(old==null){SkyJewCustom.setAnimatedDye(item,List.of(0xFF0000,0x0000FF),5,true,0);old=SkyJewCustom.getAnimatedDye(item);}
+            List<SkyJewCustom.Keyframe> fs=new ArrayList<>(old.keyframes());fs.add(new SkyJewCustom.Keyframe(0xFFFFFF,t));fs.sort(Comparator.comparingDouble(SkyJewCustom.Keyframe::time));
+            SkyJewCustom.setAnimatedDyeKeyframes(item,fs,old.duration(),old.cycleBack(),old.delay());rebuild();
+        }
+        @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput n){}
     }
 
     private final class PieceSelectionWidget extends net.minecraft.client.gui.components.AbstractWidget {
