@@ -16,8 +16,6 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.slf4j.Logger;
 
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ResolvableProfile;
 
 
@@ -39,14 +37,12 @@ public class CustomHelmetTextures {
 
 			TEXTURES.clear();
 			ObjectSet<String> seen = new ObjectOpenHashSet<>();
-			RepoItems.itemsStream()
-					.filter(stack -> stack.is(Items.PLAYER_HEAD))
-					.forEach(stack -> {
-						String texture = Compat.getHeadTexture(stack);
-						if (texture.isEmpty() || !seen.add(texture)) return;
-						String name = cleanName(stack.get(DataComponents.CUSTOM_NAME).getString());
-						TEXTURES.add(new NamedTexture(name, texture, Compat.neuName(stack)));
-					});
+			// SkyJew reads head textures from the item data directly: item stacks cannot be
+			// created until Minecraft binds item components, which happens after this runs.
+			for (RepoItems.Head head : RepoItems.heads()) {
+				if (head.texture().isEmpty() || !seen.add(head.texture())) continue;
+				TEXTURES.add(new NamedTexture(cleanName(head.name()), head.texture(), head.id()));
+			}
 
 			TEXTURES.sort(Comparator.comparing(NamedTexture::internalName));
 			LOGGER.info("[SkyJew] Loaded and sorted {} helmet textures from repo", TEXTURES.size());

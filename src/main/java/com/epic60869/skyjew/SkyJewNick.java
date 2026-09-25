@@ -277,15 +277,26 @@ public final class SkyJewNick {
      * Hypixel already had on the name is kept below it, and click actions are preserved.
      */
     private static Component withRealNameHover(Component replacement, String actualName, Style original) {
-        MutableComponent hoverText = Component.literal("Real name: ").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(actualName).withStyle(ChatFormatting.WHITE));
-        if (original.getHoverEvent() instanceof HoverEvent.ShowText(Component existing)) {
-            hoverText.append(Component.literal("\n")).append(existing);
+        HoverEvent hover = original.getHoverEvent();
+        // Names are re-replaced every tick (tab list) and a colour-only nick keeps the same
+        // text, so the input may already carry our hover. Never wrap it again: nesting it
+        // each tick grows the component without bound and overflows the stack.
+        boolean alreadyTagged = hover instanceof HoverEvent.ShowText(Component existing)
+            && existing.getString().startsWith(REAL_NAME_PREFIX);
+        // A nick with the same text as the username has nothing to reveal.
+        if (!alreadyTagged && !replacement.getString().equals(actualName)) {
+            MutableComponent hoverText = Component.literal(REAL_NAME_PREFIX).withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(actualName).withStyle(ChatFormatting.WHITE));
+            if (hover instanceof HoverEvent.ShowText(Component existing)) {
+                hoverText.append(Component.literal("\n")).append(existing);
+            }
+            hover = new HoverEvent.ShowText(hoverText);
         }
-        Style style = Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(hoverText))
-            .withClickEvent(original.getClickEvent());
+        Style style = Style.EMPTY.withHoverEvent(hover).withClickEvent(original.getClickEvent());
         return Component.empty().setStyle(style).append(replacement.copy());
     }
+
+    private static final String REAL_NAME_PREFIX = "Real name: ";
 
     private static Style styleAt(List<StyledRun> runs, int index) {
         int offset = 0;

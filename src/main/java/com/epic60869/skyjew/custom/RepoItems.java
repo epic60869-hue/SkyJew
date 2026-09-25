@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -20,8 +19,6 @@ import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
-
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -48,18 +45,15 @@ public final class RepoItems {
 	private static final Map<String, RepoItem> ITEMS = new LinkedHashMap<>();
 	private static final List<Runnable> AFTER_ITEMS_LOADED = new ArrayList<>();
 	private static volatile boolean itemsLoaded;
-	/** Item stacks cannot be created until Minecraft has bound item components during startup. */
-	private static volatile boolean clientStarted;
 
 	private record RepoItem(String id, String name, Item item, @Nullable String texture) {}
+
+	/** A SkyBlock player head, without creating an item stack. */
+	public record Head(String id, String name, String texture) {}
 
 	private RepoItems() {}
 
 	public static void init() {
-		ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-			clientStarted = true;
-			runPendingCallbacks();
-		});
 		runAsync(RepoItems::loadItems);
 	}
 
@@ -75,7 +69,7 @@ public final class RepoItems {
 	}
 
 	public static boolean itemsLoaded() {
-		return itemsLoaded && clientStarted;
+		return itemsLoaded;
 	}
 
 	/** Runs once the item list has loaded and the client has finished starting. */
@@ -99,12 +93,13 @@ public final class RepoItems {
 		callbacks.forEach(RepoItems::runAsync);
 	}
 
-	public static Stream<ItemStack> itemsStream() {
-		List<RepoItem> items;
+	public static List<Head> heads() {
 		synchronized (ITEMS) {
-			items = List.copyOf(ITEMS.values());
+			return ITEMS.values().stream()
+					.filter(item -> item.item() == Items.PLAYER_HEAD && item.texture() != null)
+					.map(item -> new Head(item.id(), item.name(), item.texture()))
+					.toList();
 		}
-		return items.stream().map(RepoItems::createStack);
 	}
 
 	public static @Nullable String displayName(String id) {
