@@ -35,7 +35,6 @@ public abstract class SkyJewItemHighlightMixin {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.misc.itemRarityBackground || slot == null) return;
 
-        ItemStack stack = slot.getItem();
         if (stack == null || stack.isEmpty()) return;
 
         int rgb = rarityColor(stack);
