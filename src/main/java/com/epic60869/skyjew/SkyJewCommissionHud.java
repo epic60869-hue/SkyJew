@@ -187,7 +187,8 @@ public final class SkyJewCommissionHud {
     private static final int BORDER_N = 9 + 2, BORDER_S = 4, BORDER_W = 4, BORDER_E = 4;
     private static final int PAD_S = 2, PAD_L = 2, ICON = 16, BAR_WIDTH = 100, BAR_HEIGHT = 9 + 3;
     private static final int ELEMENT_HEIGHT = 9 + PAD_S + 2 + 9 + 2;
-    private static final ItemStack BOOK = new ItemStack(Items.BOOK);
+    // Created lazily: this class loads during mod init, before item components are bound.
+    private static ItemStack book;
 
     private static int elementWidth(Commission c) {
         return ICON + PAD_L + Math.max(BAR_WIDTH, Minecraft.getInstance().font.width(c.name));
@@ -250,7 +251,8 @@ public final class SkyJewCommissionHud {
 
         g.pose().pushMatrix();
         g.pose().translate((float) (x + PAD_L), (float) (y + 4));
-        g.item(BOOK, 0, 0);
+        if (book == null) book = new ItemStack(Items.BOOK);
+        g.item(book, 0, 0);
         g.pose().popMatrix();
 
         int textX = x + PAD_L + ICON;
