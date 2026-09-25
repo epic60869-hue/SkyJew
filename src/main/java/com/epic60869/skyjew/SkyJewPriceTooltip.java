@@ -33,12 +33,14 @@ import java.util.regex.Pattern;
 public final class SkyJewPriceTooltip {
     private static final String LOWEST_BINS_URL = "https://hysky.de/api/auctions/lowestbins";
     private static final String AVERAGE_URL = "https://hysky.de/api/auctions/lowestbins/average?days=3";
+    private static final String NPC_URL = "https://api.hypixel.net/v2/resources/skyblock/items";
     private static final long REFRESH_MS = 60_000;
     private static final Pattern PET_LEVEL = Pattern.compile("\\[Lvl (\\d+)]");
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     private static volatile Map<String, Double> lowestBins = Map.of();
     private static volatile Map<String, Double> threeDayAverage = Map.of();
+    private static volatile Map<String, Double> npcPrices = Map.of();
     private static final AtomicBoolean REFRESHING = new AtomicBoolean();
     private static volatile long lastRefresh;
 
@@ -60,6 +62,11 @@ public final class SkyJewPriceTooltip {
                 if (!bins.isEmpty()) lowestBins = bins;
                 Map<String, Double> average = fetch(AVERAGE_URL);
                 if (!average.isEmpty()) threeDayAverage = average;
+                // NPC prices change rarely, so they are only fetched until they have loaded once.
+                if (npcPrices.isEmpty()) {
+                    Map<String, Double> npc = fetchNpcPrices();
+                    if (!npc.isEmpty()) npcPrices = npc;
+                }
             } finally {
                 lastRefresh = System.currentTimeMillis();
                 REFRESHING.set(false);
@@ -86,6 +93,26 @@ public final class SkyJewPriceTooltip {
         return result;
     }
 
+    /** NPC sell prices from the Hypixel items API (the same data Skyblocker's NPC price tooltip uses). */
+    private static Map<String, Double> fetchNpcPrices() {
+        Map<String, Double> result = new HashMap<>();
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(NPC_URL)).timeout(Duration.ofSeconds(15))
+                .header("User-Agent", "SkyJew/1.0").GET().build();
+            HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) return result;
+            for (var element : JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonArray("items")) {
+                JsonObject item = element.getAsJsonObject();
+                if (item.has("id") && item.has("npc_sell_price")) {
+                    result.put(item.get("id").getAsString(), item.get("npc_sell_price").getAsDouble());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[SkyJew] NPC price download failed: " + e.getMessage());
+        }
+        return result;
+    }
+
     private static void addPrices(SkyJewConfig.PriceTooltip config, ItemStack stack, List<Component> lines) {
         String id = Compat.neuName(stack);
         if (id.isEmpty()) return;
@@ -93,17 +120,18 @@ public final class SkyJewPriceTooltip {
         String apiId = apiId(stack, id);
         int count = Math.max(1, stack.getCount());
 
-        if (config.threeDayAverage) {
-            Double price = threeDayAverage.get(apiId);
-            if (price != null) lines.add(line("3 Day Avg. Price: ", ChatFormatting.GOLD, price, count));
+        // Order: NPC sell price, lowest BIN, 3 day average.
+        if (config.npcPrice) {
+            Double price = npcPrices.get(id);
+            if (price != null) lines.add(line("NPC Sell Price: ", ChatFormatting.YELLOW, price, count));
         }
         if (config.lowestBin) {
             Double price = lowestBins.get(apiId);
             if (price != null) lines.add(line("Lowest BIN Price: ", ChatFormatting.GOLD, price, count));
         }
-        if (config.npcPrice) {
-            double price = ItemPriceResolver.npcPrice(id);
-            if (price >= 0) lines.add(line("NPC Sell Price: ", ChatFormatting.YELLOW, price, count));
+        if (config.threeDayAverage) {
+            Double price = threeDayAverage.get(apiId);
+            if (price != null) lines.add(line("3 Day Avg. Price: ", ChatFormatting.GOLD, price, count));
         }
     }
 

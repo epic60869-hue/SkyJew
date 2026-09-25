@@ -2,6 +2,12 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## 1.2.1 — 2026-09-25
+
+### Fixed
+- The Zealot Tracker could count zealots other players killed right next to you. A kill now only counts when you also get the Combat XP for it.
+- The Item Price Tooltip didn't show NPC sell prices. The lines are now in the order NPC Sell Price, Lowest BIN Price, 3 Day Avg. Price, and the settings are in the same order.
+
 ## 1.2 — 2026-09-25
 
 ### Added

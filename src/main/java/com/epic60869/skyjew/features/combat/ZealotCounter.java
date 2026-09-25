@@ -39,8 +39,9 @@ import java.util.Set;
  * Zealot tracker in the style of SkyHanni's trackers: kills and Summoning Eyes, shown either for
  * this session or in total. The mode is switched by clicking it while an inventory is open.
  *
- * <p>Only your own kills count. A Zealot counts if you hit it in the last few seconds: melee hits,
- * your own arrows, or being near where your Wither Impact (Hyperion and the other wither blades) landed.
+ * <p>Only your own kills count. A Zealot counts if you hit it in the last few seconds (melee hits,
+ * your own arrows, or being near where your Wither Impact landed) and you gained Combat XP when it
+ * died, which Hypixel only gives for your own kills.
  */
 public final class ZealotCounter {
     private static final List<String> END_LOCATIONS = List.of("The End", "Dragon's Nest", "Void Sepulture", "Zealot Bruiser Hideout", "Void Slate");
@@ -54,6 +55,12 @@ public final class ZealotCounter {
     /** Entity ids already counted, so the death packet and the health check never count one Zealot twice. */
     private static final Set<Integer> COUNTED = new HashSet<>();
     private static int witherImpactTicks;
+    /** Zealots that died after you hit them, waiting for your Combat XP to confirm the kill: id -> time of death. */
+    private static final Map<Integer, Long> PENDING = new HashMap<>();
+    /** When you last gained Combat XP (Hypixel shows "+X Combat" in the action bar only for your own kills). */
+    private static long lastCombatXp;
+    private static final long XP_WINDOW_MS = 1500;
+    private static final java.util.regex.Pattern COMBAT_XP = java.util.regex.Pattern.compile("\\+[\\d,.]+ Combat \\(");
 
     private static int totalKills, totalEyes, sinceEye;
     private static int sessionKills, sessionEyes;
@@ -98,6 +105,9 @@ public final class ZealotCounter {
             return InteractionResult.PASS;
         });
         ClientTickEvents.END_CLIENT_TICK.register(ZealotCounter::tick);
+        SkyJewChat.onActionBar(message -> {
+            if (COMBAT_XP.matcher(message.text()).find()) lastCombatXp = System.currentTimeMillis();
+        });
 
         SkyJewHuds.register("zealots", "Zealot Tracker", ZealotCounter::enabled,
             // While an inventory is open the tracker is drawn over it instead, with the clickable mode switch.
@@ -219,6 +229,17 @@ public final class ZealotCounter {
             if (enderman.isDeadOrDying()) countIfYours(mc, enderman);
         }
         HIT_BY_YOU.values().removeIf(at -> now - at > HIT_MEMORY_MS);
+
+        // A kill only counts once your Combat XP confirms it, which rules out Zealots someone else
+        // killed right next to you. Several kills in one Wither Impact share the same XP message.
+        PENDING.entrySet().removeIf(entry -> {
+            long diedAt = entry.getValue();
+            if (lastCombatXp >= diedAt - 250 && lastCombatXp <= diedAt + XP_WINDOW_MS) {
+                count();
+                return true;
+            }
+            return now - diedAt > XP_WINDOW_MS;
+        });
     }
 
     /** Called when the server says an entity died. */
@@ -232,6 +253,10 @@ public final class ZealotCounter {
         if (COUNTED.contains(entity.getId()) || !hitByYou(entity) || !isZealot(mc, entity)) return;
         COUNTED.add(entity.getId());
         if (COUNTED.size() > 4096) COUNTED.clear();
+        PENDING.put(entity.getId(), System.currentTimeMillis());
+    }
+
+    private static void count() {
         totalKills++;
         sessionKills++;
         sinceEye++;

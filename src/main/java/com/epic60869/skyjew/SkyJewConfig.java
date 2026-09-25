@@ -302,9 +302,9 @@ public final class SkyJewConfig extends Config {
         public boolean enabled = true;
 
         @Expose
-        @ConfigOption(name = "3 Day Avg. Price", desc = "The item's average lowest BIN price over the last 3 days.")
+        @ConfigOption(name = "NPC Sell Price", desc = "How much an NPC buys the item for.")
         @ConfigEditorBoolean
-        public boolean threeDayAverage = true;
+        public boolean npcPrice = true;
 
         @Expose
         @ConfigOption(name = "Lowest BIN Price", desc = "The item's current lowest Buy It Now price on the auction house.")
@@ -312,9 +312,9 @@ public final class SkyJewConfig extends Config {
         public boolean lowestBin = true;
 
         @Expose
-        @ConfigOption(name = "NPC Sell Price", desc = "How much an NPC buys the item for.")
+        @ConfigOption(name = "3 Day Avg. Price", desc = "The item's average lowest BIN price over the last 3 days.")
         @ConfigEditorBoolean
-        public boolean npcPrice = true;
+        public boolean threeDayAverage = true;
     }
 
     public static final class ItemRarity {
