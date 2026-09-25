@@ -36,7 +36,6 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
         SkyJewGlobalChat.init();
-        SkyJewExperimentHelper.init(config);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         SkyJewVersionChecker.check(minecraft);
@@ -284,7 +283,6 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewMouseLock.tick(minecraft);
         SkyJewMouseReset.tick(minecraft);
         SkyJewGlobalChat.tick();
-        SkyJewExperimentHelper.tick(minecraft);
         SkyJewFoxy.tick(minecraft);
     }
 }
