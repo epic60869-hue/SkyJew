@@ -40,6 +40,7 @@ public abstract class ClientPacketListenerMixin {
 		if (beforeTeleport.get() != null) {
 			TeleportMaze.INSTANCE.onTeleport(minecraft, beforeTeleport.get(), minecraft.player.blockPosition().immutable());
 		}
+		com.epic60869.skyjew.features.dungeons.OdinPuzzleSolvers.onTeleport(packet);
 	}
 
 	@Inject(method = "handleTakeItemEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/item/ItemEntity;getItem()Lnet/minecraft/world/item/ItemStack;"))
@@ -54,6 +55,12 @@ public abstract class ClientPacketListenerMixin {
 			com.epic60869.skyjew.features.combat.ZealotCounter.onEntityDeath(entity);
 		}
 		return entity;
+	}
+
+	// Skyblocker's map update hook, missing from the port: without it the dungeon map texture only refreshed when a room was identified.
+	@Inject(method = "handleMapItemData", at = @At("RETURN"))
+	private void skyjew$onMapItemData(net.minecraft.network.protocol.game.ClientboundMapItemDataPacket packet, CallbackInfo ci) {
+		com.epic60869.skyjew.sb.skyblock.dungeon.DungeonMapTexture.onMapItemDataUpdate(packet.mapId(), packet.colorPatch().isPresent());
 	}
 
 	@Inject(method = "handleSoundEvent", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V", shift = At.Shift.AFTER))

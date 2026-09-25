@@ -22,12 +22,13 @@ public final class StarredMobs {
         SkyJewWorldRender.register(collector -> {
             SkyJewConfig config = SkyJewConfig.current();
             Minecraft mc = Minecraft.getInstance();
-            if (config == null || !config.dungeons.mobs.starredMobs || !SkyJewLocation.inDungeon() || mc.level == null) return;
+            if (config == null || !config.dungeons.mobs.starredMobs || !SkyJewLocation.inDungeon() || mc.level == null || mc.player == null) return;
             for (Entity entity : mc.level.entitiesForRendering()) {
                 if (!(entity instanceof ArmorStand stand) || !stand.hasCustomName()
                     || !stand.getCustomName().getString().contains("✯")) continue;
                 LivingEntity mob = mobBelow(mc, stand);
-                if (mob != null) collector.submitOutlinedBox(mob.getBoundingBox(), COLOUR, 2f, true);
+                // Depth-tested and only for mobs you can see, so nothing shows through walls.
+                if (mob != null && mc.player.hasLineOfSight(mob)) collector.submitOutlinedBox(mob.getBoundingBox(), COLOUR, 2f, false);
             }
         });
     }

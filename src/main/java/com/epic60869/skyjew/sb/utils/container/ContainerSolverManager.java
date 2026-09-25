@@ -119,9 +119,6 @@ public class ContainerSolverManager {
 	public static void onExtract(GuiGraphicsExtractor context, AbstractContainerScreen<?> handledScreen, List<Slot> slots) {
 		if (currentSolver == null) return;
 
-		context.pose().pushMatrix();
-		context.pose().translate(((AbstractContainerScreenAccessor) handledScreen).getX(), ((AbstractContainerScreenAccessor) handledScreen).getY());
-
 		if (currentSolver.chestInventoryOnly() && handledScreen.getMenu() instanceof ChestMenu chestMenu) {
 			slots = slots.subList(0, chestMenu.getRowCount() * 9);
 		}
@@ -132,8 +129,6 @@ public class ContainerSolverManager {
 			int color = highlight.color();
 			context.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, color);
 		}
-
-		context.pose().popMatrix();
 	}
 
 	public static Int2ObjectMap<ItemStack> slotMap(List<Slot> slots) {

@@ -35,21 +35,19 @@ public class ThreeWeirdos extends DungeonPuzzle {
 
 	private ThreeWeirdos() {
 		super("three-weirdos", "three-chests");
-		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage((message, overlay) -> {
 			ClientLevel world = Minecraft.getInstance().level;
-			if (overlay || !shouldSolve() || !SkyblockerConfigManager.get().dungeons.puzzleSolvers.solveThreeWeirdos || world == null || !DungeonManager.isCurrentRoomMatched()) return true;
+			if (overlay || !shouldSolve() || !SkyblockerConfigManager.get().dungeons.puzzleSolvers.solveThreeWeirdos || world == null || !DungeonManager.isCurrentRoomMatched()) return;
 
 			Matcher matcher = PATTERN.matcher(ChatFormatting.stripFormatting(message.getString()));
-			if (!matcher.matches()) return true;
+			if (!matcher.matches()) return;
 			String name = matcher.group(1);
 			Room room = DungeonManager.getCurrentRoom();
-			if (room == null || !room.isMatched()) return true;
+			if (room == null || !room.isMatched()) return;
 
 			checkForNPC(world, room, new BlockPos(13, 69, 24), name);
 			checkForNPC(world, room, new BlockPos(15, 69, 25), name);
 			checkForNPC(world, room, new BlockPos(17, 69, 24), name);
-
-			return true;
 		});
 		UseBlockCallback.EVENT.register((_, _, _, blockHitResult) -> {
 			if (blockHitResult.getType() == HitResult.Type.BLOCK && blockHitResult.getBlockPos().equals(pos)) {

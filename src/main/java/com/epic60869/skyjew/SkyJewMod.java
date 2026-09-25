@@ -50,10 +50,13 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.garden.GardenFeatures.init();
         com.epic60869.skyjew.features.fishing.FishingFeatures.init();
         com.epic60869.skyjew.features.mining.MiningFeatures.init();
+        com.epic60869.skyjew.features.mining.PristineRecord.init(configDir);
+        com.epic60869.skyjew.features.portfolio.Portfolio.init(configDir);
         com.epic60869.skyjew.features.skills.SkillFeatures.init();
         com.epic60869.skyjew.features.dungeons.SkyJewDungeons.init();
         com.epic60869.skyjew.features.dungeons.DungeonFeatures.init(configDir);
         com.epic60869.skyjew.features.misc.PartyCommands.init();
+        com.epic60869.skyjew.features.misc.HeldItemModel.init(configDir);
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);

@@ -54,7 +54,8 @@ public class Trivia extends DungeonPuzzle {
 
 	public Trivia() {
 		super("trivia", "trivia-room");
-		ClientReceiveMessageEvents.ALLOW_GAME.register(this::onMessage);
+		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage(this::onMessage);
+		ClientReceiveMessageEvents.ALLOW_GAME.register(this::allowMessage);
 	}
 
 
@@ -63,16 +64,16 @@ public class Trivia extends DungeonPuzzle {
 		return Utils.isInDungeons() && SkyblockerConfigManager.get().dungeons.puzzleSolvers.solveTrivia;
 	}
 
-	public boolean onMessage(Component message, boolean overlay) {
-		if (!shouldRun() || overlay) return true;
+	public void onMessage(Component message, boolean overlay) {
+		if (!shouldRun() || overlay) return;
 
 		Matcher matcher = PATTERN.matcher(ChatFormatting.stripFormatting(message.getString()));
-		if (!matcher.matches()) return true;
+		if (!matcher.matches()) return;
 
 		// Reset state when a question is answered and when the puzzle is failed or completed.
 		if (matcher.group(4) != null) {
 			reset();
-			return true;
+			return;
 		}
 
 		String answerChoice = matcher.group(3);
@@ -80,19 +81,19 @@ public class Trivia extends DungeonPuzzle {
 			// Message is a question
 			updateSolutions(matcher.group(0));
 			reset();
-		} else {
-			if (solutions.isEmpty()) return true;
-			if (!solutions.contains(answerChoice)) {
-				// Incorrect answer choice
-				LocalPlayer player = Minecraft.getInstance().player;
-				if (player == null) return true;
-				Utils.sendMessageToBypassEvents(Component.nullToEmpty("    " + ChatFormatting.GOLD + " " + matcher.group(2) + " " + ChatFormatting.RED + answerChoice));
-				return false;
-			}
+		} else if (solutions.contains(answerChoice)) {
 			currentSolution = matcher.group(2);
 		}
+	}
 
-		return true;
+	/** Replaces incorrect answer choices with a red line. Runs after {@link #onMessage} has updated the solutions. */
+	private boolean allowMessage(Component message, boolean overlay) {
+		if (!shouldRun() || overlay || solutions.isEmpty()) return true;
+		Matcher matcher = PATTERN.matcher(ChatFormatting.stripFormatting(message.getString()));
+		if (!matcher.matches() || matcher.group(3) == null || solutions.contains(matcher.group(3))) return true;
+		if (Minecraft.getInstance().player == null) return true;
+		Utils.sendMessageToBypassEvents(Component.nullToEmpty("    " + ChatFormatting.GOLD + " " + matcher.group(2) + " " + ChatFormatting.RED + matcher.group(3)));
+		return false;
 	}
 
 	private void updateSolutions(String question) {

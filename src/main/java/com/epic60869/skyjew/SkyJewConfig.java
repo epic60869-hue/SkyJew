@@ -232,6 +232,7 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker and boss phase HUDs.")
         public com.epic60869.skyjew.features.FeatureConfigs.Slayer huds = new com.epic60869.skyjew.features.FeatureConfigs.Slayer();
 
+        @Expose
         @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
         @ConfigEditorBoolean
         public boolean killsSinceDrop = true;
@@ -357,6 +358,21 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
+        @ConfigOption(name = "Random", desc = "Low fire overlay, hidden explosions and other small visual tweaks.")
+        public Random random = new Random();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Player Size", desc = "Make yourself, other players, or both bigger or smaller (client side only), like Odin.")
+        public PlayerSize playerSize = new PlayerSize();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Held Item Model", desc = "Move, rotate and scale the item in your hand and change your swing speed, like Skysoft. /sj helditem save stores the settings for the held item only.")
+        public HeldItemModel heldItemModel = new HeldItemModel();
+
+        @Expose
+        @Accordion
         @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
         public Nickname nickname = new Nickname();
 
@@ -366,9 +382,77 @@ public final class SkyJewConfig extends Config {
         public MouseReset mouseReset = new MouseReset();
 
         @Expose
+        @ConfigOption(name = "Recipe HUD", desc = "While a /sj recipe is selected, show a movable HUD with the item and the base ingredients you still need (like SkyOcean's craft helper overlay). Move it in /sj gui.")
+        @ConfigEditorBoolean
+        public boolean recipeHud = true;
+
+        @Expose
+        @ConfigOption(name = "Recipe HUD Hide Completed", desc = "Hide ingredients you already have enough of in the Recipe HUD.")
+        @ConfigEditorBoolean
+        public boolean recipeHudHideCompleted = false;
+
+        @Expose
         @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
         @ConfigEditorBoolean
         public boolean calendarTimeToRealTime = true;
+    }
+
+    public static final class PlayerSize {
+        @Expose
+        @ConfigOption(name = "Scale Yourself", desc = "Change your own player's size (third person, inventory preview).")
+        @ConfigEditorBoolean
+        public boolean self = false;
+
+        @Expose @ConfigOption(name = "Your Width", desc = "X scale (1 = normal).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float selfX = 0.6f;
+        @Expose @ConfigOption(name = "Your Height", desc = "Y scale (1 = normal, negative = upside down).") @ConfigEditorSlider(minValue = -1f, maxValue = 3f, minStep = 0.05f) public float selfY = 0.6f;
+        @Expose @ConfigOption(name = "Your Depth", desc = "Z scale (1 = normal).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float selfZ = 0.6f;
+
+        @Expose
+        @ConfigOption(name = "Scale Others", desc = "Change the size of every other real player (NPCs are left alone).")
+        @ConfigEditorBoolean
+        public boolean others = false;
+
+        @Expose @ConfigOption(name = "Others Width", desc = "X scale (1 = normal).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float othersX = 0.6f;
+        @Expose @ConfigOption(name = "Others Height", desc = "Y scale (1 = normal, negative = upside down).") @ConfigEditorSlider(minValue = -1f, maxValue = 3f, minStep = 0.05f) public float othersY = 0.6f;
+        @Expose @ConfigOption(name = "Others Depth", desc = "Z scale (1 = normal).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float othersZ = 0.6f;
+    }
+
+    public static final class HeldItemModel {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Apply these settings to the item in your hand (first person).")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @Expose @ConfigOption(name = "X", desc = "Left / right.") @ConfigEditorSlider(minValue = -1.5f, maxValue = 1.5f, minStep = 0.01f) public float x = 0f;
+        @Expose @ConfigOption(name = "Y", desc = "Down / up.") @ConfigEditorSlider(minValue = -1.5f, maxValue = 1.5f, minStep = 0.01f) public float y = 0f;
+        @Expose @ConfigOption(name = "Z", desc = "Towards / away from you.") @ConfigEditorSlider(minValue = -1.5f, maxValue = 1.5f, minStep = 0.01f) public float z = 0f;
+        @Expose @ConfigOption(name = "Scale", desc = "Item size (1 = vanilla).") @ConfigEditorSlider(minValue = 0.05f, maxValue = 2f, minStep = 0.01f) public float scale = 1f;
+        @Expose @ConfigOption(name = "Rotation X", desc = "Pitch in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationX = 0f;
+        @Expose @ConfigOption(name = "Rotation Y", desc = "Yaw in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationY = 0f;
+        @Expose @ConfigOption(name = "Rotation Z", desc = "Roll in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationZ = 0f;
+        @Expose @ConfigOption(name = "Swing Speed", desc = "Arm swing speed (1 = vanilla, 2 = twice as fast, 0.5 = half speed).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float swingSpeed = 1f;
+
+        @Expose
+        @ConfigOption(name = "Ignore Mining Effects", desc = "Swing at the normal speed even with Haste or Mining Fatigue.")
+        @ConfigEditorBoolean
+        public boolean ignoreMiningEffects = false;
+    }
+
+    public static final class Random {
+        @Expose
+        @ConfigOption(name = "Low Fire", desc = "Lower the burning overlay on your screen so it covers less of the view.")
+        @ConfigEditorBoolean
+        public boolean lowFire = false;
+
+        @Expose
+        @ConfigOption(name = "Fire Height", desc = "How far to lower the fire overlay (0 = vanilla, 1 = off the screen).")
+        @ConfigEditorSlider(minValue = 0, maxValue = 1, minStep = 0.05f)
+        public float fireOffset = 0.3f;
+
+        @Expose
+        @ConfigOption(name = "Hide Explosions", desc = "Hide explosion particles (TNT, Bonzo staff, Wither impact and other server explosions).")
+        @ConfigEditorBoolean
+        public boolean hideExplosions = false;
     }
 
     public static final class MouseReset {

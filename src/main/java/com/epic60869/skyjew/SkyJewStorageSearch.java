@@ -74,12 +74,37 @@ public final class SkyJewStorageSearch {
     public record Result(ItemStack stack, String name, String id, String lore,
                          String location, String key, String type, int number, int slot) {}
 
+    /** Current SkyBlock profile id (from "Profile ID: ..."), or "" until Hypixel has told us. */
+    private static String profile = "";
+    private static final java.util.regex.Pattern PROFILE_ID = java.util.regex.Pattern.compile("^Profile ID: (?<id>[0-9a-fA-F-]+)$");
+
     private SkyJewStorageSearch() {}
 
     public static void init(Path dir) {
         configDir = dir;
         load();
         initialized = true;
+        // Pages are stored per SkyBlock profile so different profiles (e.g. an ironman) never share storage.
+        com.epic60869.skyjew.features.core.SkyJewChat.onChat(message -> {
+            java.util.regex.Matcher m = PROFILE_ID.matcher(message.text().trim());
+            if (m.matches()) profile = m.group("id").toLowerCase(Locale.ROOT);
+        });
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> profile = "");
+    }
+
+    /** Key prefix for the current server and profile. Keys are "server|profile|type|number". */
+    private static String profilePrefix(Minecraft mc) {
+        String server = "unknown";
+        try {
+            if (mc.getCurrentServer() != null && mc.getCurrentServer().ip != null) {
+                server = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
+            }
+        } catch (Throwable ignored) {}
+        return server + "|" + profile + "|";
+    }
+
+    private static boolean currentProfile(String key) {
+        return !profile.isEmpty() && key.startsWith(profilePrefix(Minecraft.getInstance()));
     }
 
     public static void tick(Minecraft mc) {
@@ -125,6 +150,7 @@ public final class SkyJewStorageSearch {
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
 
         for (Map.Entry<String, Page> entry : pages.entrySet()) {
+            if (!currentProfile(entry.getKey())) continue;
             Page page = entry.getValue();
             List<ItemStack> contents = decode(page.blob());
             if (contents == null) continue;
@@ -151,6 +177,7 @@ public final class SkyJewStorageSearch {
 
         if (inventory) {
             for (Map.Entry<String, Page> entry : inventoryPages.entrySet()) {
+                if (!currentProfile(entry.getKey())) continue;
                 Page page = entry.getValue();
                 List<ItemStack> contents = decode(page.blob());
                 if (contents == null) continue;
@@ -175,15 +202,15 @@ public final class SkyJewStorageSearch {
     }
 
     public static int cachedStorageCount() {
-        return pages.size();
+        return (int) pages.keySet().stream().filter(SkyJewStorageSearch::currentProfile).count();
     }
 
     public static long oldestCacheAgeMs() {
-        if (pages.isEmpty()) return -1L;
         long oldest = Long.MAX_VALUE;
-        for (Page page : pages.values()) {
-            oldest = Math.min(oldest, page.updatedMs());
+        for (Map.Entry<String, Page> entry : pages.entrySet()) {
+            if (currentProfile(entry.getKey())) oldest = Math.min(oldest, entry.getValue().updatedMs());
         }
+        if (oldest == Long.MAX_VALUE) return -1L;
         return Math.max(0L, System.currentTimeMillis() - oldest);
     }
 
@@ -253,7 +280,7 @@ public final class SkyJewStorageSearch {
     }
 
     private static void capturePlayerInventory(Minecraft mc) {
-        if (!isHypixel(mc) || mc.player == null) return;
+        if (!isHypixel(mc) || mc.player == null || profile.isEmpty()) return;
         long now = System.currentTimeMillis();
         if (now - lastInventoryCapture < INVENTORY_CAPTURE_INTERVAL_MS) return;
         lastInventoryCapture = now;
@@ -273,18 +300,12 @@ public final class SkyJewStorageSearch {
     }
 
     private static String inventoryCacheKey(Minecraft mc) {
-        String server = "unknown";
-        try {
-            if (mc.getCurrentServer() != null && mc.getCurrentServer().ip != null) {
-                server = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
-            }
-        } catch (Throwable ignored) {}
         String uuid = mc.player == null ? "unknown" : mc.player.getUUID().toString();
-        return server + "|INVENTORY|" + uuid;
+        return profilePrefix(mc) + "INVENTORY|" + uuid;
     }
 
     private static void captureOpenStorage(Minecraft mc) {
-        if (!isHypixel(mc)) return;
+        if (!isHypixel(mc) || profile.isEmpty()) return;
         if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> container)) return;
         if (container.getMenu().slots.size() <= 36) return;
 
@@ -445,13 +466,7 @@ public final class SkyJewStorageSearch {
     }
 
     private static String cacheKey(Minecraft mc, String type, int number) {
-        String server = "unknown";
-        try {
-            if (mc.getCurrentServer() != null && mc.getCurrentServer().ip != null) {
-                server = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
-            }
-        } catch (Throwable ignored) {}
-        return server + "|" + type + "|" + number;
+        return profilePrefix(mc) + type + "|" + number;
     }
 
     private static void load() {
@@ -471,6 +486,7 @@ public final class SkyJewStorageSearch {
                 int number = obj.has("number") ? obj.get("number").getAsInt() : 0;
                 String label = obj.has("label") ? obj.get("label").getAsString() : type + " #" + number;
                 long updated = obj.has("updated") ? obj.get("updated").getAsLong() : 0L;
+                if (key.split("\\|", -1).length < 4) continue; // pre-profile cache entry (mixed profiles)
                 Page page = new Page(type, number, label, obj.get("blob").getAsString(), updated);
                 if ("INVENTORY".equals(type)) inventoryPages.put(key, page);
                 else pages.put(key, page);
@@ -548,7 +564,9 @@ public final class SkyJewStorageSearch {
     /** Item counts by SkyBlock id across the cached Ender Chest and Backpack pages (used by the craft helper). */
     public static Map<String, Integer> storedItemCounts() {
         Map<String, Integer> counts = new java.util.HashMap<>();
-        for (Page page : new ArrayList<>(pages.values())) {
+        for (Map.Entry<String, Page> entry : new ArrayList<>(pages.entrySet())) {
+            if (!currentProfile(entry.getKey())) continue;
+            Page page = entry.getValue();
             List<ItemStack> contents = decode(page.blob());
             if (contents == null) continue;
             for (ItemStack stack : contents) {

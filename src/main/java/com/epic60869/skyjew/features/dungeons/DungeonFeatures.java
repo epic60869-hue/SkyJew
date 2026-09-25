@@ -7,48 +7,135 @@ import com.epic60869.skyjew.features.core.SkyJewChat;
 import com.epic60869.skyjew.features.core.SkyJewHuds;
 import com.epic60869.skyjew.features.core.SkyJewLocation;
 import com.epic60869.skyjew.sb.events.ServerTickCallback;
+import com.epic60869.skyjew.sb.skyblock.dungeon.DungeonScore;
+import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.DungeonManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/** Dungeon splits, tick timers, mask timers, M7 debuff alert. Routes are in {@link DungeonRoutes}. */
+/**
+ * Dungeon splits, tick timers, mask timers, score display and M7 debuff alerts. Routes are in {@link DungeonRoutes}.
+ * <p>
+ * The splits, split PBs and mask (invincibility) timers follow Odin's SplitsManager, Splits, PersonalBest and
+ * InvincibilityTimer (https://github.com/odtheking/Odin, BSD-3-Clause).
+ */
 public final class DungeonFeatures {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    // ----- Splits -----
-    private record Split(String name, long time) {}
+    // ----- Splits (Odin's SplitsManager) -----
+    private static final class Split {
+        final Pattern pattern;
+        final String name;
+        long time;
+        long ticks;
+
+        Split(String regex, String name) {
+            this.pattern = Pattern.compile(regex);
+            this.name = name;
+        }
+    }
+
+    private record SplitRow(String name, long time, long ticks, boolean current) {}
+
+    private static final String MORT = "\\[NPC] Mort: Here, I found this map when I first entered the dungeon\\.|\\[NPC] Mort: Right-click the Orb for spells, and Left-click \\(or Drop\\) to use your Ultimate!";
+    private static final String BLOOD_OPEN = "^\\[BOSS] The Watcher: (Congratulations, you made it through the Entrance\\.|Ah, you've finally arrived\\.|Ah, we meet again\\.\\.\\.|So you made it this far\\.\\.\\. interesting\\.|You've managed to scratch and claw your way here, eh\\?|I'm starting to get tired of seeing you around here\\.\\.\\.|Oh\\.\\. hello\\?|Things feel a little more roomy now, eh\\?)$|^The BLOOD DOOR has been opened!$";
+    private static final String PORTAL_ENTRY = "\\[BOSS] The Watcher: You have proven yourself\\. You may pass\\.";
+    private static final String CLEARED = "^\\s*☠ Defeated (.+) in 0?([\\dhms ]+?)\\s*(\\(NEW RECORD!\\))?$";
+    private static final String[][][] FLOOR_SPLITS = {
+        {},
+        {{"^\\[BOSS] Bonzo: Gratz for making it this far, but I'm basically unbeatable\\.$", "§cBonzo's Sike"}, {"\\[BOSS] Bonzo: Oh I'm dead!", "§4Cleared"}},
+        {{"^\\[BOSS] Scarf: This is where the journey ends for you, Adventurers\\.$", "§cScarf's minions"}, {"^\\[BOSS] Scarf: Did you forget\\? I was taught by the best! Let's dance\\.$", "§4Cleared"}},
+        {{"^\\[BOSS] The Professor: I was burdened with terrible news recently\\.\\.\\.$", "§cThe Guardians"}, {"^\\[BOSS] The Professor: Oh\\? You found my Guardians' one weakness\\?$", "§aThe Professor"}, {"^\\[BOSS] The Professor: What\\?! My Guardian power is unbeatable!$", "§4Cleared"}},
+        {{"^\\[BOSS] Thorn: Welcome Adventurers! I am Thorn, the Spirit! And host of the Vegan Trials!$", "§4Cleared"}},
+        {{"^\\[BOSS] Livid: Welcome, you've arrived right on time\\. I am Livid, the Master of Shadows\\.$", "§4Cleared"}},
+        {{"^\\[BOSS] Sadan: So you made it all the way here\\.\\.\\. Now you wish to defy me\\? Sadan\\?!$", "§cTerracottas"}, {"^\\[BOSS] Sadan: ENOUGH!$", "§aGiants"}, {"^\\[BOSS] Sadan: You did it\\. I understand now, you have earned my respect\\.$", "§4Cleared"}},
+        {{"^\\[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!$", "§5Maxor"}, {"\\[BOSS] Storm: Pathetic Maxor, just like expected\\.", "§3Storm"}, {"\\[BOSS] Goldor: Who dares trespass into my domain\\?", "§6Terminals"}, {"The Core entrance is opening!", "§7Goldor"}, {"\\[BOSS] Necron: You went further than any human before, congratulations\\.", "§cNecron"}, {"\\[BOSS] Necron: All this, for nothing\\.\\.\\.", "§4Cleared"}},
+    };
     private static final List<Split> SPLITS = new ArrayList<>();
-    private static long runStart;
+    private static String splitFloor = "";
+    /** Personal bests in seconds: floor ("F7") -> split name without colour -> seconds. */
+    private static Map<String, Map<String, Float>> personalBests = new HashMap<>();
+    private static Path pbFile;
 
     // ----- Tick timers (counted in server ticks from Hypixel's per-tick ping packets) -----
     private static long serverTicks;
     private static long stormStartTick = -1;
     private static long goldorStartTick = -1;
 
-    // ----- Masks -----
-    private static long bonzoReady, spiritReady, phoenixReady;
+    // ----- Masks (Odin's InvincibilityTimer), counted in server ticks -----
+    private enum Invincibility {
+        SPIRIT("Spirit Mask", Pattern.compile("^Second Wind Activated! Your Spirit Mask saved your life!$"), 60, 30),
+        BONZO("Bonzo's Mask", Pattern.compile("^Your (?:. )?Bonzo's Mask saved your life!$"), 60, 180),
+        PHOENIX("Phoenix", Pattern.compile("^Your Phoenix Pet saved you from certain death!$"), 80, 60);
+
+        final String display;
+        final Pattern pattern;
+        final int invincibilityTicks;
+        final int cooldownSeconds;
+        int active;
+        int cooldown;
+
+        Invincibility(String display, Pattern pattern, int invincibilityTicks, int cooldownSeconds) {
+            this.display = display;
+            this.pattern = pattern;
+            this.invincibilityTicks = invincibilityTicks;
+            this.cooldownSeconds = cooldownSeconds;
+        }
+    }
+    private static final Pattern COOLDOWN_LORE = Pattern.compile("^Cooldown: (\\d+)s$");
 
     // ----- Debuffs -----
     private static int lastBreath, iceSpray, lethality;
     private static boolean debuffAlerted;
     private static boolean dragonPhase;
 
+    // ----- Last Breath release cue -----
+    private static long lastBreathChargeStart = -1;
+    private static boolean lastBreathCued;
+
     private DungeonFeatures() {}
+
+    private static boolean goldorReached;
+
+    /** True once Goldor's first line has been seen this run (Storm defeated), until the run ends. */
+    public static boolean goldorReached() {
+        return goldorReached;
+    }
+
+    /** True from Goldor's first line until Necron's (F7/M7 phase 3). */
+    public static boolean inGoldorPhase() {
+        return goldorStartTick >= 0;
+    }
+
+    /** True from Storm's first line until Goldor's (F7/M7 phase 2). */
+    public static boolean inStormPhase() {
+        return stormStartTick >= 0 && goldorStartTick < 0;
+    }
 
     private static FeatureConfigs.Dungeons config() {
         SkyJewConfig c = SkyJewConfig.current();
@@ -56,8 +143,12 @@ public final class DungeonFeatures {
     }
 
     public static void init(Path configDir) {
+        pbFile = configDir.resolve("skyjew-split-pbs.json");
+        loadPersonalBests();
+
         SkyJewChat.onChat(DungeonFeatures::onChat);
-        ServerTickCallback.EVENT.register(() -> serverTicks++);
+        ServerTickCallback.EVENT.register(DungeonFeatures::onServerTick);
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> resetRun());
         SkyJewLocation.onAreaChange(area -> {
             if (!area.equals("Catacombs")) resetRun();
         });
@@ -74,11 +165,17 @@ public final class DungeonFeatures {
         });
         DungeonRoutes.init(configDir);
         StarredMobs.init();
+        LeapMenu.init();
+        PositionalMessages.init(configDir);
+        DoorHighlight.init();
+        BloodCamp.init();
+        OdinPuzzleSolvers.init();
+        ThreeByThree.init();
 
         SkyJewHuds.register("dungeon_splits", "Dungeon Splits",
-            () -> config() != null && config().timers.splits && runStart > 0,
+            () -> config() != null && config().timers.splits && !SPLITS.isEmpty() && SPLITS.getFirst().time != 0,
             DungeonFeatures::splitLines,
-            List.of(title("Splits"), kv("Blood Open: ", "0:24"), kv("Blood Clear: ", "1:10"), kv("Boss Entry: ", "2:31")),
+            List.of(kv("§2Blood Open: ", "24.51s"), kv("§bBlood Clear: ", "1m 10.20s"), kv("§dPortal Entry: ", "12.03s"), kv("§9Boss Entry: ", "1m 46.74s"), kv("§5Maxor: ", "38.10s")),
             8, 740);
         SkyJewHuds.register("tick_timers", "Tick Timers",
             () -> config() != null && config().timers.tickTimers && (stormStartTick >= 0 || goldorStartTick >= 0),
@@ -88,12 +185,13 @@ public final class DungeonFeatures {
         SkyJewHuds.register("mask_timers", "Mask Timers",
             () -> config() != null && config().timers.maskTimers && SkyJewLocation.inDungeon(),
             DungeonFeatures::maskLines,
-            List.of(kv("Bonzo: ", "READY"), kv("Spirit: ", "12s"), kv("Phoenix: ", "READY")),
+            List.of(maskPreview("Spirit Mask", "✔", ChatFormatting.GREEN, true), maskPreview("Bonzo's Mask", "2.45s", ChatFormatting.GOLD, false), maskPreview("Phoenix", "41.20s", ChatFormatting.RED, false)),
             200, 780);
-    }
-
-    private static Component title(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+        SkyJewHuds.register("dungeon_score", "Dungeon Score",
+            () -> config() != null && config().score.display && SkyJewLocation.inDungeon() && DungeonScore.isDungeonStarted() && !DungeonManager.isInBoss(),
+            DungeonFeatures::scoreLines,
+            List.of(kv("Score: ", "§a302"), kv("Secrets: ", "§b37§7/§e40%"), kv("Crypts: ", "§a5"), kv("Deaths: ", "§a0"), Component.literal("§aMimic §8| §cPrince")),
+            200, 820);
     }
 
     private static Component kv(String key, String value) {
@@ -102,30 +200,183 @@ public final class DungeonFeatures {
 
     private static void resetRun() {
         SPLITS.clear();
-        runStart = 0;
+        splitFloor = "";
         stormStartTick = -1;
         goldorStartTick = -1;
+        goldorReached = false;
         dragonPhase = false;
+        for (Invincibility type : Invincibility.values()) {
+            type.active = 0;
+            type.cooldown = 0;
+        }
         resetDebuffs();
     }
 
-    private static void split(String name) {
-        if (runStart == 0) return;
-        for (Split s : SPLITS) if (s.name().equals(name)) return;
-        SPLITS.add(new Split(name, System.currentTimeMillis() - runStart));
+    private static void onServerTick() {
+        serverTicks++;
+        for (Invincibility type : Invincibility.values()) {
+            if (type.cooldown > 0) type.cooldown--;
+            if (type.active > 0) type.active--;
+        }
+        tickLastBreath();
     }
 
-    private static String time(long millis) {
-        long seconds = millis / 1000;
-        return String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60);
+    // ----- Splits -----
+
+    private static void startSplits() {
+        SPLITS.clear();
+        String floor = SkyJewLocation.dungeonFloor();
+        int number = floor.equals("E") ? 0 : floor.length() == 2 ? floor.charAt(1) - '0' : -1;
+        if (number < 0 || number >= FLOOR_SPLITS.length) return;
+        splitFloor = floor;
+        SPLITS.add(new Split(MORT, "§2Blood Open"));
+        SPLITS.add(new Split(BLOOD_OPEN, "§bBlood Clear"));
+        SPLITS.add(new Split(PORTAL_ENTRY, "§dPortal Entry"));
+        for (String[] split : FLOOR_SPLITS[number]) SPLITS.add(new Split(split[0], split[1]));
+        SPLITS.add(new Split(CLEARED, "§1Total"));
+    }
+
+    private static void onSplitMessage(String message) {
+        for (int index = 0; index < SPLITS.size(); index++) {
+            Split split = SPLITS.get(index);
+            if (split.time != 0 || !split.pattern.matcher(message).matches()) continue;
+            split.time = System.currentTimeMillis();
+            split.ticks = serverTicks;
+            if (index == 0) return;
+            Split previous = SPLITS.get(index - 1);
+            float segment = (split.time - previous.time) / 1000f;
+            if (index == SPLITS.size() - 1) {
+                finishRun(previous, segment);
+            } else {
+                personalBest(previous.name, segment, "§6" + previous.name + " §7took §6");
+            }
+            return;
+        }
+    }
+
+    private static void finishRun(Split lastSegment, float lastSegmentTime) {
+        List<SplitRow> rows = currentRows();
+        personalBest(lastSegment.name, lastSegmentTime, "§6" + lastSegment.name + " §7took §6");
+        if (rows.isEmpty()) return;
+        personalBest("Total", rows.getLast().time() / 1000f, "§6Total time §7took §6");
+        if (!splitMessagesEnabled()) return;
+        for (int i = 0; i < rows.size(); i++) {
+            SplitRow row = rows.get(i);
+            String name = i == rows.size() - 1 ? "Total" : row.name();
+            SkyJewAlerts.chat(Component.literal("§6" + name + " §7took §6" + formatTime(row.time()) + "§7."));
+        }
+    }
+
+    private static boolean splitMessagesEnabled() {
+        FeatureConfigs.Dungeons config = config();
+        return config != null && config.timers.splits && config.timers.splitMessages;
+    }
+
+    /** Odin's PersonalBest.time: records a new PB and prints the time with the old PB. */
+    private static void personalBest(String coloredName, float seconds, String prefix) {
+        if (splitFloor.isEmpty()) return;
+        String name = ChatFormatting.stripFormatting(coloredName);
+        Map<String, Float> floorPbs = personalBests.computeIfAbsent(splitFloor, k -> new HashMap<>());
+        float oldPb = floorPbs.getOrDefault(name, 9999f);
+        String suffix;
+        if (seconds < oldPb) {
+            floorPbs.put(name, seconds);
+            savePersonalBests();
+            suffix = "§7(§d§lNew PB§r§7) Old PB was §8" + fixed(oldPb);
+        } else {
+            suffix = "§8(§7" + fixed(oldPb) + "§8)";
+        }
+        if (splitMessagesEnabled()) SkyJewAlerts.chat(Component.literal(prefix + fixed(seconds) + "s§7! " + suffix));
+    }
+
+    private static List<SplitRow> currentRows() {
+        List<SplitRow> rows = new ArrayList<>();
+        if (SPLITS.isEmpty() || SPLITS.getFirst().time == 0) return rows;
+        Split last = SPLITS.getLast();
+        long latestTime = last.time != 0 ? last.time : System.currentTimeMillis();
+        long latestTicks = last.ticks != 0 ? last.ticks : serverTicks;
+        int currentIndex = -1;
+        long[] times = new long[SPLITS.size()];
+        long[] ticks = new long[SPLITS.size()];
+        times[SPLITS.size() - 1] = latestTime - SPLITS.getFirst().time;
+        ticks[SPLITS.size() - 1] = latestTicks - SPLITS.getFirst().ticks;
+        for (int i = 0; i < SPLITS.size() - 1; i++) {
+            Split next = SPLITS.get(i + 1);
+            if (next.time != 0) {
+                times[i] = next.time - SPLITS.get(i).time;
+                ticks[i] = next.ticks - SPLITS.get(i).ticks;
+            } else {
+                times[i] = latestTime - SPLITS.get(i).time;
+                ticks[i] = latestTicks - SPLITS.get(i).ticks;
+                currentIndex = i;
+                break;
+            }
+        }
+        for (int i = 0; i < SPLITS.size(); i++) rows.add(new SplitRow(SPLITS.get(i).name, times[i], ticks[i], i == currentIndex));
+        return rows;
     }
 
     private static List<Component> splitLines() {
+        FeatureConfigs.Dungeons config = config();
+        List<SplitRow> rows = currentRows();
         List<Component> lines = new ArrayList<>();
-        lines.add(title("Splits " + time(System.currentTimeMillis() - runStart)));
-        for (Split s : SPLITS) lines.add(kv(s.name() + ": ", time(s.time())));
+        if (rows.isEmpty() || config == null) return lines;
+        List<SplitRow> segments = rows.subList(0, rows.size() - 1);
+        for (int index = 0; index < segments.size(); index++) {
+            SplitRow row = segments.get(index);
+            if (row.time() != 0 || row.current()) lines.add(splitLine(row, config));
+            if (config.timers.bossEntrySplit && index == 2 && rows.size() > 3 && row.time() != 0) {
+                long time = 0, ticks = 0;
+                for (SplitRow r : segments.subList(0, 3)) {
+                    time += r.time();
+                    ticks += r.ticks();
+                }
+                lines.add(splitLine(new SplitRow("§9Boss Entry", time, ticks, false), config));
+            }
+        }
+        lines.add(splitLine(new SplitRow("§1Total", rows.getLast().time(), rows.getLast().ticks(), false), config));
         return lines;
     }
+
+    private static Component splitLine(SplitRow row, FeatureConfigs.Dungeons config) {
+        String time = formatTime(row.time());
+        if (config.timers.splitTickTime) time += " §8(§7" + fixed(row.ticks() / 20f) + "§8)";
+        return Component.literal(row.name() + ": §f" + time);
+    }
+
+    /** Odin's formatTime: "1h 2m 3.45s". */
+    private static String formatTime(long millis) {
+        if (millis == 0) return "0s";
+        long hours = millis / 3_600_000;
+        long minutes = (millis % 3_600_000) / 60_000;
+        float seconds = (millis % 60_000) / 1000f;
+        return (hours > 0 ? hours + "h " : "") + (minutes > 0 ? minutes + "m " : "") + fixed(seconds) + "s";
+    }
+
+    private static String fixed(float value) {
+        return String.format(Locale.US, "%.2f", value);
+    }
+
+    private static void loadPersonalBests() {
+        try {
+            if (Files.exists(pbFile)) {
+                Map<String, Map<String, Float>> loaded = GSON.fromJson(Files.readString(pbFile, StandardCharsets.UTF_8), new TypeToken<Map<String, Map<String, Float>>>() {}.getType());
+                if (loaded != null) personalBests = new HashMap<>(loaded);
+            }
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Could not read split PBs: " + e);
+        }
+    }
+
+    private static void savePersonalBests() {
+        try {
+            Files.writeString(pbFile, GSON.toJson(personalBests), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Could not save split PBs: " + e);
+        }
+    }
+
+    // ----- Tick timers -----
 
     private static List<Component> tickLines() {
         List<Component> lines = new ArrayList<>();
@@ -138,81 +389,61 @@ public final class DungeonFeatures {
         return lines;
     }
 
+    // ----- Masks -----
+
+    private static Component maskPreview(String name, String value, ChatFormatting color, boolean worn) {
+        MutableComponent line = Component.literal(worn ? "▌" : " ").withStyle(ChatFormatting.DARK_PURPLE);
+        return line.append(Component.literal(name + ": ").withStyle(ChatFormatting.GRAY)).append(Component.literal(value).withStyle(color));
+    }
+
     private static List<Component> maskLines() {
-        var player = Minecraft.getInstance().player;
-        if (player == null) return List.of();
         List<Component> lines = new ArrayList<>();
-        String helmet = player.getItemBySlot(EquipmentSlot.HEAD).getHoverName().getString();
-        if (helmet.contains("Bonzo's Mask")) lines.add(maskLine("Bonzo", bonzoReady));
-        if (helmet.contains("Spirit Mask")) lines.add(maskLine("Spirit", spiritReady));
-        if (phoenixReady > 0) lines.add(maskLine("Phoenix", phoenixReady));
+        String helmet = helmetName();
+        for (Invincibility type : Invincibility.values()) {
+            boolean worn = type != Invincibility.PHOENIX && helmet.contains(type.display);
+            String value;
+            ChatFormatting color;
+            if (type.active > 0) {
+                value = fixed(type.active / 20f) + "s";
+                color = ChatFormatting.GOLD;
+            } else if (type.cooldown > 0) {
+                value = fixed(type.cooldown / 20f) + "s";
+                color = ChatFormatting.RED;
+            } else {
+                value = "✔";
+                color = ChatFormatting.GREEN;
+            }
+            lines.add(maskPreview(type.display, value, color, worn));
+        }
         return lines;
     }
 
-    private static Component maskLine(String name, long readyAt) {
-        long left = readyAt - System.currentTimeMillis();
-        return left <= 0
-            ? Component.literal(name + ": ").withStyle(ChatFormatting.GRAY).append(Component.literal("READY").withStyle(ChatFormatting.GREEN))
-            : Component.literal(name + ": ").withStyle(ChatFormatting.GRAY).append(Component.literal((left / 1000 + 1) + "s").withStyle(ChatFormatting.RED));
+    private static void onMaskMessage(String text, FeatureConfigs.Dungeons config) {
+        for (Invincibility type : Invincibility.values()) {
+            if (!type.pattern.matcher(text).matches()) continue;
+            Integer seconds = type == Invincibility.BONZO ? helmetCooldownSeconds() : null;
+            type.active = type.invincibilityTicks;
+            type.cooldown = (seconds != null ? seconds : type.cooldownSeconds) * 20;
+            int used = 0;
+            for (Invincibility t : Invincibility.values()) if (t.cooldown > 0) used++;
+            String name = type == Invincibility.PHOENIX ? "Phoenix" : type == Invincibility.BONZO ? "Bonzo" : "Spirit";
+            if (config.timers.maskAnnounce) sendCommand("pc " + name + " Procced! (" + used + "/" + Invincibility.values().length + ")");
+            if (config.timers.maskAlert) SkyJewAlerts.title(Component.literal(name + " Procced!").withStyle(ChatFormatting.RED), Component.empty());
+            return;
+        }
     }
 
-    private static void onChat(SkyJewChat.Message message) {
-        String text = message.text();
-        FeatureConfigs.Dungeons config = config();
-        if (config == null) return;
-
-        // Splits and boss phases. Messages from SkyHanni's repo (MIT) and Hypixel's dungeon chat.
-        if (text.equals("Starting in 1 second.") || text.startsWith("[NPC] Mort: Here, I found this map")) {
-            if (runStart == 0) {
-                resetRun();
-                runStart = System.currentTimeMillis();
-            }
-        } else if (text.contains("The BLOOD DOOR has been opened!") || (text.startsWith("[BOSS] The Watcher:") && !text.contains("You have proven yourself"))) {
-            split("Blood Open");
-        } else if (text.startsWith("[BOSS] The Watcher: You have proven yourself. You may pass.")) {
-            split("Blood Clear");
-        } else if (text.startsWith("[BOSS] ") && !text.startsWith("[BOSS] The Watcher")) {
-            split("Boss Entry");
-            if (text.startsWith("[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!")) split("Maxor");
-            if (text.startsWith("[BOSS] Storm: Pathetic Maxor, just like expected.")) {
-                split("Storm");
-                stormStartTick = serverTicks;
-            }
-            if (text.startsWith("[BOSS] Goldor: Who dares trespass into my domain?")) {
-                split("Goldor");
-                goldorStartTick = serverTicks;
-            }
-            if (text.startsWith("[BOSS] Necron: You went further than any human before, congratulations.")) {
-                split("Necron");
-                goldorStartTick = -1;
-            }
-            if (text.startsWith("[BOSS] Necron: All this, for nothing...")) {
-                split("Dragons");
-                dragonPhase = true;
-            }
-        } else if (text.equals("The Core entrance is opening!")) {
-            split("Terminals");
-            stormStartTick = -1;
-        } else if (text.contains("> EXTRA STATS <")) {
-            split("End");
-            printSummary();
+    /** Bonzo's Mask cooldown from its lore, which is lower on starred masks. */
+    private static Integer helmetCooldownSeconds() {
+        var player = Minecraft.getInstance().player;
+        if (player == null) return null;
+        ItemLore lore = player.getItemBySlot(EquipmentSlot.HEAD).get(DataComponents.LORE);
+        if (lore == null) return null;
+        for (int i = lore.lines().size() - 1; i >= 0; i--) {
+            Matcher m = COOLDOWN_LORE.matcher(lore.lines().get(i).getString());
+            if (m.matches()) return Integer.parseInt(m.group(1));
         }
-
-        // Masks (messages from SkyHanni's repo) with their ability cooldowns.
-        long now = System.currentTimeMillis();
-        if (text.contains("Your Bonzo's Mask saved your life!")) {
-            boolean starred = helmetName().contains("⚚");
-            bonzoReady = now + (starred ? 180_000 : 360_000);
-            if (config.timers.maskTimers) SkyJewAlerts.title(Component.literal("Bonzo's Mask used!").withStyle(ChatFormatting.RED), Component.empty());
-        } else if (text.contains("Second Wind Activated! Your Spirit Mask saved your life!")) {
-            spiritReady = now + 30_000;
-            if (config.timers.maskTimers) SkyJewAlerts.title(Component.literal("Spirit Mask used!").withStyle(ChatFormatting.RED), Component.empty());
-        } else if (text.contains("Your Phoenix Pet saved you from certain death!")) {
-            phoenixReady = now + 60_000;
-            if (config.timers.maskTimers) SkyJewAlerts.title(Component.literal("Phoenix used!").withStyle(ChatFormatting.RED), Component.empty());
-        }
-
-        if (dragonPhase && text.contains("Dragon") && text.contains("spawning")) resetDebuffs();
+        return null;
     }
 
     private static String helmetName() {
@@ -220,21 +451,57 @@ public final class DungeonFeatures {
         return player == null ? "" : player.getItemBySlot(EquipmentSlot.HEAD).getHoverName().getString();
     }
 
-    private static void printSummary() {
-        long bloodOpen = splitTime("Blood Open"), bloodClear = splitTime("Blood Clear"), boss = splitTime("Boss Entry"), end = splitTime("End");
-        StringBuilder out = new StringBuilder("Run: ");
-        if (bloodOpen >= 0) out.append("blood rush ").append(bloodOpen / 1000).append("s, ");
-        if (boss >= 0) out.append("clear ").append(boss / 1000).append("s, ");
-        if (boss >= 0 && end >= 0) out.append("boss ").append((end - boss) / 1000).append("s, ");
-        if (bloodClear >= 0 && bloodOpen >= 0) out.append("blood camp ").append((bloodClear - bloodOpen) / 1000).append("s, ");
-        if (end >= 0) out.append("total ").append(time(end));
-        if (config() != null && config().timers.splits) SkyJewAlerts.chat(Component.literal(out.toString()).withStyle(ChatFormatting.YELLOW));
+    // ----- Score display -----
+
+    private static List<Component> scoreLines() {
+        List<Component> lines = new ArrayList<>();
+        int score = DungeonScore.getScore();
+        String scoreColor = score >= 300 ? "§a" : score >= 270 ? "§e" : "§c";
+        lines.add(kv("Score: ", scoreColor + score));
+        lines.add(kv("Secrets: ", "§b" + fixed((float) DungeonScore.secretsPercentage()) + "%§7/§e" + (int) DungeonScore.secretsRequired() + "%"));
+        int crypts = DungeonScore.crypts();
+        lines.add(kv("Crypts: ", (crypts >= 5 ? "§a" : "§c") + crypts));
+        int deaths = DungeonScore.deaths();
+        lines.add(kv("Deaths: ", (deaths == 0 ? "§a" : "§c") + deaths));
+        if (DungeonScore.floorHasMimics()) {
+            lines.add(Component.literal((DungeonScore.wasMimicKilled() ? "§a" : "§c") + "Mimic §8| " + (DungeonScore.wasPrinceKilled() ? "§a" : "§c") + "Prince"));
+        } else {
+            lines.add(Component.literal((DungeonScore.wasPrinceKilled() ? "§a" : "§c") + "Prince"));
+        }
+        return lines;
     }
 
-    private static long splitTime(String name) {
-        for (Split s : SPLITS) if (s.name().equals(name)) return s.time();
-        return -1;
+    // ----- Chat -----
+
+    private static void onChat(SkyJewChat.Message message) {
+        String text = message.text();
+        FeatureConfigs.Dungeons config = config();
+        if (config == null) return;
+
+        if (text.equals("Starting in 1 second.")) startSplits();
+        else onSplitMessage(text);
+
+        // Boss phases for the tick timers and debuff counting.
+        if (text.startsWith("[BOSS] Storm: Pathetic Maxor, just like expected.")) stormStartTick = serverTicks;
+        else if (text.startsWith("[BOSS] Goldor: Who dares trespass into my domain?")) {
+            goldorStartTick = serverTicks;
+            goldorReached = true;
+        }
+        else if (text.equals("The Core entrance is opening!")) stormStartTick = -1;
+        else if (text.startsWith("[BOSS] Necron: You went further than any human before, congratulations.")) goldorStartTick = -1;
+        else if (text.startsWith("[BOSS] Necron: All this, for nothing...")) dragonPhase = true;
+
+        if (SkyJewLocation.inDungeon()) onMaskMessage(text, config);
+
+        if (dragonPhase && text.contains("Dragon") && text.contains("spawning")) resetDebuffs();
     }
+
+    private static void sendCommand(String command) {
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection != null) connection.sendCommand(command);
+    }
+
+    // ----- Debuffs -----
 
     private static void countDebuffUse(ItemStack stack) {
         String name = stack.getHoverName().getString();
@@ -259,6 +526,33 @@ public final class DungeonFeatures {
         iceSpray = 0;
         lethality = 0;
         debuffAlerted = false;
+    }
+
+    /**
+     * Counts server ticks (not client ticks, which drift with FPS and lag) while you charge Last Breath,
+     * and plays the release cue once the configured number of ticks has passed.
+     */
+    private static void tickLastBreath() {
+        FeatureConfigs.Dungeons config = config();
+        var player = Minecraft.getInstance().player;
+        boolean charging = config != null && config.timers.lastBreathRelease && player != null && player.isUsingItem()
+            && player.getUseItem().getHoverName().getString().contains("Last Breath");
+        if (!charging) {
+            lastBreathChargeStart = -1;
+            lastBreathCued = false;
+            return;
+        }
+        if (lastBreathChargeStart < 0) lastBreathChargeStart = serverTicks;
+        if (!lastBreathCued && serverTicks - lastBreathChargeStart >= (int) config.timers.lastBreathTicks) {
+            lastBreathCued = true;
+            Minecraft mc = Minecraft.getInstance();
+            mc.execute(() -> {
+                mc.gui.hud.setTimes(0, 10, 5);
+                mc.gui.hud.setTitle(Component.literal("RELEASE").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
+                mc.gui.hud.setSubtitle(Component.empty());
+                SkyJewAlerts.play(SoundEvents.NOTE_BLOCK_PLING.value(), 2f);
+            });
+        }
     }
 
     private static boolean hasLore(ItemStack stack, String text) {

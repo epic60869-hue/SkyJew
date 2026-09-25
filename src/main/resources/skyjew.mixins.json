@@ -25,6 +25,15 @@
     "SkyJewSlotBackgroundMixin",
     "SkyJewHotbarBackgroundMixin",
     "SkyJewItemDrawBackgroundMixin",
-    "SkyJewPlayerNameTagMixin"
+    "SkyJewPlayerNameTagMixin",
+    "SkyJewSystemChatMixin",
+    "SkyJewLowFireMixin",
+    "SkyJewHideExplosionsMixin",
+    "SkyJewLeapMenuMixin",
+    "SkyJewWorldNickMixin",
+    "SkyJewTextDisplayNickMixin",
+    "SkyJewHeldItemMixin",
+    "SkyJewSwingSpeedMixin",
+    "SkyJewPlayerSizeMixin"
   ]
 }

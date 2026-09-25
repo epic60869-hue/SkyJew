@@ -16,7 +16,9 @@ import com.epic60869.skyjew.sb.utils.container.ContainerSolverManager;
 /** Draws solver highlights and forwards slot clicks, as in Skyblocker's AbstractContainerScreenMixin. */
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerSolverScreenMixin {
-	@Inject(method = "extractTooltip", at = @At("HEAD"))
+	// Drawn right after the slots (the pose is already translated to the container) rather than in extractTooltip,
+	// which other mods cancel inside terminals to hide item tooltips.
+	@Inject(method = "extractSlots", at = @At("TAIL"))
 	private void skyjew$drawSolverHighlights(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
 		AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
 		ContainerSolverManager.onExtract(graphics, screen, screen.getMenu().slots);

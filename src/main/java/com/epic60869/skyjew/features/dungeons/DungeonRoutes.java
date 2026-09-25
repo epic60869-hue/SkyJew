@@ -11,6 +11,7 @@ import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.DungeonManager;
 import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.Room;
 import com.epic60869.skyjew.sb.utils.render.primitive.PrimitiveCollector;
 import com.google.gson.Gson;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -235,7 +236,7 @@ public final class DungeonRoutes {
     }
 
     private static BlockPos pos(JsonArray array) {
-        return new BlockPos(array.get(0).getAsInt(), array.get(1).getAsInt(), array.get(2).getAsInt());
+        return BlockPos.containing(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble());
     }
 
     private static String serialize(Map<String, List<Step>> routes) {
@@ -531,6 +532,12 @@ public final class DungeonRoutes {
                         .then(ClientCommands.literal("list").executes(c -> say("Your routes: "
                             + (CUSTOM.isEmpty() ? "none" : String.join(", ", CUSTOM.keySet())) + ". Stella routes loaded: " + STELLA.size() + ".", ChatFormatting.YELLOW))))
                     .then(ClientCommands.literal("export").executes(c -> export())));
+                dispatcher.register(ClientCommands.literal(root)
+                    .then(ClientCommands.literal("route")
+                        .then(ClientCommands.literal("import")
+                            .executes(c -> importRoutes(null))
+                            .then(ClientCommands.argument("file", StringArgumentType.greedyString())
+                                .executes(c -> importRoutes(StringArgumentType.getString(c, "file")))))));
             }
         });
     }
@@ -595,6 +602,119 @@ public final class DungeonRoutes {
             return 1;
         } catch (Exception e) {
             return say("Export failed: " + e.getMessage(), ChatFormatting.RED);
+        }
+    }
+
+    // ----- Import -----
+
+    /**
+     * Imports routes from the clipboard, or from a file: a path, or a file name in SkyJew's or Stella's route folder.
+     * Accepts Stella's format (what Stella and /sj export write) and the SecretRoutes mod's format.
+     */
+    private static int importRoutes(String file) {
+        String json;
+        String source;
+        try {
+            if (file == null) {
+                json = Minecraft.getInstance().keyboardHandler.getClipboard();
+                source = "your clipboard";
+                if (json == null || json.isBlank()) return say("Your clipboard is empty. Copy a route export (Stella's export or /sj export) or use /sj route import <file>.", ChatFormatting.RED);
+            } else {
+                Path path = findRouteFile(file.trim().replace("\"", ""));
+                if (path == null) return say("Could not find " + file + ". Give a full path, or a file in config/skyjew or config/stella/routes.", ChatFormatting.RED);
+                json = Files.readString(path, StandardCharsets.UTF_8);
+                source = path.getFileName().toString();
+            }
+            Map<String, List<Step>> imported = parseAny(json);
+            if (imported.isEmpty()) return say("No routes found in " + source + ". Supported: Stella / SkyJew route files and SecretRoutes files.", ChatFormatting.RED);
+            for (var entry : imported.entrySet()) {
+                String key = normalize(entry.getKey());
+                CUSTOM.keySet().removeIf(k -> normalize(k).equals(key));
+                CUSTOM.put(entry.getKey(), entry.getValue());
+            }
+            saveCustom();
+            stepIndex = 0;
+            return say("Imported " + imported.size() + " room routes from " + source + ". They replace your routes for those rooms (/sj route clear in a room goes back to Stella's).", ChatFormatting.GREEN);
+        } catch (Exception e) {
+            return say("Import failed: " + e.getMessage(), ChatFormatting.RED);
+        }
+    }
+
+    private static Path findRouteFile(String name) {
+        Path configDir = customFile.getParent().getParent();
+        List<Path> candidates = new ArrayList<>();
+        try {
+            candidates.add(Path.of(name));
+        } catch (Exception ignored) {}
+        for (String n : List.of(name, name + ".json")) {
+            candidates.add(customFile.resolveSibling(n));
+            candidates.add(configDir.resolve("stella").resolve("routes").resolve(n));
+            candidates.add(configDir.resolve(n));
+        }
+        for (Path p : candidates) if (p != null && Files.isRegularFile(p)) return p;
+        return null;
+    }
+
+    private static Map<String, List<Step>> parseAny(String json) {
+        JsonObject root = JsonParser.parseString(json.trim()).getAsJsonObject();
+        if (root.has("routes") && root.get("routes").isJsonObject()) root = root.getAsJsonObject("routes");
+        for (var entry : root.entrySet()) {
+            if (!entry.getValue().isJsonArray() || entry.getValue().getAsJsonArray().isEmpty()) continue;
+            JsonElement first = entry.getValue().getAsJsonArray().get(0);
+            if (!first.isJsonObject()) continue;
+            if (first.getAsJsonObject().has("waypoints")) return parse(root.toString());
+            if (first.getAsJsonObject().has("secret") || first.getAsJsonObject().has("locations")) return parseSecretRoutes(root);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    /**
+     * The SecretRoutes mod's format: per room a list of steps with "locations" (the walk), "etherwarps", "mines",
+     * "tnts", "enderpearls" and a "secret" with a type and location. Its room-relative coordinates are read as-is,
+     * so rooms whose corner differs from Stella's may be offset.
+     */
+    private static Map<String, List<Step>> parseSecretRoutes(JsonObject root) {
+        Map<String, List<Step>> routes = new LinkedHashMap<>();
+        for (var entry : root.entrySet()) {
+            if (!entry.getValue().isJsonArray()) continue;
+            List<Step> steps = new ArrayList<>();
+            for (JsonElement stepElement : entry.getValue().getAsJsonArray()) {
+                if (!stepElement.isJsonObject()) continue;
+                JsonObject sj = stepElement.getAsJsonObject();
+                Step step = new Step();
+                if (steps.isEmpty() && sj.has("locations") && !sj.getAsJsonArray("locations").isEmpty()) {
+                    step.waypoints().add(new Waypoint(pos(sj.getAsJsonArray("locations").get(0).getAsJsonArray()), Type.START, null));
+                }
+                addAll(sj, "locations", null, step);
+                addAll(sj, "etherwarps", Type.ETHERWARP, step);
+                addAll(sj, "mines", Type.MINE, step);
+                addAll(sj, "tnts", Type.SUPERBOOM, step);
+                addAll(sj, "enderpearls", Type.PEARL, step);
+                if (sj.has("secret") && sj.get("secret").isJsonObject()) {
+                    JsonObject secret = sj.getAsJsonObject("secret");
+                    String type = secret.has("type") ? secret.get("type").getAsString().toLowerCase(Locale.ROOT) : "interact";
+                    Type t = switch (type) {
+                        case "item" -> Type.ITEM;
+                        case "bat" -> Type.BAT;
+                        case "exitroute" -> Type.CUSTOM;
+                        default -> Type.CHEST;
+                    };
+                    if (secret.has("location")) step.waypoints().add(new Waypoint(pos(secret.getAsJsonArray("location")), t, t == Type.CUSTOM ? "Exit" : null));
+                }
+                steps.add(step);
+            }
+            if (!steps.isEmpty()) routes.put(entry.getKey(), steps);
+        }
+        return routes;
+    }
+
+    private static void addAll(JsonObject step, String key, Type type, Step into) {
+        if (!step.has(key) || !step.get(key).isJsonArray()) return;
+        for (JsonElement e : step.getAsJsonArray(key)) {
+            if (!e.isJsonArray() || e.getAsJsonArray().size() < 3) continue;
+            BlockPos p = pos(e.getAsJsonArray());
+            if (type == null) into.line().add(p);
+            else into.waypoints().add(new Waypoint(p, type, null));
         }
     }
 

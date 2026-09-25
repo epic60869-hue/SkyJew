@@ -83,7 +83,8 @@ public class SimonSays {
 			Block newBlock = newState.getBlock();
 
 			if (BOARD_AREA.contains(posVec) && newBlock.equals(Blocks.OBSIDIAN) && oldState != null && oldState.getBlock().equals(Blocks.SEA_LANTERN)) {
-				SIMON_PATTERN.add(pos.immutable()); //Convert to immutable because chunk delta updates use the mutable variant
+				BlockPos immutable = pos.immutable(); //Convert to immutable because chunk delta updates use the mutable variant
+				if (!SIMON_PATTERN.contains(immutable)) SIMON_PATTERN.add(immutable);
 			} else if (BUTTONS_AREA.contains(posVec) && newBlock.equals(Blocks.AIR)) {
 				//Upon reaching the showing of the next sequence we need to reset the state so that we don't show old data
 				//Otherwise, the nextIndex will go beyond 5 and that can cause bugs, it also helps with the other case noted above
@@ -121,8 +122,12 @@ public class SimonSays {
 	}
 
 	private static boolean shouldProcess() {
-		return SkyblockerConfigManager.get().dungeons.devices.solveSimonSays &&
-				Utils.isInDungeons() && DungeonManager.isInBoss() && DungeonManager.getBoss() == DungeonBoss.MAXOR;
+		if (!SkyblockerConfigManager.get().dungeons.devices.solveSimonSays || !Utils.isInDungeons()) return false;
+		if (DungeonManager.isInBoss() && DungeonManager.getBoss() == DungeonBoss.MAXOR) return true;
+		// Fallback for when the Maxor message was missed (e.g. after reconnecting): on floor 7, near the device.
+		var player = Minecraft.getInstance().player;
+		return com.epic60869.skyjew.features.core.SkyJewLocation.dungeonFloor().endsWith("7")
+				&& player != null && player.distanceToSqr(Vec3.atCenterOf(START_BUTTON)) < 30 * 30;
 	}
 
 	private static void reset() {

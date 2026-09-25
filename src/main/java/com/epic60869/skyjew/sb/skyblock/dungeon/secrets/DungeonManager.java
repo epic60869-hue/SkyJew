@@ -293,7 +293,7 @@ public class DungeonManager {
 		Scheduler.INSTANCE.scheduleCyclic(DungeonManager::update, 5);
 		Scheduler.INSTANCE.scheduleCyclic(DungeonManager::updateAllRoomCheckmarks, 20);
 		LevelRenderExtractionCallback.EVENT.register(DungeonManager::extractRendering);
-		ClientReceiveMessageEvents.ALLOW_GAME.register(DungeonManager::onChatMessage);
+		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage(DungeonManager::onChatMessage);
 		UseBlockCallback.EVENT.register((_, world, _, hitResult) -> onUseBlock(world, hitResult));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("secrets")
 				.then(literal("markAsFound").then(markSecretsCommand(true)))

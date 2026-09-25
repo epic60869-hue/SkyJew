@@ -1,12 +1,15 @@
 package com.epic60869.skyjew.features.core;
 
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/** Single entry point for chat and action bar messages, shared by all SkyJew features. */
+/**
+ * Single entry point for chat and action bar messages, shared by all SkyJew features.
+ * Messages are read from the system chat packet (see SkyJewSystemChatMixin) rather than Fabric's
+ * receive events, so SkyJew still sees messages that another mod hides (e.g. [BOSS] dialogue).
+ */
 public final class SkyJewChat {
     /** A received message with its formatting-stripped text. */
     public record Message(Component component, String text) {}
@@ -15,17 +18,34 @@ public final class SkyJewChat {
         void onMessage(Message message);
     }
 
+    /** Raw listener for both chat and action bar messages. */
+    public interface GameListener {
+        void onMessage(Component message, boolean overlay);
+    }
+
     private static final List<Listener> CHAT = new CopyOnWriteArrayList<>();
     private static final List<Listener> ACTION_BAR = new CopyOnWriteArrayList<>();
+    private static final List<GameListener> GAME = new CopyOnWriteArrayList<>();
 
     private SkyJewChat() {}
 
-    public static void init() {
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> dispatch(overlay ? ACTION_BAR : CHAT, message));
-    }
+    public static void init() {}
 
     public static void onChat(Listener listener) { CHAT.add(listener); }
     public static void onActionBar(Listener listener) { ACTION_BAR.add(listener); }
+    public static void onGameMessage(GameListener listener) { GAME.add(listener); }
+
+    /** Called on the render thread for every system chat packet, before other mods can cancel it. */
+    public static void onPacket(Component component, boolean overlay) {
+        for (GameListener listener : GAME) {
+            try {
+                listener.onMessage(component, overlay);
+            } catch (Exception e) {
+                System.err.println("[SkyJew] Chat listener failed: " + e);
+            }
+        }
+        dispatch(overlay ? ACTION_BAR : CHAT, component);
+    }
 
     private static void dispatch(List<Listener> listeners, Component component) {
         if (listeners.isEmpty()) return;

@@ -47,7 +47,7 @@ public class DungeonPlayerManager {
 	public static void init() {
 		DungeonEvents.DUNGEON_LOADED.register(() -> dungeonLoaded = true);
 		Scheduler.INSTANCE.scheduleCyclic(DungeonPlayerManager::updatePlayers, 1);
-		ClientReceiveMessageEvents.ALLOW_GAME.register(DungeonPlayerManager::onPlayerGhost);
+		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage(DungeonPlayerManager::onPlayerGhost);
 		ClientPlayConnectionEvents.JOIN.register((_, _, _) -> reset());
 	}
 

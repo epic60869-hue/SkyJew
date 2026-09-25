@@ -98,6 +98,8 @@ public class DungeonMap {
 	}
 
 	public static MapId getMapIdComponent(@Nullable ItemStack stack) {
+		// SkyJew: with no stack given, look at the map in the last hotbar slot, so map packets are matched before the map is first drawn.
+		if (stack == null && Minecraft.getInstance().player != null) stack = Minecraft.getInstance().player.getInventory().getNonEquipmentItems().get(8);
 		if (stack != null && stack.is(Items.FILLED_MAP) && stack.has(DataComponents.MAP_ID)) {
 			MapId mapIdComponent = stack.get(DataComponents.MAP_ID);
 			cachedMapIdComponent = mapIdComponent;

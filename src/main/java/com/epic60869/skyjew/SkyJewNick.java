@@ -200,6 +200,31 @@ public final class SkyJewNick {
         return replaceExactName(original, actualName, styled(remote.name, remote.mode, remote.customHex));
     }
 
+    /**
+     * Replaces your username (when your nick is on) and other SkyJew users' usernames in text shown in the world:
+     * entity nametags, Hypixel's armor-stand name lines and text displays.
+     */
+    public static Component worldText(Component original) {
+        if (original == null || config() == null) return original;
+        String plain = original.getString();
+        Component result = original;
+        Minecraft mc = Minecraft.getInstance();
+        if (localNickActive() && mc.player != null) {
+            String self = mc.player.getGameProfile().name();
+            if (plain.contains(self)) {
+                result = replaceExactName(result, self,
+                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
+            }
+        }
+        if (config().misc.nickname.seeOtherNicks) {
+            for (RemoteNick remote : REMOTE_NICKS.values()) {
+                if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank() || isLocalUuid(remote.uuid)) continue;
+                if (plain.contains(remote.username)) result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex));
+            }
+        }
+        return result;
+    }
+
     private static boolean localNickActive() {
         return config() != null && config().misc.nickname.enabled
             && config().misc.nickname.name != null && !config().misc.nickname.name.isBlank();

@@ -47,7 +47,7 @@ public final class FarmingRngTracker {
     public void register() {
         ItemPriceResolver.warmup();
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> handle(message));
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handle(message));
+        com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage((message, overlay) -> handle(message));
     }
 
     /** Returns every currently displayed RNG drop, removing entries idle for 3 seconds. */

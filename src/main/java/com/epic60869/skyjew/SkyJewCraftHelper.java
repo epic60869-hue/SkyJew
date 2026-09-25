@@ -66,7 +66,7 @@ public final class SkyJewCraftHelper {
 
     // ----- Evaluated state (SkyOcean's CraftHelperState) -----
     private record Row(String prefix, String id, int available, int needed, boolean done, boolean childrenDone,
-                       int fromInventory, int fromStorage, int throughParents, int carryOver, String recipeType) {}
+                       int fromInventory, int fromStorage, int throughParents, int carryOver, String recipeType, boolean leaf) {}
 
     private static String selectedId;
     private static int selectedAmount = 1;
@@ -82,6 +82,17 @@ public final class SkyJewCraftHelper {
     private SkyJewCraftHelper() {}
 
     public static void init(Path configDir) {
+        // SkyOcean's CraftHelperOverlay: "64x Item" and the raw list of base ingredients, movable in /sj gui.
+        com.epic60869.skyjew.features.core.SkyJewHuds.register("craft_helper", "Recipe (Craft Helper)",
+            () -> {
+                SkyJewConfig config = SkyJewConfig.current();
+                return config != null && config.misc.recipeHud && selectedId != null && Compat.isOnSkyblock();
+            },
+            SkyJewCraftHelper::hudLines,
+            List.of(Component.literal("64x Hyperion").withStyle(ChatFormatting.GOLD),
+                Component.literal("✔ 8/8 Necron's Handle").withStyle(ChatFormatting.GREEN),
+                Component.literal("✖ 120/350 Wither Catalyst").withStyle(ChatFormatting.RED)),
+            8, 200);
         file = configDir.resolve("skyjew-crafthelper.json");
         try {
             if (Files.exists(file)) {
@@ -143,6 +154,60 @@ public final class SkyJewCraftHelper {
 
     public static void setAmount(int amount) {
         if (selectedId != null) select(selectedId, amount, true);
+    }
+
+    private static int perCraft() {
+        return tree == null || tree.recipe == null ? 1 : Math.max(1, tree.recipe.outputCount());
+    }
+
+    /** Changes the amount by whole crafts: 1, or 10 with Shift, or 64 with Ctrl (SkyOcean's -/+ buttons). */
+    private static void stepAmount(int direction) {
+        if (selectedId == null) return;
+        var window = Minecraft.getInstance().getWindow();
+        boolean ctrl = org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS
+            || org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        boolean shift = org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS
+            || org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        int step = ctrl ? 64 : shift ? 10 : 1;
+        int per = perCraft();
+        int crafts = Math.max(1, selectedAmount / per + direction * step);
+        select(selectedId, crafts * per, false);
+    }
+
+    /** HUD lines: title and the merged base ingredients, like SkyOcean's raw formatter. */
+    private static List<Component> hudLines() {
+        refresh();
+        List<Component> lines = new ArrayList<>();
+        if (selectedId == null) return lines;
+        lines.add(Component.literal(selectedAmount + "x ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(SkyJewRecipeCommand.displayName(selectedId)).withStyle(ChatFormatting.GOLD)));
+        if (building) {
+            lines.add(Component.literal("Loading recipes...").withStyle(ChatFormatting.GRAY));
+            return lines;
+        }
+        java.util.LinkedHashMap<String, int[]> merged = new java.util.LinkedHashMap<>();
+        for (Row row : rows) {
+            if (!row.leaf() || row == rows.getFirst()) continue;
+            int[] totals = merged.computeIfAbsent(row.id(), k -> new int[2]);
+            totals[0] += row.available();
+            totals[1] += row.needed();
+        }
+        SkyJewConfig config = SkyJewConfig.current();
+        boolean hideDone = config != null && config.misc.recipeHudHideCompleted;
+        int shown = 0;
+        for (var entry : merged.entrySet()) {
+            int have = entry.getValue()[0], need = entry.getValue()[1];
+            boolean done = have >= need;
+            if (done && hideDone) continue;
+            float progress = need <= 0 ? 1f : Math.min(1f, have / (float) need);
+            int colour = ARGB.srgbLerp(progress, 0xFF5555, 0x55FF55);
+            lines.add(Component.literal(done ? "✔ " : "✖ ").withStyle(done ? ChatFormatting.GREEN : ChatFormatting.RED)
+                .append(Component.literal(String.format(Locale.US, "%,d/%,d ", Math.min(have, need), need)).withColor(colour))
+                .append(Component.literal(SkyJewRecipeCommand.displayName(entry.getKey())).withStyle(ChatFormatting.WHITE)));
+            if (++shown >= 20) break;
+        }
+        if (shown == 0) lines.add(Component.literal("You have everything!").withStyle(ChatFormatting.GREEN));
+        return lines;
     }
 
     private static void message(Component text) {
@@ -386,7 +451,7 @@ public final class SkyJewCraftHelper {
         }
         String type = node.recipe == null ? "none" : node.recipe.type();
         out.set(rowIndex, new Row(prefix, node.id, amount + node.carriedOver, stateRequired, done, childrenDone,
-            taken[0], taken[1], throughParents, node.carriedOver, type));
+            taken[0], taken[1], throughParents, node.carriedOver, type, node.children.isEmpty()));
         return new State(amount, stateRequired, node.carriedOver, throughParents, done, childrenDone);
     }
 
@@ -427,8 +492,22 @@ public final class SkyJewCraftHelper {
         g.fill(x, y, x + w, y + h, 0xE0101420);
         g.fill(x, y, x + w, y + 1, 0xFF9A6CFF);
         g.item(RepoItems.itemStack(selectedId), x + PADDING, y + PADDING);
-        String title = (tree == null ? selectedAmount : tree.required) + "x " + SkyJewRecipeCommand.displayName(selectedId);
-        g.text(font, font.plainSubstrByWidth(title, w - 44), x + PADDING + 20, y + PADDING + 4, 0xFFFFD34D, true);
+        String title = SkyJewRecipeCommand.displayName(selectedId);
+        g.text(font, font.plainSubstrByWidth(title, w - 44), x + PADDING + 20, y + PADDING - 1, 0xFFFFD34D, true);
+        int ax = x + PADDING + 20, ay = y + PADDING + 9;
+        String amountText = " " + selectedAmount + " ";
+        g.text(font, "-", ax, ay, 0xFFFF5555, true);
+        g.text(font, amountText, ax + 6, ay, 0xFFAAAAAA, true);
+        g.text(font, "+", ax + 6 + font.width(amountText), ay, 0xFF55FF55, true);
+        boolean overMinus = mouseX >= ax - 2 && mouseX < ax + 6 && mouseY >= ay - 1 && mouseY < ay + 9;
+        boolean overPlus = mouseX >= ax + 4 + font.width(amountText) && mouseX < ax + 12 + font.width(amountText) && mouseY >= ay - 1 && mouseY < ay + 9;
+        if (overMinus || overPlus) {
+            String verb = overMinus ? "decrease" : "increase";
+            g.setTooltipForNextFrame(font, List.of(
+                Component.literal("Click to " + verb + " by 1").withStyle(ChatFormatting.GRAY),
+                Component.literal("Shift + Click to " + verb + " by 10").withStyle(ChatFormatting.GRAY),
+                Component.literal("Ctrl + Click to " + verb + " by 64").withStyle(ChatFormatting.GRAY)), java.util.Optional.empty(), mouseX, mouseY);
+        }
         g.fill(x + w - 16, y + 4, x + w - 4, y + 16, 0xFF8B1E2D);
         g.text(font, "×", x + w - 12, y + 6, 0xFFFFFFFF, true);
 
@@ -475,6 +554,19 @@ public final class SkyJewCraftHelper {
         if (mouseX >= x + w - 16 && mouseY < y + 18) {
             clear();
             return true;
+        }
+        var font = Minecraft.getInstance().font;
+        int ax = x + PADDING + 20, ay = y + PADDING + 9;
+        int amountWidth = font.width(" " + selectedAmount + " ");
+        if (mouseY >= ay - 1 && mouseY < ay + 9) {
+            if (mouseX >= ax - 2 && mouseX < ax + 6) {
+                stepAmount(-1);
+                return true;
+            }
+            if (mouseX >= ax + 4 + amountWidth && mouseX < ax + 12 + amountWidth) {
+                stepAmount(1);
+                return true;
+            }
         }
         int index = (int) ((mouseY - (y + 28)) / LINE_HEIGHT) + scroll;
         if (mouseY >= y + 28 && index >= 0 && index < rows.size() && !rows.get(index).recipeType().equals("none")) {

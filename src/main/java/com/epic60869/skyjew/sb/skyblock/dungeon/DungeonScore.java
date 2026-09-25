@@ -93,8 +93,8 @@ public class DungeonScore {
 		ClientPlayConnectionEvents.JOIN.register((_, _, _) -> reset());
 		DungeonEvents.DUNGEON_STARTED.register(DungeonScore::onDungeonStart);
 		DungeonEvents.DUNGEON_ENDED.register(DungeonScore::reset);
-		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
-			if (overlay || !Utils.isInDungeons()) return true;
+		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage((message, overlay) -> {
+			if (overlay || !Utils.isInDungeons()) return;
 			String str = message.getString();
 			if (dungeonStarted) {
 				checkMessageForDeaths(str);
@@ -103,8 +103,6 @@ public class DungeonScore {
 				checkMessageForPrince(str);
 				checkMessageForBat(str);
 			}
-
-			return true;
 		});
 		SkyblockEvents.MAYOR_CHANGE.register(() -> isMayorPaul = MayorUtils.getActivePerks().contains("EZPZ"));
 	}
@@ -120,7 +118,7 @@ public class DungeonScore {
 		score = calculateScore();
 		if (!sent270 && !sent300 && score >= 270 && score < 300) {
 			if (SCORE_CONFIG.get().enableDungeonScore270Message) {
-				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc " + Constants.PREFIX.get().getString() + SCORE_CONFIG.get().dungeonScore270Message.replaceAll("\\[score]", "270"), true);
+				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SJ] " + SCORE_CONFIG.get().dungeonScore270Message.replaceAll("\\[score]", "270"), true);
 			}
 			if (SCORE_CONFIG.get().enableDungeonScore270Title) {
 				client.gui.hud.resetTitleTimes();
@@ -128,6 +126,9 @@ public class DungeonScore {
 			}
 			if (SCORE_CONFIG.get().enableDungeonScore270Sound) {
 				client.player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(), 100f, 0.1f);
+			}
+			if (SCORE_CONFIG.get().enableDungeonScore270Title) {
+				com.epic60869.skyjew.features.core.SkyJewAlerts.chat(Component.literal("270 score reached in " + formatRunTime() + "!").withStyle(net.minecraft.ChatFormatting.YELLOW));
 			}
 			sent270 = true;
 		}
@@ -142,7 +143,7 @@ public class DungeonScore {
 
 		if (!sent300 && score >= 300) {
 			if (SCORE_CONFIG.get().enableDungeonScore300Message) {
-				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc " + Constants.PREFIX.get().getString() + SCORE_CONFIG.get().dungeonScore300Message.replaceAll("\\[score]", "300"), true);
+				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SJ] " + SCORE_CONFIG.get().dungeonScore300Message.replaceAll("\\[score]", "300"), true);
 			}
 			if (SCORE_CONFIG.get().enableDungeonScore300Title) {
 				client.gui.hud.resetTitleTimes();
@@ -151,8 +152,16 @@ public class DungeonScore {
 			if (SCORE_CONFIG.get().enableDungeonScore300Sound) {
 				client.player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(), 100f, 0.1f);
 			}
+			if (SCORE_CONFIG.get().enableDungeonScore300Title) {
+				com.epic60869.skyjew.features.core.SkyJewAlerts.chat(Component.literal("300 score reached in " + formatRunTime() + "!").withStyle(net.minecraft.ChatFormatting.GREEN));
+			}
 			sent300 = true;
 		}
+	}
+
+	private static String formatRunTime() {
+		long seconds = (System.currentTimeMillis() - startingTime) / 1000;
+		return seconds / 60 + "m " + seconds % 60 + "s";
 	}
 
 	private static void reset() {
@@ -280,6 +289,35 @@ public class DungeonScore {
 		return princeKilled;
 	}
 
+	// SkyJew: read by the score display and score alerts.
+	public static boolean wasMimicKilled() {
+		return mimicKilled || (floorHasMimics && getSecretsPercentage() >= 100);
+	}
+
+	public static boolean floorHasMimics() {
+		return floorHasMimics;
+	}
+
+	public static double secretsPercentage() {
+		return getSecretsPercentage();
+	}
+
+	public static double secretsRequired() {
+		return floorRequirement.percentage;
+	}
+
+	public static int crypts() {
+		return getCrypts();
+	}
+
+	public static int deaths() {
+		return deathCount;
+	}
+
+	public static long runStartMillis() {
+		return startingTime;
+	}
+
 	//This is not very accurate at the beginning of the dungeon since clear percentage is rounded to the closest integer, so at lower percentages its effect on the result is quite high.
 	//For example: If clear percentage is 7% with a single room completed, it can be rounded from 6.5 or 7.49. In that range, the actual total room count can be either 14 or 15 while our result is 14.
 	//Score might fluctuate at first if the total room amount calculated changes as it gets more accurate with each room completed.
@@ -303,7 +341,7 @@ public class DungeonScore {
 	private static double getClearPercentage() {
 		for (String sidebarLine : Utils.STRING_SCOREBOARD) {
 			Matcher clearMatcher = CLEARED_PATTERN.matcher(sidebarLine);
-			if (!clearMatcher.matches()) continue;
+			if (!clearMatcher.find()) continue;
 			return Double.parseDouble(clearMatcher.group("cleared")) / 100.0;
 		}
 		LOGGER.error("[Skyblocker] Clear pattern doesn't match!");
@@ -404,8 +442,14 @@ public class DungeonScore {
 	public static void setCurrentFloor() {
 		for (String sidebarLine : Utils.STRING_SCOREBOARD) {
 			Matcher floorMatcher = FLOOR_PATTERN.matcher(sidebarLine);
-			if (!floorMatcher.matches()) continue;
+			// find(): Hypixel pads sidebar lines with extra characters, so the line never matches as a whole.
+			if (!floorMatcher.find()) continue;
 			currentFloor = floorMatcher.group("floor");
+			return;
+		}
+		String floor = com.epic60869.skyjew.features.core.SkyJewLocation.dungeonFloor();
+		if (!floor.isEmpty()) {
+			currentFloor = floor;
 			return;
 		}
 		LOGGER.error("[Skyblocker] Floor pattern doesn't match!");

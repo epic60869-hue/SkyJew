@@ -89,7 +89,7 @@ public final class SkyJewNopoFeatures {
         loadDefaultEmojiSymbols();
         loadEmojis();
         loadBuiltInEmojiAliases();
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
+        com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage((message, overlay) -> { handleSlayer(message); handleRareCrop(message); });
         registerOverflowPets();
         registerPetHud();
         initialized = true;

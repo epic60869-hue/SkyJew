@@ -2,6 +2,41 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## Unreleased
+
+### Added
+- Leap Menu (Dungeons): an Odin-style Spirit Leap menu with one box per teammate. Each class has its own colour (Archer orange, Mage blue, Berserk red, Healer purple, Tank green) and corner, and both can be changed.
+- Blood Camp (Dungeons): Watcher move prediction with a Move Timer HUD and a "Kill Mobs" title, and kill timers that box where each blood mob lands with a countdown until it spawns.
+- Door and key highlight: wither and blood doors are outlined green when your team has the key and red when locked; dropped keys are outlined and announced.
+- Score (Dungeons): 270 and 300 score titles, sounds and chat messages, a separate party-chat toggle and editable message for each (sent as "[SJ] ..."), and a Score Display HUD with score, secrets, crypts, deaths and mimic/prince.
+- Positional messages: `/sj posmsg add here|at|in ...` sends a party message when you reach a spot, like Odin. Built-in waypoints include "Py Stand Here" at 95, 165.5, 94.4 during Storm on floor 7 (Mage only), "Mage Stop" at 34, 169, 65 during Storm (Mage only), "Arch Stand Here" at 102-104, 168, 49 during Storm (Archer only), "Tank Stand Here" at 109, 170, 93 during Storm (Tank only), "Healer Stand Here After Lighting" at 58, 169, 66 during Storm (Healer only), and "SS" during Goldor until Necron (Healer only): the block at 109, 120, 93 is highlighted and standing at 108, 120, 93 sends "At SS" to party chat once. Radius messages draw an Odin-style ring.
+- `/sj route import`: imports routes from your clipboard or a file (Stella / SkyJew format, or SecretRoutes files).
+- Last Breath release cue: a sound and RELEASE title once you have charged Last Breath for 5 server ticks (adjustable).
+- Misc > Random: Low Fire (lowers the burning overlay) and Hide Explosions.
+- Platform Highlight (3x3) (Dungeons): one box over the floor 7 3x3 platform (x 53-55, z 113-115) from when Goldor starts, like NoFrills, with Healer Only, style and colour options.
+- Pristine Record (Mining): remembers your highest pristine proc, overall and per gemstone, and alerts on a new PB. `/sj pristine` lists them.
+- Portfolio (`/sj portfolio`): track items you own (e.g. pet skins) with live prices. Quantities are counted from your inventory and every Ender Chest / backpack page you have opened, plus an extra amount you can type. Set a buy price to see profit/loss. Auction and bazaar sales of tracked items can be logged (asking first or automatically), value history is saved every 30 minutes with an in-game graph, and Export CSV writes portfolio.csv, history.csv and sold.csv for Excel.
+- `/sj recipe` now works like SkyOcean's craft helper: the panel next to your inventory has -/+ buttons for the amount (Shift 10, Ctrl 64), and a movable Recipe HUD shows the item and the base ingredients you still need while you play (Misc > Recipe HUD).
+- Misc > Player Size: make yourself, other players, or both smaller or bigger (client side), like Odin.
+- Misc > Held Item Model: move, rotate and scale the item in your hand and change swing speed, like Skysoft; `/sj helditem save` stores settings for one item.
+
+### Changed
+- Splits now work like Odin's: Blood Open, Blood Clear, Portal Entry, each boss phase and Total, with Boss Entry, tick times, per-floor personal bests and a "took" message after each split.
+- Mask timers now follow Odin: Spirit, Bonzo and Phoenix always show invincibility time, cooldown or ready, counted in server ticks, with your Bonzo cooldown read from the mask. Optional party announce.
+- Nicknames now also replace your name in Hypixel's name lines above heads, not just the vanilla nametag.
+- Starred mob boxes no longer show through walls.
+- The puzzle solvers now use Odin's: Ice Fill (with optional shorter paths), Boulder, Creeper Beams, Three Weirdos, Quiz, Teleport Maze, Water Board (with optional faster solutions) and Blaze. Tic Tac Toe and Silverfish keep their solvers.
+
+### Fixed
+- SkyJew now reads chat straight from the server, so it still sees [BOSS] and [NPC] lines when another mod hides them. This was why Simon Says, splits, boss tick timers, the dungeon score and the map did not start.
+- Simon Says also turns on near the device on floor 7 if the Maxor message was missed.
+- Terminal solver highlights are drawn with the slots, so mods that hide tooltips in terminals no longer hide them.
+- The dungeon map now updates whenever Hypixel sends a map update, not only when a room is identified.
+- The dungeon floor is read correctly from the sidebar ("Floor pattern doesn't match").
+- Beacon beams from mods built for Minecraft 26.1 (such as Odin's quiz and terminal beams) no longer show the missing texture.
+- The "Kills Since Rare Drop" setting was not saved.
+- Storage search (`/sj search`) kept one storage for every profile, so your ironman showed your main profile's items. Each SkyBlock profile now has its own storage (reopen your Ender Chest and backpacks once per profile).
+
 ## 1.2.1 — 2026-09-25
 
 ### Fixed
