@@ -71,6 +71,7 @@ public final class SkyJewCommissionHud {
 
         List<Commission> found = new ArrayList<>();
         boolean inCommissions = false;
+        final int maxCommissions = 4;
 
         for (PlayerInfo entry : entries) {
             Component display = entry.getTabListDisplayName();
