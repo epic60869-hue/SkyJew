@@ -402,8 +402,8 @@ public final class SkyJewCustomScreen extends Screen {
             super(x,y,w,h,Component.literal("Trim Selection")); this.item=item.copy();
             var lookup=minecraft.level!=null?minecraft.level.registryAccess():minecraft.getConnection()!=null?minecraft.getConnection().registryAccess():null;
             if(lookup!=null) {
-                lookup.lookupOrThrow(Registries.TRIM_PATTERN).listElementIds().forEach(k->patterns.add(k.identifier()));
-                lookup.lookupOrThrow(Registries.TRIM_MATERIAL).listElementIds().forEach(k->materials.add(k.identifier()));
+                lookup.lookupOrThrow(Registries.TRIM_PATTERN).listElements().forEach(k->patterns.add(k.key().identifier()));
+                lookup.lookupOrThrow(Registries.TRIM_MATERIAL).listElements().forEach(k->materials.add(k.key().identifier()));
             }
             patterns.sort(Comparator.comparing(Identifier::toString)); materials.sort(Comparator.comparing(Identifier::toString));
         }
