@@ -107,13 +107,22 @@ public final class SkyJewCustom {
     public static String uuid(ItemStack stack) {
         try {
             if (stack == null || stack.isEmpty()) return "";
-            // Hypixel item UUIDs are stored in the CustomData root.
-            // Keep this compatible with the 26.1.2 ItemStack mappings.
+
+            // Use the same UUID accessor Skyblocker uses on 26.1.2. This is
+            // important because Hypixel item UUIDs are exposed through the
+            // ItemStack API even when their backing component layout changes.
+            String direct = stack.getUuid();
+            if (direct != null && !direct.isBlank()) return direct;
+
+            // Compatibility fallback for older/atypical Hypixel stacks.
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-            return data == null ? "" : data.copyTag().getStringOr("uuid", "");
+            if (data != null) {
+                String legacy = data.copyTag().getStringOr("uuid", "");
+                if (!legacy.isBlank()) return legacy;
+            }
         } catch (Throwable ignored) {
-            return "";
         }
+        return "";
     }
 
     public static boolean hasUuid(ItemStack stack) {
