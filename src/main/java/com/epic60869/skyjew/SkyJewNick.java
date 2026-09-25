@@ -150,38 +150,10 @@ public final class SkyJewNick {
         final String finalNickMode = nickMode;
         final String finalNickHex = nickHex;
 
-        MutableComponent result = Component.empty();
-        final boolean[] replaced = {false};
+        Component replacement = styled(finalNickName, finalNickMode, finalNickHex);
+        Component result = replaceExactName(original, actualName, replacement);
 
-        // Hypixel may put the rank prefix and username in the same styled leaf.
-        // Split only that leaf so the rank keeps its original formatting.
-        original.visit((style, value) -> {
-            if (value == null || value.isEmpty()) return java.util.Optional.empty();
-
-            if (!replaced[0]) {
-                int at = value.indexOf(actualName);
-                if (at >= 0) {
-                    if (at > 0) {
-                        result.append(Component.literal(value.substring(0, at)).setStyle(style));
-                    }
-                    result.append(styled(finalNickName, finalNickMode, finalNickHex));
-                    if (at + actualName.length() < value.length()) {
-                        result.append(Component.literal(value.substring(at + actualName.length())).setStyle(style));
-                    }
-                    replaced[0] = true;
-                    return java.util.Optional.empty();
-                }
-            }
-
-            result.append(Component.literal(value).setStyle(style));
-            return java.util.Optional.empty();
-        }, Style.EMPTY);
-
-        // Some server-side TAB implementations expose a display component
-        // which does not contain the GameProfile name as a leaf. In that case
-        // still show the local nickname rather than silently falling back to
-        // the original username.
-        if (replaced[0]) return result;
+        if (result != original) return result;
         if (local) {
             return styled(finalNickName, finalNickMode, finalNickHex);
         }
