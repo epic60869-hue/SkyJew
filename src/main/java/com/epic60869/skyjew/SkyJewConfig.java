@@ -64,20 +64,8 @@ public final class SkyJewConfig extends Config {
     public com.epic60869.skyjew.features.FeatureConfigs.Foraging foraging = new com.epic60869.skyjew.features.FeatureConfigs.Foraging();
 
     @Expose
-    @Category(name = "Enchanting", desc = "Experimentation table solvers.")
-    public com.epic60869.skyjew.features.FeatureConfigs.Enchanting enchanting = new com.epic60869.skyjew.features.FeatureConfigs.Enchanting();
-
-    @Expose
-    @Category(name = "Alchemy", desc = "Alchemy 50 estimate.")
-    public com.epic60869.skyjew.features.FeatureConfigs.Alchemy alchemy = new com.epic60869.skyjew.features.FeatureConfigs.Alchemy();
-
-    @Expose
     @Category(name = "Runecrafting", desc = "Valuable rune alerts.")
     public com.epic60869.skyjew.features.FeatureConfigs.Runecrafting runecrafting = new com.epic60869.skyjew.features.FeatureConfigs.Runecrafting();
-
-    @Expose
-    @Category(name = "Hunting", desc = "Safari critter tracker and Hunting Box value.")
-    public com.epic60869.skyjew.features.FeatureConfigs.Hunting hunting = new com.epic60869.skyjew.features.FeatureConfigs.Hunting();
 
     @Expose
     @Category(name = "Dungeons", desc = "Map, puzzle solvers, secrets, terminals, splits and timers.")
@@ -127,6 +115,11 @@ public final class SkyJewConfig extends Config {
 
     public static final class Chat {
         @Expose
+        @Accordion
+        @ConfigOption(name = "Custom Chat", desc = "Control how SkyJew command output from other players appears in chat.")
+        public CustomChat customChat = new CustomChat();
+
+        @Expose
         @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
         @ConfigEditorBoolean
         public boolean compactChat = true;
@@ -137,9 +130,9 @@ public final class SkyJewConfig extends Config {
         public boolean chatEmoji = true;
 
         @Expose
-        @Accordion
-        @ConfigOption(name = "Custom Chat", desc = "Control how SkyJew command output from other players appears in chat.")
-        public CustomChat customChat = new CustomChat();
+        @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyJew chat) just above the chat box while it is open.")
+        @ConfigEditorBoolean
+        public boolean currentChatDisplay = true;
     }
 
     public static final class CustomChat {
@@ -188,7 +181,7 @@ public final class SkyJewConfig extends Config {
         @Expose
         @ConfigOption(name = "Background", desc = "Draw a dark background behind the commission HUD.")
         @ConfigEditorBoolean
-        public boolean background = true;
+        public boolean background = false;
 
         @Expose
         @ConfigOption(name = "Scale", desc = "Scale the commission HUD.")
@@ -234,14 +227,14 @@ public final class SkyJewConfig extends Config {
     }
 
     public static final class Slayers {
-        @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
-        @ConfigEditorBoolean
-        public boolean killsSinceDrop = true;
-
         @Expose
         @Accordion
         @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker and boss phase HUDs.")
         public com.epic60869.skyjew.features.FeatureConfigs.Slayer huds = new com.epic60869.skyjew.features.FeatureConfigs.Slayer();
+
+        @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
+        @ConfigEditorBoolean
+        public boolean killsSinceDrop = true;
     }
 
     public static final class Pets {
@@ -302,6 +295,28 @@ public final class SkyJewConfig extends Config {
         public boolean groundOnly = true;
     }
 
+    public static final class PriceTooltip {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show item prices in tooltips.")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "3 Day Avg. Price", desc = "The item's average lowest BIN price over the last 3 days.")
+        @ConfigEditorBoolean
+        public boolean threeDayAverage = true;
+
+        @Expose
+        @ConfigOption(name = "Lowest BIN Price", desc = "The item's current lowest Buy It Now price on the auction house.")
+        @ConfigEditorBoolean
+        public boolean lowestBin = true;
+
+        @Expose
+        @ConfigOption(name = "NPC Sell Price", desc = "How much an NPC buys the item for.")
+        @ConfigEditorBoolean
+        public boolean npcPrice = true;
+    }
+
     public static final class ItemRarity {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Show a background behind SkyBlock items in your inventory, containers and hotbar using the item's rarity color.")
@@ -326,14 +341,19 @@ public final class SkyJewConfig extends Config {
         public com.epic60869.skyjew.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyjew.features.FeatureConfigs.PartyCommands();
 
         @Expose
-        @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
-        @ConfigEditorBoolean
-        public boolean calendarTimeToRealTime = true;
-
-        @Expose
         @Accordion
         @ConfigOption(name = "Item Rarity", desc = "Rarity-coloured backgrounds behind SkyBlock items.")
         public ItemRarity itemRarity = new ItemRarity();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Experimental Table", desc = "Experimentation table solvers: Chronomatron, Superpairs and Ultrasequencer.")
+        public com.epic60869.skyjew.features.FeatureConfigs.Enchanting experimentalTable = new com.epic60869.skyjew.features.FeatureConfigs.Enchanting();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Item Price Tooltip", desc = "Add prices to SkyBlock item tooltips, like Skyblocker.")
+        public PriceTooltip priceTooltip = new PriceTooltip();
 
         @Expose
         @Accordion
@@ -344,6 +364,11 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Mouse Reset", desc = "Reset the mouse cursor when selected SkyBlock menus open.")
         public MouseReset mouseReset = new MouseReset();
+
+        @Expose
+        @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
+        @ConfigEditorBoolean
+        public boolean calendarTimeToRealTime = true;
     }
 
     public static final class MouseReset {
@@ -440,6 +465,18 @@ public final class SkyJewConfig extends Config {
         return StructuredText.of("§dSkyJew Mod");
     }
 
+    private static final Gson SNAPSHOT_GSON = new com.google.gson.GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
+    private static String lastSaved;
+    private static int saveCheckTicks;
+
+    private static String snapshot() {
+        try {
+            return managed == null ? null : SNAPSHOT_GSON.toJson(managed.getInstance());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static SkyJewConfig load(Path path) {
         try {
             migrateLegacy(path);
@@ -469,6 +506,22 @@ public final class SkyJewConfig extends Config {
         // MoulConfig calls saveNow() when its GUI closes, which only runs these runnables.
         // Without this, changes made in /sj were lost unless something else saved later.
         managed.getInstance().saveRunnables.add(managed::saveToFile);
+
+        // Also save whenever any setting changes. Relying on the GUI-close hook alone lost changes
+        // (for example the item rarity style) when the screen was closed in ways that skip it.
+        lastSaved = snapshot();
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (++saveCheckTicks % 20 != 0 || managed == null) return;
+            String now = snapshot();
+            if (now != null && !now.equals(lastSaved)) {
+                lastSaved = now;
+                try {
+                    managed.saveToFile();
+                } catch (Exception e) {
+                    System.err.println("[SkyJew] Failed to save config: " + e.getMessage());
+                }
+            }
+        });
 
         return managed.getInstance();
     }
@@ -582,6 +635,13 @@ public final class SkyJewConfig extends Config {
             if (!mouseReset.has("accessoryBag")) { mouseReset.addProperty("accessoryBag", true); changed = true; }
             if (!mouseReset.has("enderChest")) { mouseReset.addProperty("enderChest", true); changed = true; }
             if (!mouseReset.has("backpack")) { mouseReset.addProperty("backpack", true); changed = true; }
+        }
+
+        // The Enchanting tab became the Experimental Table section in Misc.
+        if (root.has("enchanting") && root.get("enchanting").isJsonObject()) {
+            if (!misc.has("experimentalTable")) misc.add("experimentalTable", root.get("enchanting"));
+            root.remove("enchanting");
+            changed = true;
         }
 
         if (root.has("farming") && root.get("farming").isJsonObject()) {

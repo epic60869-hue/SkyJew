@@ -82,6 +82,7 @@ public class CustomizeScreen extends Screen {
 				general.customDyeColors.containsKey(uuid) ? OptionalInt.of(general.customDyeColors.getInt(uuid)) : OptionalInt.empty(),
 				general.customAnimatedDyes.containsKey(uuid) ? Optional.of(general.customAnimatedDyes.get(uuid)) : Optional.empty(),
 				general.customHelmetTextures.containsKey(uuid) ? Optional.of(general.customHelmetTextures.get(uuid)) : Optional.empty(),
+				general.customAnimatedHelmetTextures.containsKey(uuid) ? Optional.of(general.customAnimatedHelmetTextures.get(uuid)) : Optional.empty(),
 				general.customItemNames.containsKey(uuid) ? Optional.of(general.customItemNames.get(uuid)) : Optional.empty(),
 				general.customGlint.containsKey(uuid) ? Optional.of(general.customGlint.getBoolean(uuid)) : Optional.empty(),
 				general.customItemModel.containsKey(uuid) ? Optional.of(general.customItemModel.get(uuid)) : Optional.empty(),
@@ -141,6 +142,10 @@ public class CustomizeScreen extends Screen {
 				previousConfig.helmetTexture().ifPresentOrElse(
 						tex -> config.general.customHelmetTextures.put(uuid, tex),
 						() -> config.general.customHelmetTextures.remove(uuid)
+				);
+				previousConfig.animatedHelmetTexture().ifPresentOrElse(
+						id -> config.general.customAnimatedHelmetTextures.put(uuid, id),
+						() -> config.general.customAnimatedHelmetTextures.remove(uuid)
 				);
 				previousConfig.itemName().ifPresentOrElse(
 						text -> config.general.customItemNames.put(uuid, text),
@@ -206,6 +211,7 @@ public class CustomizeScreen extends Screen {
 								OptionalInt color,
 								Optional<CustomArmorAnimatedDyes.AnimatedDye> animatedDye,
 								Optional<String> helmetTexture,
+								Optional<String> animatedHelmetTexture,
 								Optional<Component> itemName,
 								Optional<Boolean> glint,
 								Optional<Identifier> itemModel,

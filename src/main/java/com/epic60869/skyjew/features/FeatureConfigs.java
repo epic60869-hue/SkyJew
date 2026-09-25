@@ -18,21 +18,6 @@ public final class FeatureConfigs {
 
     public static final class Combat {
         @Expose
-        @ConfigOption(name = "Arrow Counter", desc = "HUD showing the selected arrow type and how many arrows are left in your quiver.")
-        @ConfigEditorBoolean
-        public boolean arrowCounter = true;
-
-        @Expose
-        @ConfigOption(name = "Zealot Counter", desc = "HUD counting Zealots you kill in the End, kills since your last Summoning Eye, and eyes dropped.")
-        @ConfigEditorBoolean
-        public boolean zealotCounter = true;
-
-        @Expose
-        @ConfigOption(name = "Legion Display", desc = "HUD showing how many players are within Legion range (30 blocks).")
-        @ConfigEditorBoolean
-        public boolean legionDisplay = false;
-
-        @Expose
         @Accordion
         @ConfigOption(name = "Cocoon Alert", desc = "Alert when you cocoon a mob.")
         public CocoonAlert cocoonAlert = new CocoonAlert();
@@ -41,6 +26,21 @@ public final class FeatureConfigs {
         @Accordion
         @ConfigOption(name = "Rare Drops", desc = "Copy rare drops and animate big ones.")
         public RareDrops rareDrops = new RareDrops();
+
+        @Expose
+        @ConfigOption(name = "Arrow Counter", desc = "HUD showing the selected arrow type and how many arrows are left in your quiver.")
+        @ConfigEditorBoolean
+        public boolean arrowCounter = true;
+
+        @Expose
+        @ConfigOption(name = "Zealot Tracker", desc = "Tracker for the Zealots you kill in the End and the Summoning Eyes you drop, for this session or in total.")
+        @ConfigEditorBoolean
+        public boolean zealotCounter = true;
+
+        @Expose
+        @ConfigOption(name = "Legion Display", desc = "HUD showing how many players are within Legion range (30 blocks).")
+        @ConfigEditorBoolean
+        public boolean legionDisplay = false;
     }
 
     public static final class CocoonAlert {
@@ -186,18 +186,11 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Ultrasequencer Solver", desc = "Highlight the Ultrasequencer order.")
         @ConfigEditorBoolean
         public boolean ultrasequencer = true;
-    }
 
-    public static final class Alchemy {
         @Expose
-        @ConfigOption(name = "Alchemy 50 Estimate", desc = "HUD estimating how many potions you need to brew to reach Alchemy 50.")
+        @ConfigOption(name = "Ultrasequencer Numbers", desc = "Show the click order as numbers on every Ultrasequencer slot, instead of only highlighting the next one.")
         @ConfigEditorBoolean
-        public boolean progressEstimate = false;
-
-        @Expose
-        @ConfigOption(name = "XP Per Potion", desc = "Alchemy XP you get per potion brewed with Enchanted Gold Blocks. Check it once in game and set it here.")
-        @ConfigEditorSlider(minValue = 100, maxValue = 20000, minStep = 50)
-        public float xpPerPotion = 2000;
+        public boolean ultrasequencerNumbers = true;
     }
 
     public static final class Runecrafting {
@@ -210,18 +203,6 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Runes", desc = "Comma-separated rune names to alert for.")
         @ConfigEditorText
         public String runes = "Music, Enchant, Grand Searing, Rainbow, Spellbound, Grand Freezing, Primal Fear, Golden Carpet";
-    }
-
-    public static final class Hunting {
-        @Expose
-        @ConfigOption(name = "Safari Critter Tracker", desc = "HUD showing the critters you have captured this session in the Safari.")
-        @ConfigEditorBoolean
-        public boolean safariTracker = true;
-
-        @Expose
-        @ConfigOption(name = "Hunting Box Value", desc = "Show the total value of the shards in your Hunting Box.")
-        @ConfigEditorBoolean
-        public boolean huntingBoxValue = true;
     }
 
     public static final class Dungeons {

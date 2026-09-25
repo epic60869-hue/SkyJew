@@ -6,7 +6,10 @@ import java.util.stream.IntStream;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.jspecify.annotations.Nullable;
 
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -149,6 +152,31 @@ public final class UltrasequencerSolver extends ExperimentSolver {
 					}
 				}
 			}
+		}
+	}
+
+	@Override
+	public void start(AbstractContainerScreen<?> screen) {
+		super.start(screen);
+		ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, delta) -> renderNumbers(screen, graphics));
+	}
+
+	/** Draws each remaining slot's place in the order; the next one is yellow. (SkyJew addition.) */
+	private void renderNumbers(AbstractContainerScreen<?> screen, GuiGraphicsExtractor graphics) {
+		var config = com.epic60869.skyjew.SkyJewConfig.current();
+		if (config == null || !config.misc.experimentalTable.ultrasequencerNumbers || getState() != State.SHOW) return;
+		ItemStack next = getSlots().get(ultrasequencerNextSlot);
+		if (next == null) return;
+		int nextNumber = next.getCount();
+		var accessor = (com.epic60869.skyjew.sb.mixins.accessors.AbstractContainerScreenAccessor) screen;
+		var font = Minecraft.getInstance().font;
+		for (Int2ObjectMap.Entry<ItemStack> entry : getSlots().int2ObjectEntrySet()) {
+			int number = entry.getValue().getCount();
+			if (number < nextNumber || entry.getIntKey() >= screen.getMenu().slots.size()) continue;
+			Slot slot = screen.getMenu().getSlot(entry.getIntKey());
+			int x = accessor.getX() + slot.x + 8;
+			int y = accessor.getY() + slot.y + 4;
+			graphics.centeredText(font, Component.literal(String.valueOf(number)), x, y, number == nextNumber ? 0xFFFFFF55 : 0xFFFFFFFF);
 		}
 	}
 

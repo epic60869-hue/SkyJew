@@ -115,9 +115,9 @@ public final class SkyJewDungeons {
         sb.dungeons.devices.solveArrowAlign = d.terminals.arrowAlign;
         sb.dungeons.devices.solveTargetPractice = d.terminals.targetPractice;
 
-        sb.helpers.experiments.enableChronomatronSolver = skyjew.enchanting.chronomatron;
-        sb.helpers.experiments.enableSuperpairsSolver = skyjew.enchanting.superpairs;
-        sb.helpers.experiments.enableUltrasequencerSolver = skyjew.enchanting.ultrasequencer;
+        sb.helpers.experiments.enableChronomatronSolver = skyjew.misc.experimentalTable.chronomatron;
+        sb.helpers.experiments.enableSuperpairsSolver = skyjew.misc.experimentalTable.superpairs;
+        sb.helpers.experiments.enableUltrasequencerSolver = skyjew.misc.experimentalTable.ultrasequencer;
 
         // Display only: never block clicks, and never post to party chat automatically.
         sb.dungeons.terminals.blockIncorrectClicks = false;

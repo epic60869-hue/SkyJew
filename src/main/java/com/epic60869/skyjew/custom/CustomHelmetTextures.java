@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
@@ -59,11 +61,50 @@ public class CustomHelmetTextures {
 		return TEXTURES;
 	}
 
+	private static final Object2IntOpenHashMap<String> ATTEMPTS = new Object2IntOpenHashMap<>();
+	private static final Object2LongOpenHashMap<String> LAST_RETRY = new Object2LongOpenHashMap<>();
+	private static final long RETRY_MS = 5000;
+	private static final int MAX_ATTEMPTS = 5;
+
 	public static ResolvableProfile getProfile(String texture) {
-		return PROFILE_CACHE.computeIfAbsent(texture, (String t) ->
-				ResolvableProfile.createResolved(new GameProfile(UUID.nameUUIDFromBytes(t.getBytes(StandardCharsets.UTF_8)),
-						"custom",
-						Compat.propertyMapWithTexture(t))));
+		ResolvableProfile profile = PROFILE_CACHE.computeIfAbsent(texture, (String t) -> create(t, 0));
+		// Minecraft remembers a skin that failed to load for 5 minutes. If this one failed,
+		// make a new profile (a new cache key) after a few seconds so it is fetched again.
+		if (skinFailed(profile) && ATTEMPTS.getInt(texture) < MAX_ATTEMPTS
+				&& System.currentTimeMillis() - LAST_RETRY.getLong(texture) > RETRY_MS) {
+			int attempt = ATTEMPTS.getInt(texture) + 1;
+			ATTEMPTS.put(texture, attempt);
+			LAST_RETRY.put(texture, System.currentTimeMillis());
+			profile = create(texture, attempt);
+			PROFILE_CACHE.put(texture, profile);
+		}
+		return profile;
+	}
+
+	private static ResolvableProfile create(String texture, int attempt) {
+		String key = attempt == 0 ? texture : texture + "#" + attempt;
+		return ResolvableProfile.createResolved(new GameProfile(UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)),
+				"custom", Compat.propertyMapWithTexture(texture)));
+	}
+
+	/** Whether the skin for this profile finished loading without a texture. */
+	public static boolean skinFailed(ResolvableProfile profile) {
+		try {
+			var result = net.minecraft.client.Minecraft.getInstance().playerSkinRenderCache().lookup(profile).getNow(null);
+			return result != null && result.isEmpty();
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/** Whether the skin for this profile has finished loading. */
+	public static boolean skinReady(ResolvableProfile profile) {
+		try {
+			var result = net.minecraft.client.Minecraft.getInstance().playerSkinRenderCache().lookup(profile).getNow(null);
+			return result != null && result.isPresent();
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	public record NamedTexture(String name, String texture, String internalName) {}

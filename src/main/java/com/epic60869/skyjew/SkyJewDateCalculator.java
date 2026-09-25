@@ -38,32 +38,32 @@ public final class SkyJewDateCalculator {
     private SkyJewDateCalculator() {}
 
     public static void init() {
-        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            currentTimer = timerFor(screen);
-            ScreenEvents.remove(screen).register(removed -> currentTimer = null);
-        });
+        // Look at whatever screen is open when the tooltip is built, rather than relying on a
+        // particular container screen class or its hovered slot, so it also works when another
+        // mod replaces or wraps Hypixel's menus.
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
-            if (Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen) {
-                addToTooltip(((SkyJewContainerScreenAccessor) screen).skyjew$getHoveredSlot(), stack, lines);
-            }
+            Screen screen = Minecraft.getInstance().gui.screen();
+            if (screen == null) return;
+            currentTimer = timerFor(screen);
+            addToTooltip(stack, lines);
         });
     }
 
     private static TimeProvider timerFor(Screen screen) {
-        String screenTitle = screen.getTitle().getString();
+        String screenTitle = ChatFormatting.stripFormatting(screen.getTitle().getString()).trim();
         for (TimeProvider timer : PROVIDERS) {
             if (timer.test(screenTitle)) return timer;
         }
         return null;
     }
 
-    private static void addToTooltip(Slot focusedSlot, ItemStack stack, List<Component> lines) {
+    private static void addToTooltip(ItemStack stack, List<Component> lines) {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.misc.calendarTimeToRealTime || !Compat.isOnSkyblock()) return;
-        if (currentTimer == null || focusedSlot == null || focusedSlot.container instanceof Inventory) return;
+        if (currentTimer == null) return;
 
         for (int i = 1; i < lines.size(); i++) {
-            String text = lines.get(i).getString();
+            String text = ChatFormatting.stripFormatting(lines.get(i).getString());
 
             //Only attempt to look for a timer if the line contains the qualifying text
             if (!currentTimer.qualifier().test(text)) continue;

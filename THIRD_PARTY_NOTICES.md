@@ -26,6 +26,8 @@ Skyblocker is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.
 
 Each ported source file keeps a Skyblocker attribution line. SkyJew replaces Skyblocker's config, NEU repository and scheduler dependencies with its own small implementations.
 
+SkyJew's Item Price Tooltip follows Skyblocker's AvgBinTooltip, LBinTooltip and NpcPriceTooltip (src/main/java/de/hysky/skyblocker/skyblock/item/tooltip/adders/) and reads auction prices from the same API (hysky.de). The container menu mixin that notifies slot listeners (used by the Chronomatron solver) follows Skyblocker's AbstractContainerMenuMixin.
+
 ## CommandKeys
 
 SkyJew's /sj keys GUI and macro system is a port of TerminalMC/CommandKeys (the `com.epic60869.skyjew.commandkeys` package, its mixins, the `skyjew_commandkeys` assets and translations, and the MultiLineEditBox entry in `skyjew.classtweaker`).
@@ -55,6 +57,10 @@ SkyJew's /sj gui position editor is an adaptation of the SkyHanni GUI position e
 - License: GNU Lesser General Public License v2.1 (LGPL-2.1)
 
 SkyJew's implementation is independently adapted to SkyJew's own Java/Fabric 26.x HUD system and does not add SkyHanni as a runtime dependency.
+
+## SkyHanni Current Chat Display
+
+SkyJew's current chat display (`SkyJewCurrentChat.java`) follows SkyHanni's CurrentChatDisplay (src/main/java/at/hannibal2/skyhanni/features/chat/CurrentChatDisplay.kt): the channel-change message patterns and the channel names and colours. SkyHanni is licensed under the GNU Lesser General Public License v2.1 (LGPL-2.1).
 
 ## SkyOcean
 

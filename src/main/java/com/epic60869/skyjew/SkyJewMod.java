@@ -58,6 +58,8 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
         SkyJewGlobalChat.init();
+        SkyJewCurrentChat.init(configDir);
+        SkyJewPriceTooltip.init();
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
         SkyJewVersionChecker.check(minecraft);

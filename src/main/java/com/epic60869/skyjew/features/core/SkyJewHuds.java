@@ -28,19 +28,20 @@ import java.util.function.Supplier;
 public final class SkyJewHuds {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew", "feature_huds");
-    private static final int PADDING = 3;
-    private static final int LINE_HEIGHT = 10;
+    public static final int PADDING = 3;
+    public static final int LINE_HEIGHT = 10;
 
     private static final Map<String, Element> ELEMENTS = new LinkedHashMap<>();
     private static final Map<String, Placement> PLACEMENTS = new LinkedHashMap<>();
     private static Path file;
+    private static final String BACKGROUNDS_OFF = "#backgroundsOff";
 
     public static final class Placement {
         public int x;
         public int y;
         public float scale = 1f;
         /** Draw the dark background behind the HUD. Toggled by right-clicking it in /sj gui. */
-        public boolean background = true;
+        public boolean background = false;
     }
 
     /** A HUD element that draws itself instead of drawing text lines. Sizes are unscaled. */
@@ -135,6 +136,12 @@ public final class SkyJewHuds {
         }
     }
 
+    /** Where a text HUD with these lines is drawn on screen, after keeping it on screen: {x, y}. */
+    public static int[] screenPosition(String id, List<Component> lines) {
+        Placement p = placement(id);
+        return new int[]{clampX(p.x, width(lines, p.scale)), clampY(p.y, height(lines, p.scale))};
+    }
+
     /** Keeps a HUD on screen even if its saved position is past the edge (e.g. after a window or GUI scale change). */
     private static int clampX(int x, int w) {
         return Math.max(0, Math.min(x, Minecraft.getInstance().getWindow().getGuiScaledWidth() - w));
@@ -219,7 +226,19 @@ public final class SkyJewHuds {
         try {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
             for (var entry : root.entrySet()) {
+                if (entry.getKey().startsWith("#")) continue;
                 PLACEMENTS.put(entry.getKey(), GSON.fromJson(entry.getValue(), Placement.class));
+            }
+            // Backgrounds became opt-in; turn off the ones saved before that, once.
+            if (!root.has(BACKGROUNDS_OFF)) {
+                for (Placement p : PLACEMENTS.values()) p.background = false;
+                com.epic60869.skyjew.SkyJewConfig config = com.epic60869.skyjew.SkyJewConfig.current();
+                if (config != null) {
+                    config.mining.commissions.background = false;
+                    config.farming.rng.background = false;
+                    com.epic60869.skyjew.SkyJewConfig.saveCurrent(config);
+                }
+                save();
             }
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to load HUD positions: " + e.getMessage());
@@ -230,7 +249,9 @@ public final class SkyJewHuds {
         if (file == null) return;
         try {
             Files.createDirectories(file.getParent());
-            Files.writeString(file, GSON.toJson(PLACEMENTS), StandardCharsets.UTF_8);
+            JsonObject root = GSON.toJsonTree(PLACEMENTS).getAsJsonObject();
+            root.addProperty(BACKGROUNDS_OFF, true);
+            Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to save HUD positions: " + e.getMessage());
         }

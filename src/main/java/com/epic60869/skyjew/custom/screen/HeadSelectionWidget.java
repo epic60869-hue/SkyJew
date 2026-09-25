@@ -45,6 +45,11 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 	public HeadSelectionWidget(int x, int y, int width, int height) {
 		super(x + 2, y + 2, width - 4, height - 4, Component.nullToEmpty("HeadSelection"), 20, true);
 
+		// The "no custom skin" barrier goes first so it is always easy to find.
+		this.noneButton = new HeadButton("", this::onClick);
+		this.selectedButton = this.noneButton;
+		this.allButtons.add(this.noneButton);
+
 		for (CustomHelmetTextures.NamedTexture tex : CustomHelmetTextures.getTextures()) {
 			ItemStack head = Compat.createSkull(tex.texture());
 			HeadButton button = new HeadButton(tex.name(), tex.texture(), head, this::onClick);
@@ -55,10 +60,6 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 			AnimatedHeadButton button = new AnimatedHeadButton(id, this::onClick);
 			this.allButtons.add(button);
 		}
-
-		this.noneButton = new HeadButton("", this::onClick);
-		this.selectedButton = this.noneButton;
-		this.allButtons.add(this.noneButton);
 
 		setSearch("");
 	}
@@ -95,13 +96,15 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 
 		CustomConfigManager.updateOnly(config -> {
 			switch (this.selectedButton) {
-				case HeadButton button when button == noneButton || button.texture == null -> {
-					config.general.customHelmetTextures.remove(uuid);
-					config.general.customAnimatedHelmetTextures.remove(uuid);
-				}
+				// Animated heads have no single texture, so they must be matched before the
+				// "no texture means remove" case below, or selecting one would clear the skin.
 				case AnimatedHeadButton button -> {
 					config.general.customAnimatedHelmetTextures.put(uuid, button.id);
 					config.general.customHelmetTextures.remove(uuid);
+				}
+				case HeadButton button when button == noneButton || button.texture == null -> {
+					config.general.customHelmetTextures.remove(uuid);
+					config.general.customAnimatedHelmetTextures.remove(uuid);
 				}
 				case HeadButton button -> {
 					config.general.customHelmetTextures.put(uuid, Objects.requireNonNull(button.texture));
@@ -177,7 +180,7 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 		 */
 		private final ItemStack head;
 		private final Consumer<HeadButton> onPress;
-		private boolean selected = false;
+		protected boolean selected = false;
 
 		private HeadButton(String name, Consumer<HeadButton> onPress) {
 			this(name, null, Compat.barrier(), onPress);
@@ -199,6 +202,8 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 		 * Retrieves the underlying {@link ItemStack} for displaying the head, required for animated heads.
 		 */
 		protected ItemStack getHead() {
+			// Re-read the profile so a head whose skin failed to load is retried (SkyJew).
+			if (this.texture != null) this.head.set(DataComponents.PROFILE, CustomHelmetTextures.getProfile(this.texture));
 			return this.head;
 		}
 
@@ -236,7 +241,11 @@ public class HeadSelectionWidget extends SearchableGridWidget {
 		 */
 		@Override
 		protected ItemStack getHead() {
-			ResolvableProfile profile = CustomAnimatedHelmetTextures.animateHeadTexture(this.id);
+			// Only animate the head you are looking at; the rest show their first frame, so opening
+			// the picker does not start downloading thousands of animation frames (SkyJew).
+			ResolvableProfile profile = this.selected || this.isHovered()
+					? CustomAnimatedHelmetTextures.animateHeadTexture(this.id)
+					: CustomAnimatedHelmetTextures.firstFrame(this.id);
 
 			if (profile != null) {
 				ItemStack stack = new ItemStack(Items.PLAYER_HEAD);

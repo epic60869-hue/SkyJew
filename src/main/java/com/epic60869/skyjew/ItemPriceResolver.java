@@ -79,6 +79,13 @@ public final class ItemPriceResolver {
 
     public static void warmup() { ensureRefresh(); }
 
+    /** NPC sell price for an item id, or -1 if it cannot be sold to an NPC (or prices have not loaded yet). */
+    public static double npcPrice(String itemId) {
+        ensureRefresh();
+        Double price = itemId == null ? null : NPC_PRICES.get(itemId);
+        return price == null ? -1 : price;
+    }
+
     /** Returns the best currently cached sell value without blocking the render thread. */
     public static double value(String itemId) {
         if (itemId == null || itemId.isBlank()) return 0.0;

@@ -67,6 +67,12 @@ public class CustomAnimatedHelmetTextures {
 				.collect(java.util.stream.Collectors.joining(" "));
 	}
 
+	/** The first frame of an animated head, used as a still preview. */
+	public static @Nullable ResolvableProfile firstFrame(String id) {
+		AnimatedHead head = ANIMATED_HEADS.get(id);
+		return head == null ? null : head.frames().getFirst();
+	}
+
 	public static @Nullable ResolvableProfile animateHeadTexture(String id) {
 		AnimatedHead head = ANIMATED_HEADS.get(id);
 
@@ -143,12 +149,28 @@ public class CustomAnimatedHelmetTextures {
 		/**
 		 * Advances the state to what it would be at the number {@code ticks}.
 		 */
+		private boolean preloaded;
+
 		private void advanceTo(int ticks) {
+			// Start loading every frame's skin at once (SkyJew). Frames that have not loaded yet
+			// are skipped, so the head never flashes the default Steve/Alex skin while it loads.
+			if (!preloaded) {
+				preloaded = true;
+				for (ResolvableProfile frame : this.head.frames()) {
+					try {
+						CLIENT.playerSkinRenderCache().lookup(frame);
+					} catch (Exception ignored) {}
+				}
+			}
+
 			int advancedIndex = ticks / this.head.tickThreshold();
 
 			// The cycle method conveniently handles looping for us so we don't need to cap the index or anything,
 			// it can just infinitely increase.
-			this.currentFrame = Compat.cycle(this.head.frames(), advancedIndex);
+			ResolvableProfile next = Compat.cycle(this.head.frames(), advancedIndex);
+			if (next == this.currentFrame || CustomHelmetTextures.skinReady(next)) {
+				this.currentFrame = next;
+			}
 		}
 
 		private ResolvableProfile getCurrentFrame() {
