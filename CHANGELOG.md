@@ -2,13 +2,42 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## 1.2 — 2026-09-25
+
+### Added
+- Commands are no longer case-sensitive: `/SJ GUI` works the same as `/sj gui`.
+- Item Price Tooltip (Misc): 3 day average price, lowest BIN and NPC sell price on SkyBlock items, like Skyblocker.
+- Current chat display: shows which chat you're typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyJew chat) above the chat box, like SkyHanni.
+- Ultrasequencer order numbers: every slot shows its place in the order, with the next one in yellow.
+
+### Changed
+- The zealot counter is now a Zealot Tracker in the style of SkyHanni's trackers: kills, Summoning Eyes and kills since your last eye. Click Total / This Session while your inventory is open to switch. Only your own kills count, including Hyperion multi-kills.
+- HUD elements no longer have a background by default. Right-click any HUD in `/sj gui` to turn its background on.
+- In every settings section, dropdowns are now listed above the single toggles.
+- The Enchanting tab has moved into Misc as the Experimental Table section. Your settings carry over.
+- Settings now save as soon as you change them, not only when the settings screen closes.
+- The "no custom skin" barrier is now the first slot in the helmet skin picker.
+- In the helmet skin picker, animated heads only animate when you hover or select them.
+- The README is much shorter.
+
+### Removed
+- The Alchemy tab and the Alchemy 50 Estimate HUD.
+- The Hunting tab (Safari Critter Tracker and Hunting Box Value), for now.
+
+### Fixed
+- Animated helmet skins (Celestial Necron/Storm/Goldor, Golden Dragon Swap Plushies and every other animated head) couldn't be applied: selecting one cleared the skin instead. They now apply, wait for each frame to load instead of flashing Steve, and Cancel restores them properly. Skins that fail to load are retried.
+- The zealot counter counted other players' kills.
+- The item rarity style went back to Square after restarting the game.
+- The Chronomatron solver didn't highlight anything.
+- Calendar real-time dates didn't show in the calendar menus.
+
 ## 1.1 — 2026-09-25
 
 ### Added
 
 **General**
 - `/sj gui` can now move and resize every HUD element, not just a few. Elements snap to the screen edges and can't be dragged off screen.
-- HUD elements no longer have a background by default. Right-click any HUD in `/sj gui` to turn its background on.
+- Right-click any HUD in `/sj gui` to turn its background on or off.
 - `/sj keys` now uses a full port of the CommandKeys mod (keybinds, macros and profiles). Your old command keys are migrated automatically.
 - `/sj custom` has been rebuilt as a port of Skyblocker's item customisation: custom names, dyes (including animated dyes), armor trims and helmet textures.
 - `/sj recipe <item> [amount]` shows a SkyOcean-style craft helper. It shows the full recipe tree and what you still need, counting items in your storage. It also has `/sj recipe amount <n>` and `/sj recipe clear`.
@@ -16,10 +45,6 @@ All notable changes to SkyJew are listed here, newest first.
 - SkyBlock calendar time and a date calculator, ported from Skyblocker.
 - Nicknames now show above players' heads and in the tab list for everyone using SkyJew. Hovering a nickname shows the player's real name. Offensive nicknames are blocked.
 - SJ chat now shows each player's SkyBlock level in its level colour. Hovering a name shows the real name, and clicking starts a `/msg`.
-- Commands are no longer case-sensitive: `/SJ GUI` works the same as `/sj gui`.
-- Item Price Tooltip (Misc): 3 day average price, lowest BIN and NPC sell price on SkyBlock items, like Skyblocker.
-- Ultrasequencer order numbers: every slot shows its place in the order, with the next one in yellow.
-- Current chat display: shows which chat you're typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyJew chat) above the chat box, like SkyHanni.
 - `/sjc <message>` sends a message to SJ chat. `/chat sj` switches your chat to SJ chat, and `/chat <anything else>` switches back.
 
 **Pets**
@@ -28,7 +53,7 @@ All notable changes to SkyJew are listed here, newest first.
 
 **Combat**
 - Arrow counter: your selected arrow and how many are left in your quiver.
-- Zealot tracker in the style of SkyHanni's trackers: your kills, Summoning Eyes and kills since your last eye. Click Total / This Session while your inventory is open to switch. Only your own kills count, including Hyperion multi-kills.
+- Zealot counter: zealot kills, kills since your last Summoning Eye and eyes dropped.
 - Legion display: how many players are in Legion range.
 - Cocoon alert for slayer bosses, slayer minibosses, elusive mobs and important bosses.
 - Rare drops: copy drop messages and show an animation for valuable drops.
@@ -43,7 +68,7 @@ All notable changes to SkyJew are listed here, newest first.
 - Mouse lock can be set to only work in the Garden.
 
 **Other skills**
-- Fishing, mining (Crystal Hollows map, Mineshaft timer), foraging and runecrafting features.
+- Fishing, mining (Crystal Hollows map, Mineshaft timer), foraging, alchemy, enchanting, runecrafting and hunting features.
 
 **Dungeons** (ported from Skyblocker)
 - Dungeon map with player heads and room names.
@@ -61,10 +86,6 @@ All notable changes to SkyJew are listed here, newest first.
 - Party commands.
 
 ### Changed
-- The "no custom skin" barrier is now the first slot in the helmet skin picker.
-- In the helmet skin picker, animated heads only animate when you hover or select them.
-- The Enchanting tab has moved into Misc as the Experimental Table section. Your settings carry over.
-- Settings now save as soon as you change them, not only when the settings screen closes.
 - The notes screen (`/sj notes`) has been rebuilt with a proper multi-line editor and autosave.
 - The cocoon alert no longer has a mob list text box. It alerts for important mobs only.
 - The commission HUD now looks like Skyblocker's. Its background toggle is now saved.
@@ -72,14 +93,8 @@ All notable changes to SkyJew are listed here, newest first.
 ### Removed
 - The "you have been ratted" start-up screen and its sound.
 - The slayer profit tracker, for now.
-- The Alchemy tab and the Alchemy 50 Estimate HUD.
-- The Hunting tab (Safari Critter Tracker and Hunting Box Value), for now.
 
 ### Fixed
-- Animated helmet skins (Celestial Necron/Storm/Goldor, Golden Dragon Swap Plushies and every other animated head) couldn't be applied: selecting one cleared the skin instead. They now apply, wait for each frame to load instead of flashing Steve, and Cancel restores them properly. Skins that fail to load are retried.
-- The item rarity style went back to Square after restarting the game.
-- The Chronomatron solver didn't highlight anything.
-- Calendar real-time dates didn't show in the calendar menus.
 - HUDs saved off screen (such as the zealot counter) now appear on screen.
 - The zealot counter never counted kills.
 - The arrow counter didn't detect your arrows.
