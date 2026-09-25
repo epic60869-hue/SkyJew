@@ -182,39 +182,51 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Pet");
-        if (widget.lines().isEmpty()) {
-            petDisplay = null;
-            return;
+        List<PlayerInfo> entries = new ArrayList<>(mc.getConnection().getOnlinePlayers());
+        try {
+            entries.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
+        } catch (Throwable ignored) {
         }
 
-        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)]\\s+(?<name>.+)$");
+        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+)$");
         List<Component> display = new ArrayList<>();
         display.add(Component.literal("Pet:")
             .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
 
         String petName = "";
         int level = -1;
+        boolean inPet = false;
 
-        for (Component line : widget.lines()) {
-            String text = line.getString().strip();
-            Matcher petMatch = petNameRegex.matcher(text);
+        for (PlayerInfo entry : entries) {
+            Component lineComponent = entry.getTabListDisplayName();
+            if (lineComponent == null && entry.getProfile() != null) {
+                lineComponent = Component.literal(entry.getProfile().name());
+            }
+            if (lineComponent == null) continue;
 
-            if (petMatch.matches()) {
-                level = Integer.parseInt(petMatch.group("level"));
-                petName = petMatch.group("name").strip();
+            String raw = lineComponent.getString().replaceAll("§.", "");
+            String text = raw.strip();
+            if (text.isBlank()) continue;
 
-                // Rebuild the line so the pet name keeps Hypixel's actual rarity
-                // colour from the TAB component. This is important because simply
-                // calling getString() throws away all rarity styling.
-                display.add(stylePetLine(line, level, petName));
+            if (!inPet) {
+                if (text.equalsIgnoreCase("Pet:") || text.equalsIgnoreCase("Pet")) {
+                    inPet = true;
+                }
                 continue;
             }
 
-            // Hypixel's normal pet line is e.g. "11,288/94.8k XP (25.2%)".
-            // Overflow pets may instead expose "+12345 XP". Keep both forms.
+            if (!raw.startsWith(" ") && text.contains(":")) break;
+
+            Matcher petMatch = petNameRegex.matcher(text);
+            if (petMatch.matches()) {
+                level = Integer.parseInt(petMatch.group("level"));
+                petName = petMatch.group("name").strip();
+                display.add(stylePetLine(lineComponent, level, petName));
+                continue;
+            }
+
             if (level >= 0 && text.matches("^\\+?[\\d,.]+(?:/[\\d,.]+[kKmMbB]?)?\\s+XP.*$")) {
-                display.add(line);
+                display.add(lineComponent);
             }
         }
 
