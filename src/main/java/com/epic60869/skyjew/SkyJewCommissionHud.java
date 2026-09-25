@@ -91,8 +91,16 @@ public final class SkyJewCommissionHud {
                 continue;
             }
 
-            if (!raw.startsWith(" ") && line.contains(":")
-                && !COMM_PATTERN.matcher(line).matches()) {
+            // These are TAB section headers/data that can also match the generic
+            // "Name: number" pattern. They are never commission rows.
+            String lower = line.toLowerCase(java.util.Locale.ROOT);
+            if (lower.equals("bank") || lower.startsWith("bank:")
+                || lower.equals("purse") || lower.startsWith("purse:")
+                || lower.equals("fairy souls") || lower.startsWith("fairy souls:")
+                || lower.equals("skills") || lower.startsWith("skills:")
+                || lower.equals("slayer") || lower.startsWith("slayer:")
+                || lower.equals("pets") || lower.startsWith("pets:")
+                || lower.equals("profile") || lower.startsWith("profile:")) {
                 break;
             }
 
@@ -105,6 +113,7 @@ public final class SkyJewCommissionHud {
 
             if (progress.equalsIgnoreCase("DONE")) {
                 found.add(new Commission(name, "DONE", 100f));
+                if (found.size() >= maxCommissions) break;
                 continue;
             }
 
@@ -125,6 +134,7 @@ public final class SkyJewCommissionHud {
                     if (!progress.endsWith("%")) shown = progress + "%";
                 }
                 found.add(new Commission(name, shown, percent));
+                if (found.size() >= maxCommissions) break;
             } catch (NumberFormatException ignored) {
             }
         }
