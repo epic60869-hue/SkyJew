@@ -153,7 +153,7 @@ public final class SkyJewCustomScreen extends Screen {
         }
 
         int dyeWidth = Math.min(390, availableWidth);
-        addRenderableWidget(new ColorSelectionWidget(x, y + 28, dyeWidth, 72, selected));
+        addRenderableWidget(new ColorSelectionWidget(x, y + 28, dyeWidth, selected));
 
         addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
             SkyJewCustom.setDye(selected, null);
