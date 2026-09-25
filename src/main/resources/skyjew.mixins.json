@@ -11,7 +11,6 @@
     "SkyJewChatScreenMixin",
     "SkyJewEmojiSuggestionsMixin",
     "SkyJewMouseHandlerMixin",
-    "SkyJewExperimentScreenMixin",
     "SkyJewContainerScreenAccessor",
     "SkyJewInventoryScreenInvoker",
     "SkyJewPlayerInfoMixin",
