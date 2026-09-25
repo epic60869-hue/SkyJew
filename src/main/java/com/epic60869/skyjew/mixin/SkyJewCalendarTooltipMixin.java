@@ -26,8 +26,10 @@ public abstract class SkyJewCalendarTooltipMixin {
      * It reads the month/year from the calendar screen title and the day
      * from the hovered calendar item's stack count.
      */
-    private static final Pattern CALENDAR_PATTERN =
-        Pattern.compile("(?<month>.+),\\s*Year\\s+(?<year>\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CALENDAR_PATTERN = Pattern.compile(
+        "(?i)(early spring|spring|late spring|early summer|summer|late summer|early autumn|autumn|late autumn|early winter|winter|late winter)"
+            + "\\s*(?:,\\s*)?(?:day\\s*)?(\\d{1,2})?(?:\\s*,?\\s*)?year\\s*(\\d+)"
+    );
 
     @Inject(method = "getTooltipFromContainerItem", at = @At("RETURN"), cancellable = true)
     private void skyjew$addRealWorldCalendarTime(
@@ -78,24 +80,37 @@ public abstract class SkyJewCalendarTooltipMixin {
         List<Component> tooltip,
         ItemStack stack
     ) {
+        // The calendar GUI title supplies the SkyBlock month/year. The hovered
+        // calendar item supplies the day through its stack count on Hypixel.
         CalendarDate titleDate = parseDate(screenTitle);
-        if (titleDate != null) return new CalendarDate(
-            titleDate.monthIndex(),
-            stack.getCount(),
-            titleDate.year()
-        );
+        if (titleDate != null) {
+            int day = stack.getCount();
+            if (day >= 1 && day <= 31) {
+                return new CalendarDate(titleDate.monthIndex(), day, titleDate.year());
+            }
+        }
 
-        // Some Hypixel/resource-pack combinations can put the calendar
-        // heading into the tooltip instead of the screen title. Use the
-        // same Calendar provider pattern as a fallback.
+        // Resource-pack/menu variants sometimes expose the date in tooltip text
+        // instead of the screen title. Prefer an explicit day if present.
         for (Component line : tooltip) {
-            CalendarDate tooltipDate = parseDate(line.getString());
-            if (tooltipDate != null) {
-                return new CalendarDate(
-                    tooltipDate.monthIndex(),
-                    stack.getCount(),
-                    tooltipDate.year()
-                );
+            String text = line.getString();
+            CalendarDate parsed = parseDate(text);
+            if (parsed != null) {
+                int day = parsed.day() > 0 ? parsed.day() : stack.getCount();
+                if (day >= 1 && day <= 31) {
+                    return new CalendarDate(parsed.monthIndex(), day, parsed.year());
+                }
+            }
+
+            Matcher dayMatcher = Pattern.compile("(?i)day\\s*(\\d{1,2})").matcher(text);
+            if (dayMatcher.find()) {
+                CalendarDate date = parseDate(screenTitle);
+                if (date != null) {
+                    int day = Integer.parseInt(dayMatcher.group(1));
+                    if (day >= 1 && day <= 31) {
+                        return new CalendarDate(date.monthIndex(), day, date.year());
+                    }
+                }
             }
         }
 
@@ -103,21 +118,29 @@ public abstract class SkyJewCalendarTooltipMixin {
     }
 
     private static CalendarDate parseDate(String text) {
-        Matcher matcher = CALENDAR_PATTERN.matcher(text == null ? "" : text.trim());
-        if (!matcher.matches()) return null;
+        if (text == null) return null;
+        Matcher matcher = CALENDAR_PATTERN.matcher(text.trim());
+        if (!matcher.find()) return null;
 
-        int monthIndex = monthIndex(matcher.group("month"));
+        int monthIndex = monthIndex(matcher.group(1));
         if (monthIndex < 0) return null;
 
-        int year;
+        int explicitDay = -1;
+        if (matcher.group(2) != null && !matcher.group(2).isBlank()) {
+            try {
+                explicitDay = Integer.parseInt(matcher.group(2));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
         try {
-            year = Integer.parseInt(matcher.group("year"));
+            int year = Integer.parseInt(matcher.group(3));
+            if (year < 1) return null;
+            return new CalendarDate(monthIndex, explicitDay, year);
         } catch (NumberFormatException ignored) {
             return null;
         }
-
-        if (year < 1) return null;
-        return new CalendarDate(monthIndex, 1, year);
     }
 
     private static int monthIndex(String month) {
