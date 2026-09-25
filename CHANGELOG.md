@@ -2,7 +2,7 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
-## Unreleased
+## 1.2.2 — 2026-09-25
 
 ### Added
 - Leap Menu (Dungeons): an Odin-style Spirit Leap menu with one box per teammate. Each class has its own colour (Archer orange, Mage blue, Berserk red, Healer purple, Tank green) and corner, and both can be changed.
