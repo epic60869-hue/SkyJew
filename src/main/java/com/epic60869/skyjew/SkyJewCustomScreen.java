@@ -118,19 +118,7 @@ public final class SkyJewCustomScreen extends Screen {
         label("ARMOR", leftCol, contentTop, true);
         label("Select a worn piece", leftCol, contentTop + 18, false);
 
-        for (int i = 0; i < ARMOR.length; i++) {
-            final int index = i;
-            int y = contentTop + 42 + i * 38;
-            addRenderableWidget(Button.builder(
-                Component.literal(index == selectedArmor
-                    ? "●  " + ARMOR_NAMES[index]
-                    : "    " + ARMOR_NAMES[index]),
-                b -> {
-                    selectedArmor = index;
-                    selectedItem = ItemStack.EMPTY;
-                    rebuild();
-                }).bounds(leftCol, y, 112, 30).build());
-        }
+        addRenderableWidget(new PieceSelectionWidget(leftCol, contentTop + 42));
 
         addRenderableWidget(Button.builder(Component.literal("Select Item"), b ->
             minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
@@ -168,14 +156,7 @@ public final class SkyJewCustomScreen extends Screen {
         }
 
         label("DYE", x, y + 10, true);
-
-        addRenderableWidget(Button.builder(Component.literal("Static Dye"), b ->
-            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, false)))
-            .bounds(x, y + 42, 175, 30).build());
-
-        addRenderableWidget(Button.builder(Component.literal("Animated Dye"), b ->
-            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, true)))
-            .bounds(x + 185, y + 42, 175, 30).build());
+        addRenderableWidget(new ColorSelectionWidget(x, y + 38, Math.min(390, availableWidth), selected));
 
         addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
             SkyJewCustom.setDye(selected, null);
@@ -391,6 +372,24 @@ public final class SkyJewCustomScreen extends Screen {
         g.fill(l, b - 1, r, b, c);
         g.fill(l, t, l + 1, b, c);
         g.fill(r - 1, t, r, b, c);
+    }
+
+    private final class PieceSelectionWidget extends net.minecraft.client.gui.components.AbstractWidget {
+        PieceSelectionWidget(int x, int y) { super(x, y, 120, 32, Component.literal("Armor pieces")); }
+        @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float d) {
+            g.fill(getX(), getY(), getRight(), getBottom(), 0xFF30343A);
+            for (int i=0;i<4;i++) { int sx=getX()+i*30; if(i==selectedArmor) g.fill(sx,getY(),sx+30,getBottom(),0x5555FFFF); ItemStack s=minecraft.player==null?ItemStack.EMPTY:minecraft.player.getItemBySlot(ARMOR[i]); if(!s.isEmpty()) g.item(s,sx+7,getY()+7); }
+            if(isHovered()) g.fill(getX(),getY(),getRight(),getBottom(),0x18FFFFFF); handleCursor(g);
+        }
+        @Override public void onClick(net.minecraft.client.input.MouseButtonEvent e, boolean d) { int i=(int)((e.x()-getX())/30); if(i>=0&&i<4){selectedArmor=i;selectedItem=ItemStack.EMPTY;rebuild();} }
+        @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput n) {}
+    }
+    private final class ColorSelectionWidget extends net.minecraft.client.gui.components.AbstractWidget {
+        private final ItemStack item; private final int[] colors={0xFFFFFF,0xFF5555,0x55FF55,0x5555FF,0xFFFF55,0xFF55FF,0x55FFFF,0xFFAA00,0xAAAAAA,0x555555};
+        ColorSelectionWidget(int x,int y,int w,ItemStack item){super(x,y,w,66,Component.literal("Dye"));this.item=item.copy();}
+        @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g,int mx,int my,float d){ Integer cur=SkyJewCustom.getDye(item); for(int i=0;i<colors.length;i++){int sx=getX()+i*26;g.fill(sx,getY()+4,sx+22,getY()+26,0xFF000000|colors[i]);if(cur!=null&&(cur&0xFFFFFF)==colors[i])g.fill(sx,getY()+4,sx+22,getY()+6,0xFFFFFFFF);}g.text(font,"Click a swatch • right-click for animated dyes",getX(),getY()+38,0xFFAAAAAA,false);handleCursor(g);}
+        @Override public void onClick(net.minecraft.client.input.MouseButtonEvent e,boolean d){if(e.button()==1){minecraft.gui.setScreen(new SkyJewDyeSelectScreen(SkyJewCustomScreen.this,item,true));return;}int i=(int)((e.x()-getX())/26);if(i>=0&&i<colors.length){SkyJewCustom.setDye(item,colors[i]);SkyJewCustom.setAnimatedDye(item,(Integer)null,(Integer)null,1f,false,0f);rebuild();}}
+        @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput n) {}
     }
 
     @Override
