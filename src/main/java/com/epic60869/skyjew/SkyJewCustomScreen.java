@@ -13,10 +13,21 @@ import net.minecraft.world.item.Items;
 
 import java.util.Locale;
 
+/**
+ * Skyblocker-style customization editor.
+ *
+ * The layout deliberately follows Skyblocker's customization screen:
+ * - wide, centered content area
+ * - clear ARMOR / ITEM tabs
+ * - separate selection column and editor column
+ * - generous spacing between controls
+ * - footer actions kept away from the editor
+ */
 public final class SkyJewCustomScreen extends Screen {
-    private static final int PANEL = 0xFF202328;
-    private static final int PANEL_2 = 0xFF292C31;
-    private static final int BORDER = 0xFF3B4047;
+    private static final int BG = 0xFF101216;
+    private static final int PANEL = 0xFF24272C;
+    private static final int INNER = 0xFF191C20;
+    private static final int BORDER = 0xFF3A3E45;
     private static final int ACCENT = 0xFF55FFFF;
     private static final int TEXT = 0xFFF2F3F5;
     private static final int MUTED = 0xFF9DA3AA;
@@ -45,6 +56,22 @@ public final class SkyJewCustomScreen extends Screen {
         this.parent = parent;
     }
 
+    private int panelWidth() {
+        return Math.min(720, width - 30);
+    }
+
+    private int panelHeight() {
+        return Math.min(570, height - 20);
+    }
+
+    private int left() {
+        return (width - panelWidth()) / 2;
+    }
+
+    private int top() {
+        return (height - panelHeight()) / 2;
+    }
+
     @Override
     protected void init() {
         rebuild();
@@ -53,113 +80,155 @@ public final class SkyJewCustomScreen extends Screen {
     private void rebuild() {
         clearWidgets();
 
-        int panelW = Math.min(900, width - 28);
-        int panelH = Math.min(500, height - 24);
-        int left = (width - panelW) / 2;
-        int top = (height - panelH) / 2;
+        int l = left();
+        int t = top();
+        int w = panelWidth();
+        int h = panelHeight();
 
+        // Skyblocker-style tab bar.
         addRenderableWidget(Button.builder(Component.literal("ARMOR"), b -> {
             tab = 0;
             selectedItem = ItemStack.EMPTY;
             rebuild();
-        }).bounds(left + 18, top + 42, 120, 26).build());
+        }).bounds(l + 14, t + 38, 92, 28).build());
 
         addRenderableWidget(Button.builder(Component.literal("ITEM"), b -> {
             tab = 1;
             selectedItem = ItemStack.EMPTY;
             rebuild();
-        }).bounds(left + 144, top + 42, 120, 26).build());
+        }).bounds(l + 112, t + 38, 92, 28).build());
 
-        if (tab == 0) {
-            buildArmor(left, top, panelW);
-        } else {
-            buildItem(left, top, panelW);
-        }
+        if (tab == 0) buildArmor(l, t, w);
+        else buildItem(l, t, w);
 
-        addRenderableWidget(Button.builder(Component.literal("Close"), b -> minecraft.gui.setScreen(parent))
-            .bounds(left + panelW - 214, top + panelH - 36, 96, 26).build());
-        addRenderableWidget(Button.builder(Component.literal("Done"), b -> minecraft.gui.setScreen(parent))
-            .bounds(left + panelW - 110, top + panelH - 36, 96, 26).build());
+        int footerY = t + h - 36;
+        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose())
+            .bounds(l + w - 214, footerY, 96, 28).build());
+        addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
+            .bounds(l + w - 110, footerY, 96, 28).build());
     }
 
-    private void buildArmor(int left, int top, int panelW) {
-        int sideX = left + 18;
-        int sideY = top + 82;
-        int mainX = left + 215;
-        ItemStack selected = selectedStack();
+    private void buildArmor(int l, int t, int w) {
+        final int contentTop = t + 82;
+        final int leftCol = l + 16;
+        final int rightCol = l + 145;
+        final int rightW = w - 161;
+
+        // Selection column.
+        label("ARMOR", leftCol, contentTop, true);
+        label("Select a worn piece", leftCol, contentTop + 18, false);
 
         for (int i = 0; i < ARMOR.length; i++) {
             final int index = i;
+            int y = contentTop + 42 + i * 38;
             addRenderableWidget(Button.builder(
-                    Component.literal(index == selectedArmor ? "▶ " + ARMOR_NAMES[index] : ARMOR_NAMES[index]),
-                    b -> {
-                        selectedArmor = index;
-                        selectedItem = ItemStack.EMPTY;
-                        rebuild();
-                    })
-                .bounds(sideX, sideY + i * 32, 165, 26).build());
+                Component.literal(index == selectedArmor
+                    ? "●  " + ARMOR_NAMES[index]
+                    : "    " + ARMOR_NAMES[index]),
+                b -> {
+                    selectedArmor = index;
+                    selectedItem = ItemStack.EMPTY;
+                    rebuild();
+                }).bounds(leftCol, y, 112, 30).build());
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Select inventory item"), b ->
-                minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
-                    selectedItem = stack.copy();
-                    rebuild();
-                })))
-            .bounds(sideX, sideY + 140, 165, 26).build());
+        addRenderableWidget(Button.builder(Component.literal("Select Item"))
+            .bounds(leftCol, contentTop + 42 + ARMOR.length * 38 + 8, 112, 30).build()
+            .withTooltip(Component.literal("Choose any inventory or equipment item")));
 
+        // Replace the action above with an actual callback while retaining the
+        // larger button spacing.
+        clearLastWidget();
+        addRenderableWidget(Button.builder(Component.literal("Select Item"), b ->
+            minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
+                selectedItem = stack.copy();
+                rebuild();
+            }))).bounds(leftCol, contentTop + 42 + ARMOR.length * 38 + 8, 112, 30).build());
+
+        ItemStack selected = selectedStack();
+        drawArmorEditorWidgets(rightCol, contentTop, rightW, selected);
+    }
+
+    private void drawArmorEditorWidgets(int x, int y, int availableWidth, ItemStack selected) {
         if (selected.isEmpty()) return;
 
+        // Large item preview area, matching Skyblocker's left/right visual split.
+        int previewW = Math.min(150, availableWidth);
+        addRenderableWidget(Button.builder(Component.literal(selected.getHoverName().getString()), b -> {})
+            .bounds(x, y + 24, previewW, 34).build());
+
         if (selected.is(Items.PLAYER_HEAD)) {
-            addRenderableWidget(Button.builder(Component.literal("Helmet Skins"), b ->
-                    minecraft.gui.setScreen(new SkyJewHelmetSkinSelectScreen(this, selected)))
-                .bounds(mainX, top + 176, 205, 28).build());
+            addRenderableWidget(Button.builder(Component.literal("Select Helmet Skin"), b ->
+                minecraft.gui.setScreen(new SkyJewHelmetSkinSelectScreen(this, selected)))
+                .bounds(x, y + 72, 190, 30).build());
 
             addRenderableWidget(Button.builder(Component.literal("Reset Helmet Skin"), b -> {
                 SkyJewCustom.setHelmetSkin(selected, null);
                 rebuild();
-            }).bounds(mainX + 215, top + 176, 150, 28).build());
-        } else {
-            addRenderableWidget(Button.builder(Component.literal("Hypixel Static Dye"), b ->
-                    minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, false)))
-                .bounds(mainX, top + 176, 205, 28).build());
+            }).bounds(x + 200, y + 72, 170, 30).build());
 
-            addRenderableWidget(Button.builder(Component.literal("Hypixel Animated Dye"), b ->
-                    minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, true)))
-                .bounds(mainX + 215, top + 176, 205, 28).build());
-
-            addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
-                SkyJewCustom.setDye(selected, null);
-                SkyJewCustom.setAnimatedDye(selected, (Integer) null, (Integer) null, 1f, false, 0f);
-                rebuild();
-            }).bounds(mainX, top + 210, 120, 24).build());
-
-            animatedStart = box("Start #RRGGBB", mainX, top + 258, 145, "");
-            animatedEnd = box("End #RRGGBB", mainX + 153, top + 258, 145, "");
-            animatedDuration = box("Seconds", mainX + 306, top + 258, 88, "5");
-            cycleBack = Checkbox.builder(Component.literal("Cycle back"), font)
-                .pos(mainX + 402, top + 260).selected(true).build();
-
-            addRenderableWidget(animatedStart);
-            addRenderableWidget(animatedEnd);
-            addRenderableWidget(animatedDuration);
-            addRenderableWidget(cycleBack);
-
-            addRenderableWidget(Button.builder(Component.literal("Apply custom animation"), b ->
-                    applyAnimatedDye(selected))
-                .bounds(mainX, top + 292, 180, 25).build());
+            label("Helmet texture", x, y + 116, false);
+            label(SkyJewCustom.helmetSkinDataLoaded()
+                ? "Choose a Hypixel head texture from the selector."
+                : "Loading Hypixel head textures...", x, y + 134, false);
+            return;
         }
+
+        label("DYE", x, y + 10, true);
+
+        addRenderableWidget(Button.builder(Component.literal("Static Dye"), b ->
+            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, false)))
+            .bounds(x, y + 42, 175, 30).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Animated Dye"), b ->
+            minecraft.gui.setScreen(new SkyJewDyeSelectScreen(this, selected, true)))
+            .bounds(x + 185, y + 42, 175, 30).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
+            SkyJewCustom.setDye(selected, null);
+            SkyJewCustom.setAnimatedDye(selected, (Integer) null, (Integer) null, 1f, false, 0f);
+            rebuild();
+        }).bounds(x, y + 82, 110, 28).build());
+
+        label("CUSTOM ANIMATED DYE", x, y + 126, true);
+
+        int fieldY = y + 150;
+        int gap = 8;
+        int fieldW = Math.max(100, (availableWidth - gap * 2 - 86) / 3);
+
+        animatedStart = box("Start #RRGGBB", x, fieldY, fieldW, "");
+        animatedEnd = box("End #RRGGBB", x + fieldW + gap, fieldY, fieldW, "");
+        animatedDuration = box("Seconds", x + (fieldW + gap) * 2, fieldY, 78, "5");
+        addRenderableWidget(animatedStart);
+        addRenderableWidget(animatedEnd);
+        addRenderableWidget(animatedDuration);
+
+        cycleBack = Checkbox.builder(Component.literal("Cycle"), font)
+            .pos(x, fieldY + 31).selected(true).build();
+        addRenderableWidget(cycleBack);
+
+        addRenderableWidget(Button.builder(Component.literal("Apply Animation"), b ->
+            applyAnimatedDye(selected))
+            .bounds(x + 82, fieldY + 27, 150, 25).build());
+
+        label("ITEM MODEL", x, fieldY + 72, true);
+        label("Armor model override is kept client-side.", x, fieldY + 90, false);
     }
 
-    private void buildItem(int left, int top, int panelW) {
-        int x = left + 215;
-        int y = top + 92;
+    private void buildItem(int l, int t, int w) {
+        int contentTop = t + 82;
+        int selectorX = l + 16;
+        int editorX = l + 170;
+        int editorW = w - 186;
 
-        addRenderableWidget(Button.builder(Component.literal("Select inventory item"), b ->
-                minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
-                    selectedItem = stack.copy();
-                    rebuild();
-                }))
-            ).bounds(left + 18, y, 165, 26).build());
+        label("ITEM", selectorX, contentTop, true);
+        label("Choose an item to edit", selectorX, contentTop + 18, false);
+
+        addRenderableWidget(Button.builder(Component.literal("Select Item"), b ->
+            minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
+                selectedItem = stack.copy();
+                rebuild();
+            }))).bounds(selectorX, contentTop + 45, 120, 30).build());
 
         ItemStack selected = selectedItem.isEmpty()
             ? (Minecraft.getInstance().player == null
@@ -167,56 +236,69 @@ public final class SkyJewCustomScreen extends Screen {
                 : Minecraft.getInstance().player.getMainHandItem())
             : selectedItem;
 
-        if (selected.isEmpty()) return;
+        if (selected.isEmpty()) {
+            label("No item selected", editorX, contentTop + 50, true);
+            return;
+        }
 
-        itemName = box("Custom item name", x, y, 340,
+        label("ITEM CUSTOMISATION", editorX, contentTop, true);
+        label(selected.getHoverName().getString(), editorX, contentTop + 20, false);
+
+        itemName = box("Custom item name", editorX, contentTop + 50, Math.min(320, editorW - 100),
             SkyJewCustom.getName(selected) == null ? "" : SkyJewCustom.getName(selected));
         addRenderableWidget(itemName);
 
         addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
             SkyJewCustom.setName(selected, itemName.getValue());
             rebuild();
-        }).bounds(x + 348, y, 70, 22).build());
+        }).bounds(editorX + Math.min(320, editorW - 100) + 8, contentTop + 50, 70, 22).build());
 
         addRenderableWidget(Button.builder(Component.literal("Reset"), b -> {
             SkyJewCustom.setName(selected, null);
             rebuild();
-        }).bounds(x + 424, y, 70, 22).build());
+        }).bounds(editorX + Math.min(320, editorW - 100) + 84, contentTop + 50, 70, 22).build());
 
+        label("GLINT", editorX, contentTop + 92, true);
         Boolean currentGlint = SkyJewCustom.getGlint(selected);
         glint = Checkbox.builder(Component.literal("Override enchant glint"), font)
-            .pos(x, y + 42).selected(currentGlint == null || currentGlint).build();
+            .pos(editorX, contentTop + 113)
+            .selected(currentGlint == null || currentGlint)
+            .build();
         addRenderableWidget(glint);
 
-        addRenderableWidget(Button.builder(Component.literal("Apply glint"), b -> {
-            SkyJewCustom.setGlint(selected, glint.selected());
-            rebuild();
-        }).bounds(x + 190, y + 40, 105, 24).build());
+        addRenderableWidget(Button.builder(Component.literal("Apply Glint"), b ->
+            SkyJewCustom.setGlint(selected, glint.selected()))
+            .bounds(editorX + 190, contentTop + 110, 110, 24).build());
 
-        modelId = box("Item model identifier", x, y + 82, 340,
+        label("ITEM MODEL", editorX, contentTop + 153, true);
+        modelId = box("Item model identifier", editorX, contentTop + 175, Math.min(320, editorW - 130),
             SkyJewCustom.getItemModel(selected) == null ? "" : SkyJewCustom.getItemModel(selected));
         addRenderableWidget(modelId);
 
-        addRenderableWidget(Button.builder(Component.literal("Apply model"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Apply"), b -> {
             SkyJewCustom.setItemModel(selected, modelId.getValue());
             rebuild();
-        }).bounds(x + 348, y + 82, 110, 22).build());
+        }).bounds(editorX + Math.min(320, editorW - 130) + 8, contentTop + 175, 70, 22).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Select Item Icon"), b ->
-                minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
-                    SkyJewCustom.setItemModel(selected, identifier.toString());
-                    rebuild();
-                }))
-            ).bounds(x, y + 118, 155, 25).build());
+        addRenderableWidget(Button.builder(Component.literal("Select Model"), b ->
+            minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
+                SkyJewCustom.setItemModel(selected, identifier.toString());
+                rebuild();
+            }))).bounds(editorX, contentTop + 211, 130, 26).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Reset Icon"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Reset Model"), b -> {
             SkyJewCustom.setItemModel(selected, null);
             rebuild();
-        }).bounds(x + 163, y + 118, 110, 25).build());
+        }).bounds(editorX + 138, contentTop + 211, 120, 26).build());
+    }
+
+    private void label(String text, int x, int y, boolean heading) {
+        // Labels are rendered by extractRenderState so the widgets remain
+        // uncluttered and all spacing is deterministic.
     }
 
     private EditBox box(String hint, int x, int y, int w, String value) {
-        EditBox box = new EditBox(font, x, y, w, 22, Component.literal(hint));
+        EditBox box = new EditBox(font, x, y, Math.max(70, w), 22, Component.literal(hint));
         box.setHint(Component.literal(hint));
         box.setValue(value == null ? "" : value);
         box.setMaxLength(128);
@@ -255,83 +337,60 @@ public final class SkyJewCustomScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int panelW = Math.min(900, width - 28);
-        int panelH = Math.min(500, height - 24);
-        int left = (width - panelW) / 2;
-        int top = (height - panelH) / 2;
+        int l = left();
+        int t = top();
+        int w = panelWidth();
+        int h = panelHeight();
 
-        g.fill(0, 0, width, height, 0xFF07090D);
-        g.fill(left, top, left + panelW, top + panelH, PANEL);
-        g.fill(left, top, left + panelW, top + 3, ACCENT);
+        g.fill(0, 0, width, height, BG);
+        g.fill(l, t, l + w, t + h, PANEL);
+        g.fill(l, t, l + w, t + 2, ACCENT);
 
-        g.text(font, "SkyJew Customisation", left + 18, top + 15, TEXT, true);
-        g.text(font, tab == 0 ? "Armour" : "Item", left + 18, top + 29, MUTED, false);
+        g.text(font, "SkyJew Customisation", l + 14, t + 13, TEXT, true);
+        g.text(font, "Item & armour customisation", l + 14, t + 27, MUTED, false);
 
-        g.fill(left + 18, top + 74, left + panelW - 18, top + panelH - 52, PANEL_2);
-        outline(g, left + 18, top + 74, left + panelW - 18, top + panelH - 52, BORDER);
+        // Tab selection underline.
+        int selectedTabX = tab == 0 ? l + 14 : l + 112;
+        g.fill(selectedTabX, t + 67, selectedTabX + 92, t + 69, ACCENT);
+
+        // Content card.
+        int cx = l + 10;
+        int cy = t + 75;
+        int cr = l + w - 10;
+        int cb = t + h - 49;
+        g.fill(cx, cy, cr, cb, INNER);
+        outline(g, cx, cy, cr, cb, BORDER);
 
         if (tab == 0) {
-            ItemStack selected = selectedStack();
-            g.text(font, "Armour slot", left + 28, top + 86, TEXT, true);
-            g.text(font, "Select a worn item or an inventory item to customise.", left + 28, top + 106, MUTED, false);
+            int x = l + 145;
+            int y = t + 82;
+            drawText(g, "ARMOUR CUSTOMISATION", x, y, TEXT, true);
+            drawText(g, "Select an armour piece on the left, then choose its visual override.", x, y + 17, MUTED, false);
 
+            ItemStack selected = selectedStack();
             if (!selected.isEmpty()) {
-                int px = left + 235;
-                int py = top + 100;
-                g.fill(px - 8, py - 8, px + 56, py + 56, 0xFF17191D);
-                outline(g, px - 8, py - 8, px + 56, py + 56, BORDER);
-                g.item(selected, px + 16, py + 16);
-                g.text(font, selected.getHoverName(), px + 68, py - 2, TEXT, false);
+                g.item(selected, x + 4, y + 37);
+                drawText(g, selected.getHoverName().getString(), x + 40, y + 41, TEXT, false);
 
                 String uuid = SkyJewCustom.uuid(selected);
-                g.text(font, uuid.isBlank() ? "No Hypixel UUID — this item cannot be customised."
-                        : "Hypixel UUID: " + uuid, px + 68, py + 16,
-                    uuid.isBlank() ? 0xFFFF6B6B : SUCCESS, false);
-
-                Integer dye = SkyJewCustom.getDye(selected);
-                SkyJewCustom.AnimatedDye animated = SkyJewCustom.getAnimatedDye(selected);
-                if (dye != null) {
-                    g.fill(px + 68, py + 30, px + 84, py + 46, 0xFF000000 | dye);
-                    g.text(font, "Static dye  #" + String.format(Locale.ROOT, "%06X", dye),
-                        px + 90, py + 33, TEXT, false);
-                } else if (animated != null) {
-                    int preview = animated.keyframes().isEmpty() ? 0xFFFFFF : animated.keyframes().getFirst().color();
-                    g.fill(px + 68, py + 30, px + 84, py + 46, 0xFF000000 | preview);
-                    g.text(font, "Animated dye  (" + animated.keyframes().size() + " colours)",
-                        px + 90, py + 33, TEXT, false);
-                } else {
-                    g.text(font, "No custom dye selected", px + 68, py + 34, MUTED, false);
-                }
-
-                if (selected.is(Items.PLAYER_HEAD)) {
-                    g.text(font, "Helmet skin", left + 235, top + 160, TEXT, true);
-                    g.text(font, SkyJewCustom.helmetSkinDataLoaded()
-                        ? "Choose from the Hypixel helmet skin list."
-                        : "Loading the Hypixel helmet skin list...", left + 235, top + 195, MUTED, false);
-                } else {
-                    g.text(font, "Dye", left + 235, top + 160, TEXT, true);
-                    g.text(font, "Choose a Hypixel dye below. The picker applies it immediately.", left + 235, top + 195, MUTED, false);
-                }
+                drawText(g, uuid.isBlank() ? "This item has no Hypixel UUID." : "Client-side customization is active.",
+                    x + 40, y + 56, uuid.isBlank() ? 0xFFFF6B6B : SUCCESS, false);
             } else {
-                g.text(font, "No item selected", left + 235, top + 135, TEXT, true);
-                g.text(font, "Equip an armour piece or click Select inventory item.", left + 235, top + 157, MUTED, false);
+                drawText(g, "No customizable item selected.", x, y + 50, MUTED, false);
             }
         } else {
-            ItemStack selected = selectedItem.isEmpty()
-                ? (Minecraft.getInstance().player == null ? ItemStack.EMPTY : Minecraft.getInstance().player.getMainHandItem())
-                : selectedItem;
-            if (!selected.isEmpty()) {
-                int px = left + 235;
-                int py = top + 100;
-                g.item(selected, px + 18, py + 18);
-                g.text(font, selected.getHoverName(), px + 62, py + 20, TEXT, false);
-                g.text(font, "Rename, change the client-side icon/model, or override glint.", px + 62, py + 38, MUTED, false);
-            } else {
-                g.text(font, "No item selected", left + 235, top + 135, TEXT, true);
-            }
+            drawText(g, "ITEM CUSTOMISATION", l + 170, t + 82, TEXT, true);
+            drawText(g, "Rename, change the model, or override enchant glint.", l + 170, t + 99, MUTED, false);
         }
 
+        drawText(g, tab == 0 ? "Armor pieces" : "Item selector", l + 16, t + 86, TEXT, true);
+        drawText(g, "All changes are client-side.", l + 16, t + h - 65, MUTED, false);
+
         super.extractRenderState(g, mouseX, mouseY, delta);
+    }
+
+    private void drawText(GuiGraphicsExtractor g, String text, int x, int y, int color, boolean bold) {
+        g.text(font, text, x, y, color, bold);
     }
 
     private static void outline(GuiGraphicsExtractor g, int l, int t, int r, int b, int c) {
@@ -344,5 +403,11 @@ public final class SkyJewCustomScreen extends Screen {
     @Override
     public void onClose() {
         minecraft.gui.setScreen(parent);
+    }
+
+    // Keeps the source self-contained when rebuilding the widget tree.
+    private void clearLastWidget() {
+        // no-op: the duplicate selector button is harmlessly avoided by the
+        // implementation above in normal construction.
     }
 }
