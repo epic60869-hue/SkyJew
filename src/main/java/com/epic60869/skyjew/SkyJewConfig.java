@@ -55,10 +55,6 @@ public final class SkyJewConfig extends Config {
     public Pets pets = new Pets();
 
     @Expose
-    @Category(name = "Experiments", desc = "Experimentation Table assistance.")
-    public Experiments experiments = new Experiments();
-
-    @Expose
     @Category(name = "Misc", desc = "Nickname and small quality-of-life options.")
     public Misc misc = new Misc();
 
@@ -217,22 +213,6 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Edit Position", desc = "Open the HUD editor and drag the Pet Display.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable editPosition = () -> openHudEditor();
-    }
-
-    public static final class Experiments {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Experimental Table", desc = "Experimentation Table solver and protections.")
-        public ExperimentalTable table = new ExperimentalTable();
-    }
-
-    public static final class ExperimentalTable {
-        @Expose @ConfigOption(name = "Enabled", desc = "Enable the Experimentation Table helper.")
-        @ConfigEditorBoolean public boolean enabled = true;
-        @Expose @ConfigOption(name = "Next Click Highlight", desc = "Highlight the next Chronomatron/Ultrasequencer click.")
-        @ConfigEditorBoolean public boolean highlight = true;
-        @Expose @ConfigOption(name = "Prevent Misclicks", desc = "Block clicks that do not match the detected sequence.")
-        @ConfigEditorBoolean public boolean preventMisclicks = true;
     }
 
     public static final class MouseLock {
@@ -447,10 +427,6 @@ public final class SkyJewConfig extends Config {
         if (old.has("mouseLockEnabled")) migrated.farming.mouseLock.enabled = old.get("mouseLockEnabled").getAsBoolean();
         if (old.has("mouseLockGroundOnly")) migrated.farming.mouseLock.groundOnly = old.get("mouseLockGroundOnly").getAsBoolean();
 
-        if (old.has("experimentHelperEnabled")) migrated.experiments.table.enabled = old.get("experimentHelperEnabled").getAsBoolean();
-        if (old.has("experimentHelperHighlight")) migrated.experiments.table.highlight = old.get("experimentHelperHighlight").getAsBoolean();
-        if (old.has("experimentHelperPreventMisclicks")) migrated.experiments.table.preventMisclicks = old.get("experimentHelperPreventMisclicks").getAsBoolean();
-        if (old.has("experimentHelperDebug")) 
         if (old.has("nickEnabled")) migrated.misc.nickname.enabled = old.get("nickEnabled").getAsBoolean();
         if (old.has("nickName")) migrated.misc.nickname.name = old.get("nickName").getAsString();
         if (old.has("nickMode")) migrated.misc.nickname.style = legacyStyle(old.get("nickMode").getAsString());
@@ -480,18 +456,6 @@ public final class SkyJewConfig extends Config {
                 if (pets.has("x")) display.add("x", pets.remove("x"));
                 if (pets.has("y")) display.add("y", pets.remove("y"));
                 pets.add("display", display);
-                changed = true;
-            }
-        }
-
-        if (root.has("experiments") && root.get("experiments").isJsonObject()) {
-            JsonObject experiments = root.getAsJsonObject("experiments");
-            if (experiments.has("enabled") && experiments.get("enabled").isJsonPrimitive()) {
-                JsonObject table = new JsonObject();
-                table.add("enabled", experiments.remove("enabled"));
-                if (experiments.has("highlight")) table.add("highlight", experiments.remove("highlight"));
-                if (experiments.has("preventMisclicks")) table.add("preventMisclicks", experiments.remove("preventMisclicks"));
-                experiments.add("table", table);
                 changed = true;
             }
         }
