@@ -132,13 +132,6 @@ public final class SkyJewCustomScreen extends Screen {
                 }).bounds(leftCol, y, 112, 30).build());
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Select Item"))
-            .bounds(leftCol, contentTop + 42 + ARMOR.length * 38 + 8, 112, 30).build()
-            .withTooltip(Component.literal("Choose any inventory or equipment item")));
-
-        // Replace the action above with an actual callback while retaining the
-        // larger button spacing.
-        clearLastWidget();
         addRenderableWidget(Button.builder(Component.literal("Select Item"), b ->
             minecraft.gui.setScreen(new SkyJewItemSelectScreen(this, stack -> {
                 selectedItem = stack.copy();
@@ -405,9 +398,4 @@ public final class SkyJewCustomScreen extends Screen {
         minecraft.gui.setScreen(parent);
     }
 
-    // Keeps the source self-contained when rebuilding the widget tree.
-    private void clearLastWidget() {
-        // no-op: the duplicate selector button is harmlessly avoided by the
-        // implementation above in normal construction.
-    }
 }
