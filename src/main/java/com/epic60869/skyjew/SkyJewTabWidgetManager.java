@@ -251,6 +251,17 @@ public final class SkyJewTabWidgetManager {
             }
 
             if (!active) continue;
+
+            // Headers may include their first value on the same TAB row.
+            if (wanted.equals("Pet") && text.regionMatches(true, 0, "Pet:", 0, 4)) {
+                String inline = text.substring(4).strip();
+                Matcher inlineMatch = Pattern.compile("^\\[Lvl\\s+(\\d+)\\]\\s+(.+)$", Pattern.CASE_INSENSITIVE).matcher(inline);
+                if (inlineMatch.matches()) {
+                    recovered.add(trim(display));
+                    raw.add(entry);
+                    continue;
+                }
+            }
             if (!text.startsWith(" ") && text.contains(":")) break;
 
             if (wanted.equals("Pet") &&
