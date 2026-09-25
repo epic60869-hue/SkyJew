@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
+import net.minecraft.client.multiplayer.PlayerInfo;
 
 public final class SkyJewCommissionHud {
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew", "commissions");
@@ -54,16 +56,51 @@ public final class SkyJewCommissionHud {
     }
 
     private static void updateFromTab() {
-        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Commissions");
-        List<Commission> found = new ArrayList<>();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getConnection() == null) {
+            commissions = List.of();
+            return;
+        }
 
-        for (Component line : widget.lines()) {
-            Matcher matcher = COMM_PATTERN.matcher(line.getString().strip());
+        List<PlayerInfo> entries = new ArrayList<>(mc.getConnection().getOnlinePlayers());
+        try {
+            entries.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
+        } catch (Throwable ignored) {
+        }
+
+        List<Commission> found = new ArrayList<>();
+        boolean inCommissions = false;
+
+        for (PlayerInfo entry : entries) {
+            Component display = entry.getTabListDisplayName();
+            if (display == null && entry.getProfile() != null) {
+                display = Component.literal(entry.getProfile().name());
+            }
+            if (display == null) continue;
+
+            String raw = display.getString().replaceAll("§.", "");
+            String line = raw.strip();
+            if (line.isBlank()) continue;
+
+            if (!inCommissions) {
+                if (line.equalsIgnoreCase("Commissions")
+                    || line.equalsIgnoreCase("Commissions:")) {
+                    inCommissions = true;
+                }
+                continue;
+            }
+
+            if (!raw.startsWith(" ") && line.contains(":")
+                && !COMM_PATTERN.matcher(line).matches()) {
+                break;
+            }
+
+            Matcher matcher = COMM_PATTERN.matcher(line);
             if (!matcher.matches()) continue;
 
             String name = matcher.group("name").strip();
             String progress = matcher.group("progress").strip();
-            if (name.isEmpty()) continue;
+            if (name.isEmpty() || progress.isEmpty()) continue;
 
             if (progress.equalsIgnoreCase("DONE")) {
                 found.add(new Commission(name, "DONE", 100f));
