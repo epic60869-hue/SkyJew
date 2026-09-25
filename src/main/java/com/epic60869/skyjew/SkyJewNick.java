@@ -144,7 +144,16 @@ public final class SkyJewNick {
             nickHex = config().misc.nickname.customHex;
         }
 
-        if (nickName == null) return original;
+        if (nickName == null) {
+            // Hypixel tab entries are fake profiles, so fall back to matching usernames in the text.
+            if (local || config() == null || !config().misc.nickname.seeOtherNicks) return original;
+            Component result = original;
+            for (RemoteNick r : REMOTE_NICKS.values()) {
+                if (!r.enabled || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
+                result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex));
+            }
+            return result;
+        }
 
         final String finalNickName = nickName;
         final String finalNickMode = nickMode;

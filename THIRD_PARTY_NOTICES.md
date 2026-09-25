@@ -13,14 +13,16 @@ The SkyJew feature implementation itself is a separate Java implementation and d
 
 ## Skyblocker
 
-SkyJew's /sj custom GUI is an adaptation of the Skyblocker customization-screen design and source structure from:
+SkyJew's /sj custom item and armor customization (the `com.epic60869.skyjew.custom` package and its mixins) is ported from Skyblocker:
 
 - https://github.com/SkyblockerMod/Skyblocker
-- Relevant source: src/main/java/de/hysky/skyblocker/skyblock/item/custom/screen/
+- Version: v6.10.4+26.2
+- Relevant source: src/main/java/de/hysky/skyblocker/skyblock/item/custom/, the GUI utilities it uses under src/main/java/de/hysky/skyblocker/utils/, and the DataComponentHolder, DyedItemColor, ItemStack and EquipmentLayerRenderer mixins
+- Assets: the customization screen sprites under assets/skyjew/textures/gui/ and the related en_us translations
 
 Skyblocker is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
 
-The SkyJew adaptation keeps the Skyblocker attribution in the relevant source files. This notice is provided alongside the adapted code.
+Each ported source file keeps a Skyblocker attribution line. SkyJew replaces Skyblocker's config, NEU repository and scheduler dependencies with its own small implementations.
 
 ## CommandKeys
 

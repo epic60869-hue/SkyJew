@@ -1,4 +1,4 @@
-package com.epic60869.skyjew;
+package com.epic60869.skyjew.mixin;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.spongepowered.asm.mixin.Mixin;

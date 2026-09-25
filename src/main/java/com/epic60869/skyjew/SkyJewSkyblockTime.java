@@ -45,4 +45,8 @@ public final class SkyJewSkyblockTime {
     public static String formatRealWorld(int year, int monthIndex, int day) {
         return REAL_TIME_FORMAT.format(toRealWorld(year, monthIndex, day));
     }
+
+    public static String formatRealWorld(Instant instant) {
+        return REAL_TIME_FORMAT.format(instant.atZone(ZoneId.systemDefault()));
+    }
 }

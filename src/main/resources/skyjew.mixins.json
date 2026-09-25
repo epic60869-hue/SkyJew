@@ -4,7 +4,6 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "SkyJewItemStackMixin",
-    "SkyJewItemGlintMixin",
     "SkyJewDyedItemColorMixin",
     "SkyJewDataComponentHolderMixin",
     "SkyJewChatHudMixin",
@@ -19,6 +18,10 @@
     "SkyJewItemHighlightMixin",
     "SkyJewRecipeOverlayMixin",
     "SkyJewCalendarTooltipMixin",
-    "SkyJewModelManagerAccessor"
+    "SkyJewModelManagerAccessor",
+    "SkyJewCheckboxAccessor",
+    "SkyJewEntityRenderDispatcherAccessor",
+    "SkyJewCustomDataAccessor",
+    "SkyJewEquipmentLayerRendererMixin"
   ]
 }

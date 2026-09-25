@@ -413,6 +413,16 @@ public final class SkyJewStorageSearch {
         // SkyBlock storage GUIs use these as navigation/decorative controls.
         if (id.endsWith("stained_glass_pane") || id.equals("barrier")) return false;
 
+        // Hypixel's page arrows are plain vanilla arrows without a SkyBlock item id.
+        // Real SkyBlock arrows always carry one, so this never hides stored items.
+        if (id.equals("arrow") && searchable(stack).id().isEmpty()) return false;
+
+        // Names may be decorated with arrows or page counters ("» Next Page (2/9)").
+        String words = name.replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
+        if (words.contains("next page") || words.contains("previous page") || words.contains("prev page")) {
+            return false;
+        }
+
         return !(name.equals("go back")
                 || name.equals("back")
                 || name.equals("close")

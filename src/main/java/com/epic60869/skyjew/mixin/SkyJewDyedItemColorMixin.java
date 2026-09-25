@@ -1,18 +1,34 @@
 package com.epic60869.skyjew.mixin;
 
-import com.epic60869.skyjew.SkyJewCustom;
+import com.epic60869.skyjew.custom.CustomArmorAnimatedDyes;
+import com.epic60869.skyjew.custom.CustomConfigManager;
+import com.epic60869.skyjew.custom.util.Compat;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/** Ported from Skyblocker's DyedItemColorMixin (LGPL-3.0). */
 @Mixin(DyedItemColor.class)
 public class SkyJewDyedItemColorMixin {
-    @Inject(method = "getOrDefault", at = @At("RETURN"), cancellable = true)
-    private static void skyjew$customDye(ItemStack stack, int defaultColor,
-                                            CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(SkyJewCustom.customDye(stack, cir.getReturnValue()));
+
+    @ModifyReturnValue(method = "getOrDefault", at = @At("RETURN"))
+    private static int skyjew$customDyeColor(int originalColor, ItemStack stack, int defaultColor) {
+        if (Compat.isOnSkyblock()) {
+            String itemUuid = Compat.uuid(stack);
+            CustomConfigManager.GeneralConfig general = CustomConfigManager.get().general;
+
+            if (general.customAnimatedDyes.containsKey(itemUuid)) {
+                return ARGB.opaque(CustomArmorAnimatedDyes.animateColorTransition(general.customAnimatedDyes.get(itemUuid)));
+            }
+
+            if (general.customDyeColors.containsKey(itemUuid)) {
+                return ARGB.opaque(general.customDyeColors.getInt(itemUuid));
+            }
+        }
+
+        return originalColor;
     }
 }

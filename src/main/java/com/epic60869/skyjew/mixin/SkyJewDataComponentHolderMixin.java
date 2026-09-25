@@ -1,57 +1,72 @@
 package com.epic60869.skyjew.mixin;
 
-import com.epic60869.skyjew.SkyJewCustom;
+import com.epic60869.skyjew.custom.CustomAnimatedHelmetTextures;
+import com.epic60869.skyjew.custom.CustomArmorTrims;
+import com.epic60869.skyjew.custom.CustomConfigManager;
+import com.epic60869.skyjew.custom.CustomHelmetTextures;
+import com.epic60869.skyjew.custom.util.Compat;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/** Ported from Skyblocker's DataComponentHolderMixin (LGPL-3.0). */
 @Mixin(DataComponentHolder.class)
 public interface SkyJewDataComponentHolderMixin {
-    @Inject(method = "get", at = @At("RETURN"), cancellable = true)
-    private <T> void skyjew$customComponents(DataComponentType<? extends T> type,
-                                              CallbackInfoReturnable<T> cir) {
-        if (!((Object) this instanceof ItemStack stack)) return;
 
-        if (type == DataComponents.ENCHANTMENT_GLINT_OVERRIDE) {
-            Boolean glint = SkyJewCustom.getGlint(stack);
-            if (glint != null) {
-                @SuppressWarnings("unchecked") T custom = (T) glint;
-                cir.setReturnValue(custom);
-                return;
+    @SuppressWarnings("unchecked")
+    @ModifyReturnValue(method = "get", at = @At("RETURN"))
+    private <T> T skyjew$customComponents(T original, DataComponentType<? extends T> dataComponentType) {
+        // Check the type before reading the UUID: the UUID lookup itself reads CUSTOM_DATA through this method.
+        if (dataComponentType != DataComponents.TRIM && dataComponentType != DataComponents.PROFILE
+                && dataComponentType != DataComponents.ENCHANTMENT_GLINT_OVERRIDE && dataComponentType != DataComponents.ITEM_MODEL) {
+            return original;
+        }
+        if (!((Object) this instanceof ItemStack stack) || !Compat.isOnSkyblock()) return original;
+
+        String itemUuid = Compat.uuid(stack);
+        if (itemUuid.isEmpty()) return original;
+        CustomConfigManager.GeneralConfig general = CustomConfigManager.get().general;
+
+        if (dataComponentType == DataComponents.TRIM) {
+            CustomArmorTrims.ArmorTrimId trimKey = general.customArmorTrims.get(itemUuid);
+
+            if (trimKey != null) {
+                return (T) CustomArmorTrims.TRIMS_CACHE.getOrDefault(trimKey, (ArmorTrim) original);
+            }
+        } else if (dataComponentType == DataComponents.PROFILE && stack.is(Items.PLAYER_HEAD)) {
+            // Normal head textures
+            String tex = general.customHelmetTextures.get(itemUuid);
+
+            if (tex != null) {
+                return (T) CustomHelmetTextures.getProfile(tex);
+            }
+
+            // Animated heads
+            String animatedTexId = general.customAnimatedHelmetTextures.get(itemUuid);
+            ResolvableProfile frame = animatedTexId != null ? CustomAnimatedHelmetTextures.animateHeadTexture(animatedTexId) : null;
+
+            if (frame != null) {
+                return (T) frame;
+            }
+        } else if (dataComponentType == DataComponents.ENCHANTMENT_GLINT_OVERRIDE) {
+            if (general.customGlint.containsKey(itemUuid)) {
+                return (T) (Boolean) general.customGlint.getBoolean(itemUuid);
+            }
+        } else if (dataComponentType == DataComponents.ITEM_MODEL) {
+            Identifier id = general.customItemModel.get(itemUuid);
+
+            if (id != null) {
+                return (T) id;
             }
         }
-
-        if (type == DataComponents.PROFILE && stack.is(net.minecraft.world.item.Items.PLAYER_HEAD)) {
-            var profile = SkyJewCustom.helmetSkinProfile(stack);
-            if (profile != null) {
-                @SuppressWarnings("unchecked") T custom = (T) profile;
-                cir.setReturnValue(custom);
-                return;
-            }
-        }
-
-        if (type == DataComponents.TRIM) {
-            @SuppressWarnings("unchecked")
-            T custom = (T) SkyJewCustom.customTrim(stack, (ArmorTrim) cir.getReturnValue());
-            cir.setReturnValue(custom);
-            return;
-        }
-
-        if (type == DataComponents.ITEM_MODEL) {
-            String model = SkyJewCustom.getItemModel(stack);
-            if (model != null && !model.isBlank()) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    T custom = (T) net.minecraft.resources.Identifier.parse(model);
-                    cir.setReturnValue(custom);
-                } catch (Throwable ignored) {}
-            }
-        }
+        return original;
     }
 }

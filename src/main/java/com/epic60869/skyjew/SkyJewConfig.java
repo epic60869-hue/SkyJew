@@ -64,6 +64,11 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable customItemEditor = () -> openCustom();
 
+        @Expose
+        @ConfigOption(name = "Show Customize Button", desc = "Show a button in the inventory that opens the item and armor customization screen.")
+        @ConfigEditorBoolean
+        public boolean showCustomizeButton = true;
+
         @ConfigOption(name = "Notes", desc = "Open your SkyJew notes.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable notes = () -> openNotes();
