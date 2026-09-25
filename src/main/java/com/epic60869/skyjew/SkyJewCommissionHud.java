@@ -86,7 +86,8 @@ public final class SkyJewCommissionHud {
             }
             if (display == null) continue;
 
-            String line = display.getString().strip();
+            String rawLine = display.getString();
+            String line = rawLine.strip();
             if (line.isBlank()) continue;
 
             String lower = line.toLowerCase(java.util.Locale.ROOT);
@@ -108,7 +109,7 @@ public final class SkyJewCommissionHud {
             }
 
             // A new top-level TAB widget ends the Commissions block.
-            if (!line.startsWith(" ") && line.contains(":")) {
+            if (!rawLine.startsWith(" ") && line.contains(":")) {
                 Matcher possible = COMM_PATTERN.matcher(line);
                 if (!possible.matches()) break;
             }
