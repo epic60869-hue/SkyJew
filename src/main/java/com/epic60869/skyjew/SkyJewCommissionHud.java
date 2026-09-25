@@ -66,12 +66,18 @@ public final class SkyJewCommissionHud {
         List<PlayerInfo> entries = new ArrayList<>(mc.getConnection().getOnlinePlayers());
         try {
             entries.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
 
+        /*
+         * Do not infer commissions from the generic TAB widget names. Hypixel's
+         * current SkyBlock TAB format can put resource widgets such as
+         * "Gemstone:" immediately beside/above the real Commissions widget.
+         * Skyblocker's CommsWidget consumes ONLY the lines belonging to the
+         * explicit "Commissions" header, so do the same here.
+         */
         List<Commission> found = new ArrayList<>();
         boolean inCommissions = false;
-        final int maxCommissions = 4;
+        boolean sawHeader = false;
 
         for (PlayerInfo entry : entries) {
             Component display = entry.getTabListDisplayName();
@@ -80,85 +86,79 @@ public final class SkyJewCommissionHud {
             }
             if (display == null) continue;
 
-            String raw = display.getString().replaceAll("§.", "");
-            String line = raw.strip();
+            String line = display.getString().strip();
             if (line.isBlank()) continue;
 
+            String lower = line.toLowerCase(java.util.Locale.ROOT);
+
             if (!inCommissions) {
-                if (line.equalsIgnoreCase("Commissions") || line.equalsIgnoreCase("Commissions:")) {
+                if (lower.equals("commissions") || lower.equals("commissions:")) {
                     inCommissions = true;
+                    sawHeader = true;
                     continue;
                 }
-                // Hypixel sometimes sends the header and its first value in the
-                // same TAB component. Do not treat the value (for example
-                // "Gemstone") as a commission.
-                if (line.regionMatches(true, 0, "Commissions:", 0, "Commissions:".length())) {
+                if (lower.startsWith("commissions:")) {
                     inCommissions = true;
-                    line = line.substring("Commissions:".length()).strip();
+                    sawHeader = true;
+                    line = line.substring("commissions:".length()).strip();
                     if (line.isBlank()) continue;
                 } else {
                     continue;
                 }
             }
 
-            // These are TAB section headers/data that can also match the generic
-            // "Name: number" pattern. They are never commission rows.
-            String lower = line.toLowerCase(java.util.Locale.ROOT);
-            if (lower.equals("bank") || lower.startsWith("bank:")
-                || lower.equals("purse") || lower.startsWith("purse:")
-                || lower.equals("fairy souls") || lower.startsWith("fairy souls:")
-                || lower.equals("skills") || lower.startsWith("skills:")
-                || lower.equals("slayer") || lower.startsWith("slayer:")
-                || lower.equals("pets") || lower.startsWith("pets:")
-                || lower.equals("profile") || lower.startsWith("profile:")) {
-                break;
+            // A new top-level TAB widget ends the Commissions block.
+            if (!line.startsWith(" ") && line.contains(":")) {
+                Matcher possible = COMM_PATTERN.matcher(line);
+                if (!possible.matches()) break;
             }
 
             Matcher matcher = COMM_PATTERN.matcher(line);
             if (!matcher.matches()) continue;
 
-            String lowerName = matcher.group("name").strip().toLowerCase(java.util.Locale.ROOT);
-            // Resource/currency headings are not commissions even when Hypixel
-            // formats them as "Name: value".
-            if (lowerName.equals("gemstone") || lowerName.equals("mithril")
-                || lowerName.equals("glacite") || lowerName.equals("powder")
-                || lowerName.equals("bank") || lowerName.equals("purse")) {
-                continue;
-            }
-
             String name = matcher.group("name").strip();
             String progress = matcher.group("progress").strip();
-            if (name.isEmpty() || progress.isEmpty()) continue;
+            if (name.isBlank() || progress.isBlank()) continue;
+
+            String lowerName = name.toLowerCase(java.util.Locale.ROOT);
+            if (lowerName.equals("gemstone") || lowerName.equals("mithril")
+                || lowerName.equals("glacite") || lowerName.equals("powder")
+                || lowerName.equals("bank") || lowerName.equals("purse")
+                || lowerName.equals("fairy souls") || lowerName.equals("skills")
+                || lowerName.equals("slayer") || lowerName.equals("pets")
+                || lowerName.equals("profile")) {
+                continue;
+            }
 
             if (progress.equalsIgnoreCase("DONE")) {
                 found.add(new Commission(name, "DONE", 100f));
-                if (found.size() >= maxCommissions) break;
-                continue;
-            }
-
-            try {
+            } else {
                 float percent;
                 String shown = progress;
-                if (progress.contains("/")) {
-                    String[] parts = progress.split("/", 2);
-                    double current = Double.parseDouble(parts[0].replace(",", "").trim());
-                    double total = Double.parseDouble(parts[1].replace(",", "").trim());
-                    if (total <= 0) continue;
-                    percent = (float) Math.max(0, Math.min(100, current * 100.0 / total));
-                } else {
-                    String numeric = progress.endsWith("%")
-                        ? progress.substring(0, progress.length() - 1)
-                        : progress;
-                    percent = Math.max(0f, Math.min(100f, Float.parseFloat(numeric)));
-                    if (!progress.endsWith("%")) shown = progress + "%";
+                try {
+                    if (progress.contains("/")) {
+                        String[] parts = progress.split("/", 2);
+                        double current = Double.parseDouble(parts[0].replace(",", "").trim());
+                        double total = Double.parseDouble(parts[1].replace(",", "").trim());
+                        if (total <= 0) continue;
+                        percent = (float) Math.max(0, Math.min(100, current * 100.0 / total));
+                    } else {
+                        String numeric = progress.endsWith("%")
+                            ? progress.substring(0, progress.length() - 1)
+                            : progress;
+                        percent = Math.max(0f, Math.min(100f, Float.parseFloat(numeric)));
+                        if (!progress.endsWith("%")) shown = progress + "%";
+                    }
+                } catch (NumberFormatException ignored) {
+                    continue;
                 }
                 found.add(new Commission(name, shown, percent));
-                if (found.size() >= maxCommissions) break;
-            } catch (NumberFormatException ignored) {
             }
+
+            if (found.size() >= 4) break;
         }
 
-        commissions = found;
+        commissions = sawHeader ? found : List.of();
     }
 
     private static void render(GuiGraphicsExtractor g, List<Commission> list, int x, int y) {
