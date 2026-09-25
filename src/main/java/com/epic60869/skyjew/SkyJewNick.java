@@ -7,6 +7,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
 import java.awt.Color;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
