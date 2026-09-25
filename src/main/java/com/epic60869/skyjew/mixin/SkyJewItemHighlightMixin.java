@@ -22,14 +22,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class SkyJewItemHighlightMixin {
     @Inject(
-        method = "extractSlot",
+        method = "renderSlotContents",
         at = @At("HEAD")
     )
     private void skyjew$rarityBackgroundOnContainerSlot(
         GuiGraphicsExtractor graphics,
+        ItemStack stack,
         net.minecraft.world.inventory.Slot slot,
-        int mouseX,
-        int mouseY,
+        String itemCount,
         CallbackInfo ci
     ) {
         SkyJewConfig config = SkyJewConfig.current();
@@ -41,13 +41,15 @@ public abstract class SkyJewItemHighlightMixin {
         int rgb = rarityColor(stack);
         if (rgb < 0) return;
 
-        // Draw the rarity backdrop directly as GUI geometry instead of relying
-        // on a texture/pipeline combination. This is deliberately done before
-        // vanilla renders the item, so the item remains fully visible on top.
+        // renderSlotContents runs after the slot background but before the item
+        // model itself, so the rarity fill cannot be painted underneath the
+        // vanilla slot background and cannot cover the item.
         int color = ARGB.color(170, rgb);
-        graphics.fill(slot.x + 4, slot.y + 1, slot.x + 12, slot.y + 15, color);
-        graphics.fill(slot.x + 2, slot.y + 3, slot.x + 14, slot.y + 13, color);
-        graphics.fill(slot.x + 1, slot.y + 5, slot.x + 15, slot.y + 11, color);
+        int left = slot.x + 1;
+        int top = slot.y + 1;
+        graphics.fill(left + 3, top, left + 13, top + 1, color);
+        graphics.fill(left + 1, top + 2, left + 15, top + 14, color);
+        graphics.fill(left + 3, top + 14, left + 13, top + 15, color);
     }
 
     private static int rarityColor(ItemStack stack) {
