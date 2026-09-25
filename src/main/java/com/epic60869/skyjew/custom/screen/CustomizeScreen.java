@@ -60,7 +60,7 @@ public class CustomizeScreen extends Screen {
 				ClientCommands.literal(root).then(ClientCommands.literal("custom").executes(Compat.queueOpenScreenCommand(() -> new CustomizeScreen(null, false)))));
 		});
 		ScreenEvents.AFTER_INIT.register((_, screen, _, _) -> {
-			if (Compat.isOnSkyblock() && com.epic60869.skyjew.SkyJewConfig.current() != null && com.epic60869.skyjew.SkyJewConfig.current().general.showCustomizeButton && screen instanceof InventoryScreen inventoryScreen) {
+			if (Compat.isOnSkyblock() && com.epic60869.skyjew.SkyJewConfig.current() != null && com.epic60869.skyjew.SkyJewConfig.current().general.itemCustom.showCustomizeButton && screen instanceof InventoryScreen inventoryScreen) {
 				// Skyblocker repositions on a recipe book toggle callback; SkyJew re-anchors the button every frame instead.
 				Screens.getWidgets(inventoryScreen).add(new CustomizeButton(inventoryScreen));
 			}

@@ -148,30 +148,52 @@ public final class SkyJewNopoFeatures {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.pets.display.enabled) return;
         if (!isHypixel() || petDisplay == null || petDisplay.isEmpty()) return;
-        renderPetHudAt(context, config.pets.display.x, config.pets.display.y, false);
+        renderPetHudAt(context, petDisplay, config.pets.display.x, config.pets.display.y);
+    }
+
+    private static final List<Component> PET_PREVIEW = List.of(
+        Component.literal("Pet:").withStyle(style -> style.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)),
+        Component.literal(" [Lvl 200] ").withStyle(ChatFormatting.GRAY).append(Component.literal("Golden Dragon").withStyle(ChatFormatting.GOLD)),
+        Component.literal("2,345,678/2,500,000 XP (93.8%)").withStyle(ChatFormatting.YELLOW)
+    );
+    private static final int PET_LINE_HEIGHT = 11;
+
+    private static List<Component> shownPetLines() {
+        return petDisplay != null && !petDisplay.isEmpty() ? petDisplay : PET_PREVIEW;
+    }
+
+    public static float petHudScale() {
+        SkyJewConfig config = SkyJewConfig.current();
+        return config == null ? 1.0f : config.pets.display.scale;
+    }
+
+    /** Scaled on-screen width of the pet HUD, matching exactly what is drawn. */
+    public static int petHudWidth() {
+        var font = Minecraft.getInstance().font;
+        int w = 0;
+        for (Component line : shownPetLines()) w = Math.max(w, font.width(line));
+        return Math.max(1, Math.round(w * petHudScale()));
+    }
+
+    /** Scaled on-screen height of the pet HUD, matching exactly what is drawn. */
+    public static int petHudHeight() {
+        return Math.max(1, Math.round((shownPetLines().size() * PET_LINE_HEIGHT - 2) * petHudScale()));
     }
 
     public static void renderPetHudPreview(GuiGraphicsExtractor context, int x, int y) {
-        SkyJewConfig config = SkyJewConfig.current();
-        if (config == null) return;
-        if (petDisplay != null && !petDisplay.isEmpty()) {
-            renderPetHudAt(context, x, y, true);
-            return;
-        }
-
-        var font = Minecraft.getInstance().font;
-        context.fill(x - 6, y - 6, x + 230, y + 34, 0x99000000);
-        context.text(font, Component.literal("Pet:"), x, y, 0xFFFFD83D, true);
-        context.text(font, Component.literal("[Lvl 200] Golden Dragon"), x, y + 11, 0xFFFFAA00, false);
-        context.text(font, Component.literal("2,345,678/2,500,000 XP (93.8%)"), x, y + 22, 0xFFFFD83D, false);
+        renderPetHudAt(context, shownPetLines(), x, y);
     }
 
-    private static void renderPetHudAt(GuiGraphicsExtractor context, int x, int y, boolean preview) {
+    private static void renderPetHudAt(GuiGraphicsExtractor context, List<Component> lines, int x, int y) {
         var font = Minecraft.getInstance().font;
-        if (preview) context.fill(x - 6, y - 6, x + 250, y + petDisplay.size() * 11 + 6, 0x99000000);
-        for (int i = 0; i < petDisplay.size(); i++) {
-            context.text(font, petDisplay.get(i), x, y + i * 11, -1);
+        float scale = petHudScale();
+        context.pose().pushMatrix();
+        context.pose().translate((float) x, (float) y);
+        context.pose().scale(scale, scale);
+        for (int i = 0; i < lines.size(); i++) {
+            context.text(font, lines.get(i), 0, i * PET_LINE_HEIGHT, -1);
         }
+        context.pose().popMatrix();
     }
 
     private static void updatePetDisplay(Minecraft mc) {
@@ -281,45 +303,41 @@ public final class SkyJewNopoFeatures {
     }
 
     private static Component stylePetLine(Component original, int level, String petName) {
-        MutableComponent out = Component.literal(" [Lvl " + level + "] ")
-            .withStyle(s -> s.withColor(ChatFormatting.GRAY));
+        // Hypixel's row already contains "[Lvl N]", so keep the original text from there
+        // on instead of adding a second level prefix. Anything before it (e.g. "Pet: ")
+        // is dropped because the HUD draws its own "Pet:" header.
+        String full = original.getString();
+        int lvlStart = full.indexOf("[Lvl");
+        MutableComponent out = Component.literal(" ");
+        if (lvlStart < 0) {
+            out.append(Component.literal("[Lvl " + level + "] ").withStyle(ChatFormatting.GRAY));
+            lvlStart = 0;
+        }
 
-        final boolean[] found = {false};
+        int nameStart = full.indexOf(petName, lvlStart);
+        int nameEnd = nameStart < 0 ? -1 : nameStart + petName.length();
+        final int from = lvlStart;
+        final int[] offset = {0};
         original.visit((style, value) -> {
             if (value == null || value.isEmpty()) return Optional.empty();
+            int segStart = offset[0];
+            int segEnd = segStart + value.length();
+            offset[0] = segEnd;
+            int keepFrom = Math.max(from, segStart);
+            if (keepFrom >= segEnd) return Optional.empty();
 
-            int start = value.indexOf(petName);
-            if (start >= 0 && !found[0]) {
-                if (start > 0) {
-                    out.append(Component.literal(value.substring(0, start)).withStyle(style));
-                }
-
-                Style petStyle = style;
-                // If Hypixel supplied a rarity colour, keep it exactly. If the
-                // whole component has no explicit colour, use gold as the safe
-                // legendary-looking fallback rather than rendering every pet
-                // white. Most live TAB entries provide an explicit rarity style.
-                if (petStyle.getColor() == null) {
-                    petStyle = petStyle.withColor(ChatFormatting.GOLD);
-                }
-                out.append(Component.literal(petName).withStyle(petStyle));
-
-                if (start + petName.length() < value.length()) {
-                    out.append(Component.literal(value.substring(start + petName.length()))
-                        .withStyle(style));
-                }
-                found[0] = true;
-                return Optional.empty();
+            for (int i = keepFrom; i < segEnd; ) {
+                boolean inName = nameStart >= 0 && i >= nameStart && i < nameEnd;
+                int boundary = inName ? Math.min(segEnd, nameEnd)
+                    : (nameStart >= 0 && i < nameStart ? Math.min(segEnd, nameStart) : segEnd);
+                Style partStyle = style;
+                // Keep Hypixel's rarity colour; fall back to gold if the name has none.
+                if (inName && partStyle.getColor() == null) partStyle = partStyle.withColor(ChatFormatting.GOLD);
+                out.append(Component.literal(value.substring(i - segStart, boundary - segStart)).withStyle(partStyle));
+                i = boundary;
             }
-
-            if (!found[0]) out.append(Component.literal(value).withStyle(style));
             return Optional.empty();
         }, Style.EMPTY);
-
-        if (!found[0]) {
-            out.append(Component.literal(petName)
-                .withStyle(s -> s.withColor(ChatFormatting.GOLD)));
-        }
         return out;
     }
 

@@ -3,6 +3,8 @@ package com.epic60869.skyjew;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
@@ -260,7 +262,7 @@ public final class SkyJewNick {
             }
 
             appendStyledRange(result, runs, cursor, at);
-            result.append(replacement.copy());
+            result.append(withRealNameHover(replacement, actualName, styleAt(runs, at)));
             changed = true;
             cursor = end;
         }
@@ -268,6 +270,30 @@ public final class SkyJewNick {
         if (!changed) return message;
         appendStyledRange(result, runs, cursor, text.length());
         return result;
+    }
+
+    /**
+     * Wraps a nickname so hovering it shows the player's real username. Any hover text
+     * Hypixel already had on the name is kept below it, and click actions are preserved.
+     */
+    private static Component withRealNameHover(Component replacement, String actualName, Style original) {
+        MutableComponent hoverText = Component.literal("Real name: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(actualName).withStyle(ChatFormatting.WHITE));
+        if (original.getHoverEvent() instanceof HoverEvent.ShowText(Component existing)) {
+            hoverText.append(Component.literal("\n")).append(existing);
+        }
+        Style style = Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(hoverText))
+            .withClickEvent(original.getClickEvent());
+        return Component.empty().setStyle(style).append(replacement.copy());
+    }
+
+    private static Style styleAt(List<StyledRun> runs, int index) {
+        int offset = 0;
+        for (StyledRun run : runs) {
+            if (index < offset + run.text.length()) return run.style;
+            offset += run.text.length();
+        }
+        return Style.EMPTY;
     }
 
     private static void appendStyledRange(MutableComponent out, List<StyledRun> runs,

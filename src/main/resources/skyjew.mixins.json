@@ -17,11 +17,12 @@
     "SkyJewPlayerTabOverlayAccessor",
     "SkyJewItemHighlightMixin",
     "SkyJewRecipeOverlayMixin",
-    "SkyJewCalendarTooltipMixin",
     "SkyJewModelManagerAccessor",
     "SkyJewCheckboxAccessor",
     "SkyJewEntityRenderDispatcherAccessor",
     "SkyJewCustomDataAccessor",
-    "SkyJewEquipmentLayerRendererMixin"
+    "SkyJewEquipmentLayerRendererMixin",
+    "SkyJewSlotBackgroundMixin",
+    "SkyJewHotbarBackgroundMixin"
   ]
 }

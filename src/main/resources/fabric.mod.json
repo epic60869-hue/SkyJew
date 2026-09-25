@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "SkyJew",
   "description": "SkyJew utilities and Hypixel SkyBlock features.",
-  "authors": ["epic60869"],
+  "authors": [
+    "epic60869"
+  ],
   "environment": "client",
   "entrypoints": {
     "client": [
@@ -12,12 +14,14 @@
     ]
   },
   "mixins": [
-    "skyjew.mixins.json"
+    "skyjew.mixins.json",
+    "skyjew.commandkeys.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "fabric-api": ">=0.153.0+26.2",
     "minecraft": "26.2",
     "java": ">=25"
-  }
+  },
+  "accessWidener": "skyjew.classtweaker"
 }

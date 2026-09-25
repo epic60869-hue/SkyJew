@@ -12,6 +12,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.epic60869.skyjew.mixin.SkyJewPlayerTabOverlayAccessor;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.ChatFormatting;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public final class SkyJewCommissionHud {
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew", "commissions");
@@ -32,8 +37,14 @@ public final class SkyJewCommissionHud {
     public static int x() { return config == null ? 8 : config.mining.commissions.x; }
     public static int y() { return config == null ? 80 : config.mining.commissions.y; }
     public static float scale() { return config == null ? 1.0f : config.mining.commissions.scale; }
-    public static int width() { return 250; }
-    public static int height() { return Math.max(18, 18 + commissions.size() * 18); }
+    /** Scaled on-screen width of the HUD, matching exactly what is drawn. */
+    public static int width() { return Math.round(frameWidth(shown()) * scale()); }
+    /** Scaled on-screen height of the HUD, matching exactly what is drawn. */
+    public static int height() { return Math.round(frameHeight(shown()) * scale()); }
+
+    private static List<Commission> shown() {
+        return commissions.isEmpty() ? PREVIEW : commissions;
+    }
 
     public static void setPosition(int x, int y) {
         if (config == null) return;
@@ -42,11 +53,15 @@ public final class SkyJewCommissionHud {
         save();
     }
 
+    // Same sample content as Skyblocker's commissions widget preview.
+    private static final List<Commission> PREVIEW = List.of(
+        new Commission("Commission 1", "0%", 0),
+        new Commission("Commission 2", "50%", 50),
+        new Commission("Commission 3", "DONE", 100)
+    );
+
     public static void renderPreview(GuiGraphicsExtractor g, int x, int y) {
-        render(g, List.of(
-            new Commission("Titanium Miner", "65%", 65),
-            new Commission("Goblin Slayer", "DONE", 100)
-        ), x, y);
+        render(g, shown(), x, y);
     }
 
     private static void extract(GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker delta) {
@@ -162,48 +177,106 @@ public final class SkyJewCommissionHud {
         commissions = sawHeader ? found : List.of();
     }
 
+    /*
+     * Rendering follows Skyblocker's "Fancy" tab HUD style for its CommsWidget
+     * (ElementBasedWidget + ProgressElement): a bordered frame with the title in
+     * the top border, and per commission a book icon, the name and a coloured bar.
+     */
+    private static final Component TITLE = Component.literal("Commissions").withStyle(ChatFormatting.DARK_AQUA, ChatFormatting.BOLD);
+    private static final int FRAME_COLOR = 0xFF000000 | 0x00AAAA;
+    private static final int BORDER_N = 9 + 2, BORDER_S = 4, BORDER_W = 4, BORDER_E = 4;
+    private static final int PAD_S = 2, PAD_L = 2, ICON = 16, BAR_WIDTH = 100, BAR_HEIGHT = 9 + 3;
+    private static final int ELEMENT_HEIGHT = 9 + PAD_S + 2 + 9 + 2;
+    private static final ItemStack BOOK = new ItemStack(Items.BOOK);
+
+    private static int elementWidth(Commission c) {
+        return ICON + PAD_L + Math.max(BAR_WIDTH, Minecraft.getInstance().font.width(c.name));
+    }
+
+    private static int frameWidth(List<Commission> list) {
+        int w = 0;
+        for (Commission c : list) w = Math.max(w, elementWidth(c) + PAD_S);
+        w += BORDER_E + BORDER_W;
+        return Math.max(w, BORDER_W + BORDER_E + Minecraft.getInstance().font.width(TITLE) + 4 + 4 + 1);
+    }
+
+    private static int frameHeight(List<Commission> list) {
+        int h = list.size() * (ELEMENT_HEIGHT + PAD_L);
+        h -= PAD_L / 2;
+        return h + BORDER_N + BORDER_S - 2;
+    }
+
     private static void render(GuiGraphicsExtractor g, List<Commission> list, int x, int y) {
+        var font = Minecraft.getInstance().font;
+        int w = frameWidth(list);
+        int h = frameHeight(list);
         float scale = scale();
         g.pose().pushMatrix();
-        g.pose().translate((float)x, (float)y);
+        g.pose().translate((float) x, (float) y);
         g.pose().scale(scale, scale);
 
-        if (config != null && config.mining.commissions.background) {
-            int contentHeight = 18 + list.size() * 18;
-            g.fill(-5, -4, width() + 5, contentHeight + 4, 0x99000000);
+        if (config == null || config.mining.commissions.background) {
+            int bg = Minecraft.getInstance().options.getBackgroundColor(ARGB.black(0.75f));
+            // Rounded corners
+            g.fill(1, 0, w - 1, h, bg);
+            g.fill(0, 1, 1, h - 1, bg);
+            g.fill(w - 1, 1, w, h - 1, bg);
         }
-        draw(g, "Commissions", 0, 0, 0xFF55FFFF, true);
 
-        int row = 17;
+        int titleWidth = font.width(TITLE);
+        int titleHalf = font.lineHeight / 2;
+        g.text(font, TITLE, 8, 2, FRAME_COLOR, false);
+        g.fill(2, 1 + titleHalf, 6, 2 + titleHalf, FRAME_COLOR);
+        g.fill(2 + titleWidth + 8, 1 + titleHalf, w - 2, 2 + titleHalf, FRAME_COLOR);
+        g.fill(2, h - 2, w - 2, h - 1, FRAME_COLOR);
+        g.fill(1, 2 + titleHalf, 2, h - 2, FRAME_COLOR);
+        g.fill(w - 2, 2 + titleHalf, w - 1, h - 2, FRAME_COLOR);
+
+        int rowY = BORDER_N;
         for (Commission c : list) {
-            draw(g, "◆", 0, row, 0xFFFFAA00, false);
-            draw(g, c.name, 12, row, 0xFFFFFFFF, false);
-
-            int pw = Minecraft.getInstance().font.width(c.progress);
-            int right = Math.max(115, width());
-            draw(g, c.progress, right - pw, row,
-                c.percent >= 100f ? 0xFF55FF55 : 0xFFFFD83D, false);
-
-            int barX = 12;
-            int barY = row + 10;
-            int barWidth = Math.max(100, right - barX);
-            g.fill(barX, barY, barX + barWidth, barY + 2, 0x55333333);
-            int filled = Math.round(barWidth * c.percent / 100f);
-            if (filled > 0) {
-                g.fill(barX, barY, barX + filled, barY + 2,
-                    c.percent >= 100f ? 0xFF55FF55 : 0xFF55FFFF);
-            }
-            row += 18;
+            renderProgress(g, c, BORDER_W, rowY);
+            rowY += ELEMENT_HEIGHT + PAD_L;
         }
 
         g.pose().popMatrix();
     }
 
-    private static void draw(GuiGraphicsExtractor g, String text, int x, int y,
-                             int color, boolean bold) {
+    private static void renderProgress(GuiGraphicsExtractor g, Commission c, int x, int y) {
         var font = Minecraft.getInstance().font;
-        g.text(font, text, x + 1, y + 1, 0x66000000, false);
-        g.text(font, text, x, y, color, bold);
+        boolean done = c.progress.equalsIgnoreCase("DONE");
+        float percent = Math.max(0f, Math.min(100f, c.percent));
+        int color = 0xFF000000 | Mth.hsvToRgb(percent / 300f, 1f, 1f);
+        String barText = done ? "DONE" : String.format(java.util.Locale.ROOT, "%.2f%%", percent);
+
+        g.pose().pushMatrix();
+        g.pose().translate((float) (x + PAD_L), (float) (y + 4));
+        g.item(BOOK, 0, 0);
+        g.pose().popMatrix();
+
+        int textX = x + PAD_L + ICON;
+        g.text(font, Component.literal(c.name), textX, y, 0xFFFFFFFF, false);
+
+        int barY = y + font.lineHeight + PAD_S;
+        int filled = (int) (BAR_WIDTH * (percent / 100f));
+        g.fill(textX + filled, barY, textX + BAR_WIDTH, barY + BAR_HEIGHT, 0xF0101010);
+        g.fill(textX, barY, textX + filled, barY + BAR_HEIGHT, color);
+
+        // Dark text only when it sits entirely on a bright filled bar.
+        boolean textDark = filled >= font.width(barText) + 4 && isBright(color);
+        g.text(font, barText, textX + 3, barY + 2, textDark ? 0xFF000000 : 0xFFFFFFFF, !textDark);
+    }
+
+    /** WCAG contrast check, as in Skyblocker's ColorUtils.isBright. */
+    private static boolean isBright(int color) {
+        double r = linear(ARGB.red(color) / 255.0), gr = linear(ARGB.green(color) / 255.0), b = linear(ARGB.blue(color) / 255.0);
+        double luminance = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
+        double whiteContrast = (1.0 + 0.05) / (luminance + 0.05);
+        double blackContrast = (luminance + 0.05) / 0.05;
+        return whiteContrast < blackContrast;
+    }
+
+    private static double linear(double c) {
+        return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     }
 
     private static void save() {

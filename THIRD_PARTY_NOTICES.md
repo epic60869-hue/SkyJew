@@ -26,13 +26,15 @@ Each ported source file keeps a Skyblocker attribution line. SkyJew replaces Sky
 
 ## CommandKeys
 
-SkyJew's /sj keys GUI and command-key workflow are adapted from TerminalMC/CommandKeys.
+SkyJew's /sj keys GUI and macro system is a port of TerminalMC/CommandKeys (the `com.epic60869.skyjew.commandkeys` package, its mixins, the `skyjew_commandkeys` assets and translations, and the MultiLineEditBox entry in `skyjew.classtweaker`).
 
 - https://github.com/TerminalMC/CommandKeys
-- Branch used as reference: mc26.1
-- License: Apache License 2.0
+- Branch: mc26.2
+- License: Apache License 2.0 (a copy is included at assets/skyjew_commandkeys/LICENSE.txt)
 
-The SkyJew implementation is adapted to SkyJew's own configuration/backend rather than adding CommandKeys as a runtime dependency.
+Changes made for SkyJew: repackaged, mod ID changed to `skyjew_commandkeys`, the command moved to /sj keys, the multi-platform service loader replaced with a Fabric implementation, and a one-time import of SkyJew's previous command key macros added. Each modified source file keeps its original license header with a note of these changes.
+
+SkyJew's rarity item backgrounds, calendar date calculator and commission HUD style are ported from Skyblocker (see above).
 
 ## SkyHanni GUI Position Editor
 

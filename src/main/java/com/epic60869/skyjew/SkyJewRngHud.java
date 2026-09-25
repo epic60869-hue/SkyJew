@@ -10,7 +10,7 @@ import java.util.Locale;
 
 public final class SkyJewRngHud {
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew-mod", "farming_rng");
-    private static final int BASE_WIDTH = 300;
+    private static final int PADDING = 4;
     private static final int LINE_HEIGHT = 14;
     private static final int BASE_HEIGHT = 18;
     private static SkyJewConfig config;
@@ -29,13 +29,45 @@ public final class SkyJewRngHud {
         render(graphics, drops, positionX(), positionY());
     }
 
-    public static int width() {
-        return Math.max(1, Math.round(BASE_WIDTH * scale()));
+    private static final List<FarmingRngTracker.Drop> PREVIEW = List.of(
+        new FarmingRngTracker.Drop(1, "Crystalized Moonlight", "RARE DROP", 500000, Long.MAX_VALUE),
+        new FarmingRngTracker.Drop(2, "Designer Coffee Beans", "RARE DROP", 500000, Long.MAX_VALUE)
+    );
+
+    private static List<FarmingRngTracker.Drop> shown() {
+        List<FarmingRngTracker.Drop> active = FarmingRngTracker.get().active();
+        return active.isEmpty() ? PREVIEW : active;
     }
 
+    /** Scaled on-screen width, matching exactly what is drawn. */
+    public static int width() {
+        return Math.max(1, Math.round(contentWidth(shown()) * scale()));
+    }
+
+    /** Scaled on-screen height, matching exactly what is drawn. */
     public static int height() {
-        int lines = Math.max(1, FarmingRngTracker.get().active().size());
-        return Math.max(1, Math.round((4 + lines * LINE_HEIGHT) * scale()));
+        return Math.max(1, Math.round(contentHeight(shown()) * scale()));
+    }
+
+    private static int contentWidth(List<FarmingRngTracker.Drop> drops) {
+        var font = Minecraft.getInstance().font;
+        int w = 0;
+        for (FarmingRngTracker.Drop drop : drops) {
+            w = Math.max(w, PADDING + font.width(itemText(drop)) + 8 + font.width(priceText(drop)) + PADDING);
+        }
+        return Math.max(40, w);
+    }
+
+    private static int contentHeight(List<FarmingRngTracker.Drop> drops) {
+        return PADDING + drops.size() * LINE_HEIGHT;
+    }
+
+    private static String itemText(FarmingRngTracker.Drop drop) {
+        return drop.amount() + "x " + drop.name();
+    }
+
+    private static String priceText(FarmingRngTracker.Drop drop) {
+        return drop.unitPrice() < 0 ? "—" : formatCoins(drop.unitPrice() * drop.amount());
     }
 
     public static float scale() {
@@ -76,10 +108,7 @@ public final class SkyJewRngHud {
     }
 
     public static void renderPreview(GuiGraphicsExtractor graphics, int x, int y) {
-        render(graphics, List.of(
-            new FarmingRngTracker.Drop(1, "Crystalized Moonlight", "RARE DROP", 500000, Long.MAX_VALUE),
-            new FarmingRngTracker.Drop(2, "Designer Coffee Beans", "RARE DROP", 500000, Long.MAX_VALUE)
-        ), x, y);
+        render(graphics, shown(), x, y);
     }
 
     private static void render(GuiGraphicsExtractor graphics,
@@ -91,25 +120,22 @@ public final class SkyJewRngHud {
         graphics.pose().translate((float) x, (float) y);
         graphics.pose().scale(s, s);
 
-        int contentHeight = 4 + drops.size() * LINE_HEIGHT;
+        // The background fills exactly the HUD bounds so it can sit flush against a screen edge.
+        int w = contentWidth(drops);
+        int h = contentHeight(drops);
         if (config != null && config.farming.rng.background) {
-            graphics.fill(-5, -3, BASE_WIDTH + 4, contentHeight + 1, 0xA8000000);
-            graphics.fill(-5, -3, BASE_WIDTH + 4, -2, 0x55FFFFFF);
-            graphics.fill(-5, contentHeight, BASE_WIDTH + 4, contentHeight + 1, 0x33000000);
+            graphics.fill(0, 0, w, h, 0xA8000000);
+            graphics.fill(0, 0, w, 1, 0x55FFFFFF);
         }
 
-        int yOffset = 0;
+        int yOffset = PADDING;
         for (FarmingRngTracker.Drop drop : drops) {
-            String item = drop.amount() + "x " + drop.name();
-            String price = drop.unitPrice() < 0
-                ? "—"
-                : formatCoins(drop.unitPrice() * drop.amount());
+            String item = itemText(drop);
+            String price = priceText(drop);
 
             // One complete drop per line: amount, item name, then total value.
-            drawShadowed(graphics, item, 4, yOffset, 0xFFFFFFFF, true);
-            int priceX = Math.min(BASE_WIDTH - 4 - Minecraft.getInstance().font.width(price),
-                4 + Minecraft.getInstance().font.width(item) + 8);
-            drawShadowed(graphics, price, priceX, yOffset, 0xFFB8B8B8, false);
+            drawShadowed(graphics, item, PADDING, yOffset, 0xFFFFFFFF, true);
+            drawShadowed(graphics, price, w - PADDING - Minecraft.getInstance().font.width(price), yOffset, 0xFFB8B8B8, false);
             yOffset += LINE_HEIGHT;
         }
 

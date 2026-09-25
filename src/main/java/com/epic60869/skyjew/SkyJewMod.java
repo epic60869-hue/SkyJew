@@ -29,9 +29,15 @@ public final class SkyJewMod implements ClientModInitializer {
         FarmingRngTracker.get().register();
         SkyJewRngHud.register(config);
         SkyJewCommissionHud.register(config);
-        SkyJewCommandKeys.init(configDir);
+        // CommandKeys port: /sj keys. Key mappings must be registered during client init.
+        com.epic60869.skyjew.commandkeys.CommandKeys.init();
+        com.epic60869.skyjew.commandkeys.SkyJewCommandKeysMigration.migrate(configDir);
+        com.epic60869.skyjew.commandkeys.CommandKeys.getKeybinds().forEach(net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper::registerKeyMapping);
+        ClientCommandRegistrationCallback.EVENT.register(com.epic60869.skyjew.commandkeys.command.Commands::register);
+        ClientTickEvents.END_CLIENT_TICK.register(com.epic60869.skyjew.commandkeys.CommandKeys::afterClientTick);
         SkyJewStorageSearch.init(configDir);
         SkyJewCustom.init(configDir);
+        SkyJewDateCalculator.init();
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);
@@ -55,7 +61,6 @@ public final class SkyJewMod implements ClientModInitializer {
         var root = ClientCommands.literal(name)
             .executes(context -> openMenu())
             .then(ClientCommands.literal("notes").executes(context -> openNotes()))
-            .then(ClientCommands.literal("keys").executes(context -> openCommandKeys()))
             .then(ClientCommands.literal("search").executes(context -> openStorageSearch()))
             .then(SkyJewRecipeCommand.command())
             .then(ClientCommands.literal("calc")
@@ -81,12 +86,6 @@ public final class SkyJewMod implements ClientModInitializer {
         return 1;
     }
 
-    private int openCommandKeys() {
-        Path configDir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-        Minecraft.getInstance().execute(() ->
-            Minecraft.getInstance().gui.setScreen(new SkyJewCommandKeysScreen(configDir)));
-        return 1;
-    }
 
 
 
@@ -192,7 +191,6 @@ public final class SkyJewMod implements ClientModInitializer {
         while (SkyJewKeyMappings.SEARCH.consumeClick()) {
             openStorageSearch();
         }
-        SkyJewCommandKeys.tick(minecraft);
         SkyJewStorageSearch.tick(minecraft);
         SkyJewNopoFeatures.tick(minecraft);
         SkyJewTabWidgetManager.tick(minecraft);

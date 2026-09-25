@@ -44,7 +44,7 @@ public final class SkyJewHudEditorScreen extends Screen {
         if (config != null) {
             elements.add(new EditableHud("Pet Display", () -> config.pets.display.x, () -> config.pets.display.y,
                 (x, y) -> { config.pets.display.x = Math.max(0, x); config.pets.display.y = Math.max(0, y); },
-                () -> 260, () -> 44, SkyJewNopoFeatures::renderPetHudPreview, "pet"));
+                SkyJewNopoFeatures::petHudWidth, SkyJewNopoFeatures::petHudHeight, SkyJewNopoFeatures::renderPetHudPreview, "pet"));
         }
     }
 
@@ -60,21 +60,24 @@ public final class SkyJewHudEditorScreen extends Screen {
         EditableHud hovered = null;
         for (int i = elements.size() - 1; i >= 0; i--) {
             EditableHud e = elements.get(i);
-            int x = e.x(), y = e.y(), w = Math.max(5, e.width()), h = Math.max(5, e.height());
-            boolean hover = inside(mouseX, mouseY, x - 5, y - 5, w + 10, h + 10);
+            int x = e.x(), y = e.y(), w = Math.max(1, e.width()), h = Math.max(1, e.height());
+            boolean hover = inside(mouseX, mouseY, x, y, w, h);
             if (hover && hovered == null) hovered = e;
 
+            // The box is exactly the HUD's drawn bounds, so what you see is what snaps to the edges.
             int border = e == selected ? 0xFFE8EAED : (hover ? 0xFF8F98A6 : 0x664B515B);
             int fill = e == selected ? 0x28FFFFFF : (hover ? 0x18FFFFFF : 0x10000000);
-            g.fill(x - 5, y - 5, x + w + 5, y + h + 5, fill);
-            g.fill(x - 5, y - 5, x + w + 5, y - 4, border);
-            g.fill(x - 5, y + h + 4, x + w + 5, y + h + 5, border);
-            g.fill(x - 5, y - 5, x - 4, y + h + 5, border);
-            g.fill(x + w + 4, y - 5, x + w + 5, y + h + 5, border);
-
+            g.fill(x, y, x + w, y + h, fill);
             e.preview().render(g, x, y);
+            g.fill(x, y, x + w, y + 1, border);
+            g.fill(x, y + h - 1, x + w, y + h, border);
+            g.fill(x, y, x + 1, y + h, border);
+            g.fill(x + w - 1, y, x + w, y + h, border);
+
             if (e == selected || hover) {
-                g.text(font, Component.literal(e.name()), x, Math.max(52, y - 17), 0xFFFFFFFF, true);
+                int labelY = y >= 12 ? y - 11 : y + h + 2;
+                int labelX = Math.min(x, width - font.width(e.name()) - 2);
+                g.text(font, Component.literal(e.name()), labelX, labelY, 0xFFFFFFFF, true);
             }
         }
 
@@ -115,9 +118,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (selected == null || event.button() != 0) return super.mouseDragged(event, dx, dy);
 
-        int x = Math.max(0, Math.min(width - Math.max(5, selected.width()), (int) event.x() - dragOffsetX));
-        int y = Math.max(0, Math.min(height - Math.max(5, selected.height()), (int) event.y() - dragOffsetY));
-        selected.setPosition(x, y);
+        selected.setClamped((int) event.x() - dragOffsetX, (int) event.y() - dragOffsetY);
         return true;
     }
 
@@ -159,7 +160,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     private EditableHud findHovered(int mx, int my) {
         for (int i = elements.size() - 1; i >= 0; i--) {
             EditableHud e = elements.get(i);
-            if (inside(mx, my, e.x() - 5, e.y() - 5, e.width() + 10, e.height() + 10)) return e;
+            if (inside(mx, my, e.x(), e.y(), e.width(), e.height())) return e;
         }
         return null;
     }
@@ -205,7 +206,15 @@ public final class SkyJewHudEditorScreen extends Screen {
         Preview preview() { return preview; }
 
         void setPosition(int x, int y) { setter.set(x, y); }
-        void move(int dx, int dy) { setPosition(x() + dx, y() + dy); }
+
+        /** Keeps the whole element on screen; it may touch but not cross any edge. */
+        void setClamped(int x, int y) {
+            int maxX = Math.max(0, SkyJewHudEditorScreen.this.width - width());
+            int maxY = Math.max(0, SkyJewHudEditorScreen.this.height - height());
+            setPosition(Math.max(0, Math.min(maxX, x)), Math.max(0, Math.min(maxY, y)));
+        }
+
+        void move(int dx, int dy) { setClamped(x() + dx, y() + dy); }
 
         void changeScale(float d) {
             SkyJewConfig c = SkyJewConfig.current();
@@ -213,10 +222,13 @@ public final class SkyJewHudEditorScreen extends Screen {
             switch (type) {
                 case "rng" -> c.farming.rng.scale = clamp(c.farming.rng.scale + d);
                 case "commissions" -> c.mining.commissions.scale = clamp(c.mining.commissions.scale + d);
+                case "pet" -> c.pets.display.scale = clamp(c.pets.display.scale + d);
             }
+            // Growing an element near an edge must not push it off screen.
+            setClamped(x(), y());
         }
 
-        private float clamp(float v) { return Math.max(0.5f, Math.min(3.0f, v)); }
+        private float clamp(float v) { return Math.max(0.5f, Math.min(3.0f, Math.round(v * 10f) / 10f)); }
     }
 
     @FunctionalInterface

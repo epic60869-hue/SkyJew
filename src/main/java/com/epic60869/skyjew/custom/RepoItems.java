@@ -21,6 +21,8 @@ import com.mojang.logging.LogUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -46,12 +48,18 @@ public final class RepoItems {
 	private static final Map<String, RepoItem> ITEMS = new LinkedHashMap<>();
 	private static final List<Runnable> AFTER_ITEMS_LOADED = new ArrayList<>();
 	private static volatile boolean itemsLoaded;
+	/** Item stacks cannot be created until Minecraft has bound item components during startup. */
+	private static volatile boolean clientStarted;
 
 	private record RepoItem(String id, String name, Item item, @Nullable String texture) {}
 
 	private RepoItems() {}
 
 	public static void init() {
+		ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+			clientStarted = true;
+			runPendingCallbacks();
+		});
 		runAsync(RepoItems::loadItems);
 	}
 
@@ -67,12 +75,28 @@ public final class RepoItems {
 	}
 
 	public static boolean itemsLoaded() {
-		return itemsLoaded;
+		return itemsLoaded && clientStarted;
 	}
 
-	public static synchronized void runAfterItemsLoaded(Runnable runnable) {
-		if (itemsLoaded) runAsync(runnable);
-		else AFTER_ITEMS_LOADED.add(runnable);
+	/** Runs once the item list has loaded and the client has finished starting. */
+	public static void runAfterItemsLoaded(Runnable runnable) {
+		synchronized (AFTER_ITEMS_LOADED) {
+			if (!itemsLoaded()) {
+				AFTER_ITEMS_LOADED.add(runnable);
+				return;
+			}
+		}
+		runAsync(runnable);
+	}
+
+	private static void runPendingCallbacks() {
+		List<Runnable> callbacks;
+		synchronized (AFTER_ITEMS_LOADED) {
+			if (!itemsLoaded()) return;
+			callbacks = List.copyOf(AFTER_ITEMS_LOADED);
+			AFTER_ITEMS_LOADED.clear();
+		}
+		callbacks.forEach(RepoItems::runAsync);
 	}
 
 	public static Stream<ItemStack> itemsStream() {
@@ -124,14 +148,9 @@ public final class RepoItems {
 				ITEMS.clear();
 				ITEMS.putAll(loaded);
 			}
-			List<Runnable> callbacks;
-			synchronized (RepoItems.class) {
-				itemsLoaded = true;
-				callbacks = List.copyOf(AFTER_ITEMS_LOADED);
-				AFTER_ITEMS_LOADED.clear();
-			}
+			itemsLoaded = true;
 			LOGGER.info("[SkyJew] Loaded {} SkyBlock items", loaded.size());
-			callbacks.forEach(RepoItems::runAsync);
+			runPendingCallbacks();
 		} catch (Exception e) {
 			LOGGER.error("[SkyJew] Failed to load SkyBlock items", e);
 		}

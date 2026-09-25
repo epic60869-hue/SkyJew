@@ -8,6 +8,7 @@ import io.github.notenoughupdates.moulconfig.annotations.Category;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.common.text.StructuredText;
@@ -60,14 +61,10 @@ public final class SkyJewConfig extends Config {
 
 
     public static final class General {
-        @ConfigOption(name = "Custom Item Editor", desc = "Open the SkyJew custom item editor.")
-        @ConfigEditorButton(buttonText = "OPEN")
-        public Runnable customItemEditor = () -> openCustom();
-
         @Expose
-        @ConfigOption(name = "Show Customize Button", desc = "Show a button in the inventory that opens the item and armor customization screen.")
-        @ConfigEditorBoolean
-        public boolean showCustomizeButton = true;
+        @Accordion
+        @ConfigOption(name = "Item Custom", desc = "Item and armor customization settings.")
+        public ItemCustom itemCustom = new ItemCustom();
 
         @ConfigOption(name = "Notes", desc = "Open your SkyJew notes.")
         @ConfigEditorButton(buttonText = "OPEN")
@@ -83,6 +80,17 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         public boolean firstBootAcknowledged = false;
+    }
+
+    public static final class ItemCustom {
+        @ConfigOption(name = "Open Item Editor", desc = "Open the item and armor customization screen.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable openItemEditor = () -> openCustom();
+
+        @Expose
+        @ConfigOption(name = "Show Customize Button", desc = "Show a button in the inventory that opens the item and armor customization screen.")
+        @ConfigEditorBoolean
+        public boolean showCustomizeButton = true;
     }
 
     public static final class Chat {
@@ -212,6 +220,11 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorBoolean
         public boolean autoDisplay = true;
 
+        @Expose
+        @ConfigOption(name = "Scale", desc = "Scale the pet HUD.")
+        @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
+        public float scale = 1.0f;
+
         @Expose public int x = 10;
         @Expose public int y = 10;
 
@@ -239,9 +252,19 @@ public final class SkyJewConfig extends Config {
         public boolean calendarTimeToRealTime = true;
 
         @Expose
-        @ConfigOption(name = "Item Rarity Background", desc = "Show a circular background behind SkyBlock items using the item's rarity color.")
+        @ConfigOption(name = "Item Rarity Background", desc = "Show a background behind SkyBlock items in your inventory, containers and hotbar using the item's rarity color.")
         @ConfigEditorBoolean
         public boolean itemRarityBackground = true;
+
+        @Expose
+        @ConfigOption(name = "Item Background Style", desc = "The shape of the item rarity background.")
+        @ConfigEditorDropdown
+        public SkyJewItemBackgrounds.Style itemBackgroundStyle = SkyJewItemBackgrounds.Style.SQUARE;
+
+        @Expose
+        @ConfigOption(name = "Item Background Opacity", desc = "How opaque the item rarity background is.")
+        @ConfigEditorSlider(minValue = 0f, maxValue = 1f, minStep = 0.05f)
+        public float itemBackgroundOpacity = 0.5f;
 
         @Expose
         @Accordion
@@ -320,8 +343,7 @@ public final class SkyJewConfig extends Config {
 
     private static void openCommandKeys() {
         Minecraft mc = Minecraft.getInstance();
-        Path dir = mc.gameDirectory.toPath().resolve("config");
-        mc.execute(() -> mc.gui.setScreen(new SkyJewCommandKeysScreen(dir)));
+        mc.execute(() -> mc.gui.setScreen(com.epic60869.skyjew.commandkeys.CommandKeys.getConfigScreen(mc.gui.screen())));
     }
 
     private static void openRngEditor() {
@@ -374,6 +396,10 @@ public final class SkyJewConfig extends Config {
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to persist config after load: " + e.getMessage());
         }
+
+        // MoulConfig calls saveNow() when its GUI closes, which only runs these runnables.
+        // Without this, changes made in /sj were lost unless something else saved later.
+        managed.getInstance().saveRunnables.add(managed::saveToFile);
 
         return managed.getInstance();
     }
