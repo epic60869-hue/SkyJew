@@ -141,72 +141,66 @@ public final class SkyJewCustomScreen extends Screen {
     private void drawArmorEditorWidgets(int x, int y, int availableWidth, ItemStack selected) {
         if (selected.isEmpty()) return;
 
-        // Large item preview area, matching Skyblocker's left/right visual split.
-        int previewW = Math.min(150, availableWidth);
-        addRenderableWidget(Button.builder(Component.literal(selected.getHoverName().getString()), b -> {})
-            .bounds(x, y + 24, previewW, 34).build());
+        label("ARMOUR CUSTOMISATION", x, y, true);
 
-        if (selected.is(Items.PLAYER_HEAD)) {
-            addRenderableWidget(Button.builder(Component.literal("Select Helmet Skin"), b ->
-                minecraft.gui.setScreen(new SkyJewHelmetSkinSelectScreen(this, selected)))
-                .bounds(x, y + 72, 190, 30).build());
-
-            addRenderableWidget(Button.builder(Component.literal("Reset Helmet Skin"), b -> {
-                SkyJewCustom.setHelmetSkin(selected, null);
-                rebuild();
-            }).bounds(x + 200, y + 72, 170, 30).build());
-
-            label("Helmet texture", x, y + 116, false);
-            label(SkyJewCustom.helmetSkinDataLoaded()
-                ? "Choose a Hypixel head texture from the selector."
-                : "Loading Hypixel head textures...", x, y + 134, false);
-            return;
+        // Keep every control inside the editor card. The old layout placed the
+        // reset button on top of the dye widget and put the animation controls
+        // below the visible panel, which made the screen look broken even when
+        // the underlying settings were saved.
+        gPlaceholder:
+        {
+            // no-op block used only to keep the layout comments grouped
         }
 
-        label("DYE", x, y + 10, true);
-        addRenderableWidget(new ColorSelectionWidget(x, y + 38, Math.min(390, availableWidth), selected));
+        int dyeWidth = Math.min(390, availableWidth);
+        addRenderableWidget(new ColorSelectionWidget(x, y + 28, dyeWidth, 72, selected));
 
         addRenderableWidget(Button.builder(Component.literal("Reset Dye"), b -> {
             SkyJewCustom.setDye(selected, null);
             SkyJewCustom.setAnimatedDye(selected, (Integer) null, (Integer) null, 1f, false, 0f);
             rebuild();
-        }).bounds(x, y + 82, 110, 28).build());
+        }).bounds(x, y + 106, 110, 26).build());
 
-        label("TRIM", x, y + 122, true);
-        addRenderableWidget(new TrimSelectionWidget(x, y + 140, Math.min(390, availableWidth), 82, selected));
+        label("ARMOR TRIM", x, y + 144, true);
+        addRenderableWidget(new TrimSelectionWidget(x, y + 160, dyeWidth, 82, selected));
 
-        label("ANIMATED DYE", x, y + 230, true);
-        addRenderableWidget(new AnimatedDyeTimelineWidget(x, y + 248, Math.min(390, availableWidth), 34, selected));
+        label("ANIMATED DYE", x, y + 252, true);
+        addRenderableWidget(new AnimatedDyeTimelineWidget(x, y + 268, dyeWidth, 32, selected));
 
-        label("ANIMATION", x, y + 288, true);
-
-        int fieldY = y + 306;
-        int gap = 8;
-        int fieldW = Math.max(100, (availableWidth - gap * 2 - 86) / 3);
+        label("ANIMATION SETTINGS", x, y + 312, true);
+        int fieldY = y + 330;
+        int gap = 6;
+        int fieldW = Math.max(90, (dyeWidth - gap * 2 - 82) / 3);
 
         animatedStart = box("Start #RRGGBB", x, fieldY, fieldW, "");
         animatedEnd = box("End #RRGGBB", x + fieldW + gap, fieldY, fieldW, "");
-        animatedDuration = box("Seconds", x + (fieldW + gap) * 2, fieldY, 78, "5");
+        animatedDuration = box("Seconds", x + (fieldW + gap) * 2, fieldY, 76, "5");
         addRenderableWidget(animatedStart);
         addRenderableWidget(animatedEnd);
         addRenderableWidget(animatedDuration);
 
-        cycleBack = Checkbox.builder(Component.literal("Cycle"), font)
-            .pos(x, fieldY + 31).selected(true).build();
+        cycleBack = Checkbox.builder(Component.literal("Cycle back"), font)
+            .pos(x, fieldY + 27).selected(true).build();
         addRenderableWidget(cycleBack);
 
-        addRenderableWidget(Button.builder(Component.literal("Apply Animation"), b ->
+        addRenderableWidget(Button.builder(Component.literal("Apply animation"), b ->
             applyAnimatedDye(selected))
-            .bounds(x + 82, fieldY + 27, 150, 25).build());
+            .bounds(x + 88, fieldY + 25, 138, 25).build());
 
-        label("ITEM MODEL", x, fieldY + 72, true);
-        addRenderableWidget(Button.builder(Component.literal("Select Model"), b ->
+        label("ITEM MODEL", x, fieldY + 61, true);
+        addRenderableWidget(Button.builder(Component.literal("Select model"), b ->
             minecraft.gui.setScreen(new SkyJewItemIconSelectScreen(this, identifier -> {
                 SkyJewCustom.setItemModel(selected, identifier.toString());
                 rebuild();
-            }))).bounds(x, fieldY + 94, 130, 26).build());
-        label(SkyJewCustom.getItemModel(selected) == null ? "No model override" : SkyJewCustom.getItemModel(selected),
-            x + 140, fieldY + 101, false);
+            }))).bounds(x, fieldY + 80, 130, 26).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Reset model"), b -> {
+            SkyJewCustom.setItemModel(selected, null);
+            rebuild();
+        }).bounds(x + 138, fieldY + 80, 120, 26).build());
+
+        String model = SkyJewCustom.getItemModel(selected);
+        label(model == null ? "No model override" : model, x + 268, fieldY + 87, false);
     }
 
     private void buildItem(int l, int t, int w) {
