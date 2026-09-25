@@ -19,9 +19,18 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 
-/** Counts Zealots you kill and kills since your last Summoning Eye. Totals are saved between sessions. */
+/**
+ * Counts Zealots you kill and kills since your last Summoning Eye. Totals are saved between sessions.
+ * A kill is counted when the server reports a Zealot's death, or when a nearby Zealot's health hits zero
+ * (which also catches several Zealots killed at once by a Hyperion's Wither Impact).
+ */
 public final class ZealotCounter {
-    private static final double KILL_RANGE = 16;
+    private static final double KILL_RANGE = 20;
+    private static final List<String> END_LOCATIONS = List.of("The End", "Dragon's Nest", "Void Sepulture", "Zealot Bruiser Hideout", "Void Slate");
+    /** Entity ids already counted, so a death packet and the health check never count the same Zealot twice. */
+    private static final java.util.Set<Integer> COUNTED = new java.util.HashSet<>();
+    /** Zealots seen alive nearby, by entity id. */
+    private static final java.util.Set<Integer> TRACKED = new java.util.HashSet<>();
     private static final Gson GSON = new Gson();
 
     private static int sessionKills;
@@ -47,11 +56,52 @@ public final class ZealotCounter {
         SkyJewHuds.register("zealots", "Zealot Counter",
             () -> {
                 SkyJewConfig c = SkyJewConfig.current();
-                return c != null && c.combat.zealotCounter && SkyJewLocation.areaIs("The End");
+                return c != null && c.combat.zealotCounter && inEnd();
             },
             ZealotCounter::lines,
             List.of(kv("Zealots: ", "1,234 (session 56)"), kv("Since eye: ", "321"), kv("Eyes: ", "4")),
-            8, 800);
+            8, 300);
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(ZealotCounter::tick);
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> {
+            COUNTED.clear();
+            TRACKED.clear();
+        });
+    }
+
+    public static boolean inEnd() {
+        if (SkyJewLocation.areaIs("The End")) return true;
+        String location = SkyJewLocation.location();
+        for (String name : END_LOCATIONS) if (location.contains(name)) return true;
+        return false;
+    }
+
+    private static boolean isZealot(Minecraft mc, Entity entity) {
+        return entity instanceof EnderMan && !mc.level.getEntitiesOfClass(ArmorStand.class, entity.getBoundingBox().inflate(0.5, 3, 0.5),
+            stand -> stand.hasCustomName() && stand.getCustomName().getString().contains("Zealot")).isEmpty();
+    }
+
+    /** Remembers Zealots near you and counts those whose health drops to zero. */
+    private static void tick(Minecraft mc) {
+        if (mc.player == null || mc.level == null || !inEnd()) return;
+        for (EnderMan enderman : mc.level.getEntitiesOfClass(EnderMan.class, mc.player.getBoundingBox().inflate(KILL_RANGE), e -> true)) {
+            int id = enderman.getId();
+            if (COUNTED.contains(id)) continue;
+            if (enderman.isDeadOrDying()) {
+                if (TRACKED.remove(id)) count(id);
+            } else if (!TRACKED.contains(id) && isZealot(mc, enderman)) {
+                TRACKED.add(id);
+            }
+        }
+        if (TRACKED.size() > 512) TRACKED.clear();
+    }
+
+    private static void count(int id) {
+        if (!COUNTED.add(id)) return;
+        if (COUNTED.size() > 4096) COUNTED.clear();
+        sessionKills++;
+        totalKills++;
+        sinceEye++;
+        if (totalKills % 25 == 0) save();
     }
 
     private static Component kv(String key, String value) {
@@ -67,17 +117,11 @@ public final class ZealotCounter {
 
     /** Called when the server says an entity died. Zealots are Endermen with a "Zealot" nametag stand above them. */
     public static void onEntityDeath(Entity entity) {
-        if (!(entity instanceof EnderMan) || !SkyJewLocation.areaIs("The End")) return;
+        if (!(entity instanceof EnderMan) || !inEnd()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || entity.distanceTo(mc.player) > KILL_RANGE) return;
-        boolean zealot = mc.level.getEntitiesOfClass(ArmorStand.class, entity.getBoundingBox().inflate(0.5, 3, 0.5),
-                stand -> stand.hasCustomName() && stand.getCustomName().getString().contains("Zealot"))
-            .size() > 0;
-        if (!zealot) return;
-        sessionKills++;
-        totalKills++;
-        sinceEye++;
-        if (totalKills % 25 == 0) save();
+        if (!TRACKED.remove(entity.getId()) && !isZealot(mc, entity)) return;
+        count(entity.getId());
     }
 
     private static void load() {

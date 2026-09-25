@@ -1,27 +1,18 @@
 package com.epic60869.skyjew.features.dungeons;
 
 import com.epic60869.skyjew.SkyJewConfig;
-import com.epic60869.skyjew.custom.util.Compat;
 import com.epic60869.skyjew.features.FeatureConfigs;
 import com.epic60869.skyjew.features.core.SkyJewAlerts;
 import com.epic60869.skyjew.features.core.SkyJewChat;
 import com.epic60869.skyjew.features.core.SkyJewHuds;
 import com.epic60869.skyjew.features.core.SkyJewLocation;
-import com.epic60869.skyjew.features.core.SkyJewWorldRender;
 import com.epic60869.skyjew.sb.events.ServerTickCallback;
-import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.DungeonManager;
-import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.Room;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -29,21 +20,15 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
-import net.minecraft.world.phys.Vec3;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-/** Dungeon splits, tick timers, mask timers, M7 debuff alert and recorded routes. */
+/** Dungeon splits, tick timers, mask timers, M7 debuff alert. Routes are in {@link DungeonRoutes}. */
 public final class DungeonFeatures {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final float[] ROUTE_COLOUR = {0.3f, 1f, 0.3f};
 
     // ----- Splits -----
     private record Split(String name, long time) {}
@@ -63,11 +48,6 @@ public final class DungeonFeatures {
     private static boolean debuffAlerted;
     private static boolean dragonPhase;
 
-    // ----- Routes (relative to the matched room, so they work for any room rotation) -----
-    private static final Map<String, List<int[]>> ROUTES = new LinkedHashMap<>();
-    private static List<int[]> recording;
-    private static Path routesFile;
-
     private DungeonFeatures() {}
 
     private static FeatureConfigs.Dungeons config() {
@@ -76,8 +56,6 @@ public final class DungeonFeatures {
     }
 
     public static void init(Path configDir) {
-        routesFile = configDir.resolve("skyjew-routes.json");
-        loadRoutes();
         SkyJewChat.onChat(DungeonFeatures::onChat);
         ServerTickCallback.EVENT.register(() -> serverTicks++);
         SkyJewLocation.onAreaChange(area -> {
@@ -94,23 +72,8 @@ public final class DungeonFeatures {
             }
             return InteractionResult.PASS;
         });
-        SkyJewWorldRender.register(collector -> {
-            FeatureConfigs.Dungeons config = config();
-            if (config == null || !config.secrets.routes || !SkyJewLocation.inDungeon()) return;
-            Room room = DungeonManager.getCurrentRoom();
-            if (room == null || !room.isMatched() || room.getName() == null) return;
-            List<int[]> route = recording != null ? recording : ROUTES.get(room.getName());
-            if (route == null || route.isEmpty()) return;
-            Vec3[] points = new Vec3[route.size()];
-            for (int i = 0; i < route.size(); i++) {
-                BlockPos actual = room.relativeToActual(new BlockPos(route.get(i)[0], route.get(i)[1], route.get(i)[2]));
-                points[i] = Vec3.atCenterOf(actual);
-                collector.submitOutlinedBox(actual, ROUTE_COLOUR, 2f, true);
-                collector.submitText(Component.literal(String.valueOf(i + 1)).withStyle(ChatFormatting.GREEN), points[i].add(0, 0.8, 0), true);
-            }
-            collector.submitLinesFromPoints(points, ROUTE_COLOUR, 1f, 3f, true);
-        });
-        registerRouteCommands();
+        DungeonRoutes.init(configDir);
+        StarredMobs.init();
 
         SkyJewHuds.register("dungeon_splits", "Dungeon Splits",
             () -> config() != null && config().timers.splits && runStart > 0,
@@ -303,87 +266,5 @@ public final class DungeonFeatures {
         if (lore == null) return false;
         for (Component line : lore.lines()) if (line.getString().contains(text)) return true;
         return false;
-    }
-
-    // ----- Routes -----
-
-    private static void registerRouteCommands() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
-            for (String root : Compat.COMMAND_ROOTS) {
-                dispatcher.register(ClientCommands.literal(root).then(ClientCommands.literal("route")
-                    .then(ClientCommands.literal("start").executes(c -> routeStart()))
-                    .then(ClientCommands.literal("point").executes(c -> routePoint()))
-                    .then(ClientCommands.literal("undo").executes(c -> routeUndo()))
-                    .then(ClientCommands.literal("save").executes(c -> routeSave()))
-                    .then(ClientCommands.literal("cancel").executes(c -> { recording = null; return say("Recording cancelled."); }))
-                    .then(ClientCommands.literal("clear").executes(c -> routeClear()))
-                    .then(ClientCommands.literal("list").executes(c -> say("Saved routes: " + (ROUTES.isEmpty() ? "none" : String.join(", ", ROUTES.keySet())))))));
-            }
-        });
-    }
-
-    private static Room currentRoom() {
-        Room room = DungeonManager.getCurrentRoom();
-        return room != null && room.isMatched() && room.getName() != null ? room : null;
-    }
-
-    private static int say(String text) {
-        SkyJewAlerts.chat(Component.literal(text).withStyle(ChatFormatting.YELLOW));
-        return 1;
-    }
-
-    private static int routeStart() {
-        if (currentRoom() == null) return say("Stand in a dungeon room SkyJew has recognised first.");
-        recording = new ArrayList<>();
-        return say("Recording a route for " + currentRoom().getName() + ". Use /sj route point at each step, then /sj route save.");
-    }
-
-    private static int routePoint() {
-        Room room = currentRoom();
-        if (recording == null || room == null) return say("Start a recording with /sj route start inside a room.");
-        BlockPos relative = room.actualToRelative(Minecraft.getInstance().player.blockPosition());
-        recording.add(new int[]{relative.getX(), relative.getY(), relative.getZ()});
-        return say("Added point " + recording.size() + ".");
-    }
-
-    private static int routeUndo() {
-        if (recording == null || recording.isEmpty()) return say("Nothing to undo.");
-        recording.removeLast();
-        return say("Removed the last point.");
-    }
-
-    private static int routeSave() {
-        Room room = currentRoom();
-        if (recording == null || room == null) return say("Nothing is being recorded.");
-        ROUTES.put(room.getName(), recording);
-        recording = null;
-        saveRoutes();
-        return say("Saved the route for " + room.getName() + ".");
-    }
-
-    private static int routeClear() {
-        Room room = currentRoom();
-        if (room == null || ROUTES.remove(room.getName()) == null) return say("No saved route for this room.");
-        saveRoutes();
-        return say("Deleted the route for " + room.getName() + ".");
-    }
-
-    private static void loadRoutes() {
-        try {
-            if (!Files.exists(routesFile)) return;
-            Map<String, List<int[]>> loaded = GSON.fromJson(Files.readString(routesFile, StandardCharsets.UTF_8),
-                new TypeToken<Map<String, List<int[]>>>() {}.getType());
-            if (loaded != null) ROUTES.putAll(loaded);
-        } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load routes: " + e.getMessage());
-        }
-    }
-
-    private static void saveRoutes() {
-        try {
-            Files.writeString(routesFile, GSON.toJson(ROUTES), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to save routes: " + e.getMessage());
-        }
     }
 }

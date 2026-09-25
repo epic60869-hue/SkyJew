@@ -65,9 +65,11 @@ public final class SkyJewHudEditorScreen extends Screen {
                 () -> com.epic60869.skyjew.features.core.SkyJewHuds.editorHeight(hud),
                 (g, x, y) -> {
                     if (hud.custom() != null) com.epic60869.skyjew.features.core.SkyJewHuds.renderCustom(g, hud, true);
-                    else com.epic60869.skyjew.features.core.SkyJewHuds.render(g, com.epic60869.skyjew.features.core.SkyJewHuds.editorLines(hud), x, y, placement.scale);
+                    else com.epic60869.skyjew.features.core.SkyJewHuds.render(g, com.epic60869.skyjew.features.core.SkyJewHuds.editorLines(hud), x, y, placement.scale, placement.background);
                 }, "hud:" + hud.id()));
         }
+        // Pull anything saved off screen back into view so it can be grabbed.
+        for (EditableHud e : elements) e.setClamped(e.x(), e.y());
     }
 
     @Override
@@ -77,7 +79,7 @@ public final class SkyJewHudEditorScreen extends Screen {
         g.fill(0, height / 2 - 1, width, height / 2 + 1, 0x18FFFFFF);
 
         g.text(font, Component.literal("SkyJew Position Editor"), 18, 18, 0xFFFFFFFF, true);
-        g.text(font, Component.literal("Drag to move • Scroll to resize • Arrow keys move • Shift + arrows = 10px"), 18, 36, 0xFFB8BEC9, false);
+        g.text(font, Component.literal("Drag to move • Scroll to resize • Right-click toggles background • Arrow keys move"), 18, 36, 0xFFB8BEC9, false);
 
         EditableHud hovered = null;
         for (int i = elements.size() - 1; i >= 0; i--) {
@@ -105,12 +107,13 @@ public final class SkyJewHudEditorScreen extends Screen {
 
         if (hovered != null) {
             int tx = Math.min(mouseX + 12, width - 235);
-            int ty = Math.min(mouseY + 12, height - 82);
-            g.fill(tx, ty, tx + 225, ty + 66, 0xF0101115);
+            int ty = Math.min(mouseY + 12, height - 96);
+            g.fill(tx, ty, tx + 225, ty + 80, 0xF0101115);
             g.text(font, Component.literal(hovered.name()), tx + 8, ty + 8, 0xFFFFFFFF, true);
             g.text(font, Component.literal("x: " + hovered.x() + ", y: " + hovered.y()), tx + 8, ty + 23, 0xFFD0D5DC, false);
             g.text(font, Component.literal("Left-click + drag to move"), tx + 8, ty + 37, 0xFF9EA5B1, false);
             g.text(font, Component.literal("Scroll to resize"), tx + 8, ty + 51, 0xFF9EA5B1, false);
+            g.text(font, Component.literal("Right-click: background " + (hovered.background() ? "ON" : "OFF")), tx + 8, ty + 65, 0xFF9EA5B1, false);
         } else if (selected == null) {
             g.text(font, Component.literal("SkyJew Position Editor"), 18, height - 42, 0xFF9097A3, true);
             g.text(font, Component.literal("Select a HUD element to edit its position and scale."), 18, height - 26, 0xFF707783, false);
@@ -122,6 +125,14 @@ public final class SkyJewHudEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         int mx = (int) event.x(), my = (int) event.y();
+        if (event.button() == 1) {
+            EditableHud hovered = findHovered(mx, my);
+            if (hovered != null) {
+                hovered.toggleBackground();
+                save();
+                return true;
+            }
+        }
         if (event.button() != 0) return super.mouseClicked(event, doubleClick);
 
         EditableHud hovered = findHovered(mx, my);
@@ -253,6 +264,32 @@ public final class SkyJewHudEditorScreen extends Screen {
             }
             // Growing an element near an edge must not push it off screen.
             setClamped(x(), y());
+        }
+
+        boolean background() {
+            SkyJewConfig c = SkyJewConfig.current();
+            if (c == null) return true;
+            return switch (type) {
+                case "rng" -> c.farming.rng.background;
+                case "commissions" -> c.mining.commissions.background;
+                case "pet" -> c.pets.display.background;
+                case "dmap" -> c.dungeons.map.background;
+                default -> !type.startsWith("hud:") || com.epic60869.skyjew.features.core.SkyJewHuds.placement(type.substring(4)).background;
+            };
+        }
+
+        void toggleBackground() {
+            SkyJewConfig c = SkyJewConfig.current();
+            if (c == null) return;
+            switch (type) {
+                case "rng" -> c.farming.rng.background = !c.farming.rng.background;
+                case "commissions" -> c.mining.commissions.background = !c.mining.commissions.background;
+                case "pet" -> c.pets.display.background = !c.pets.display.background;
+                case "dmap" -> c.dungeons.map.background = !c.dungeons.map.background;
+                default -> {
+                    if (type.startsWith("hud:")) com.epic60869.skyjew.features.core.SkyJewHuds.toggleBackground(type.substring(4));
+                }
+            }
         }
 
         private float clamp(float v) { return Math.max(0.5f, Math.min(3.0f, Math.round(v * 10f) / 10f)); }

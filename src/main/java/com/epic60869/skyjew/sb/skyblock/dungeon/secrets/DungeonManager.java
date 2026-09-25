@@ -885,6 +885,7 @@ public class DungeonManager {
 	 */
 	@SuppressWarnings("JavadocReference")
 	public static void onItemPickup(ItemEntity itemEntity) {
+		com.epic60869.skyjew.features.dungeons.DungeonRoutes.onItemPickup(itemEntity);
 		Room room = getRoomAtPhysical(itemEntity.position());
 		if (isRoomMatched(room)) {
 			room.onItemPickup(itemEntity);
@@ -897,6 +898,7 @@ public class DungeonManager {
 	 */
 	@SuppressWarnings("JavadocReference")
 	public static void onBatRemoved(AmbientCreature bat) {
+		com.epic60869.skyjew.features.dungeons.DungeonRoutes.onBatKilled(bat);
 		Room room = getRoomAtPhysical(bat.position());
 		if (isRoomMatched(room)) {
 			room.onBatRemoved(bat);

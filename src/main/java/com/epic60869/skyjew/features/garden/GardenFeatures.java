@@ -48,7 +48,7 @@ public final class GardenFeatures {
         SkyJewChat.onChat(GardenFeatures::onChat);
 
         SkyJewHuds.register("yaw_pitch", "Yaw and Pitch",
-            () -> config() != null && config().yawPitch,
+            () -> config() != null && config().yawPitch && SkyJewLocation.inGarden(),
             GardenFeatures::yawPitchLines,
             List.of(kv("Yaw: ", "123.96"), kv("Pitch: ", "0.00"), kv("Facing: ", "West")),
             8, 300);

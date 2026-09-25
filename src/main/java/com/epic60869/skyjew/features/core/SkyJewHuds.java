@@ -39,6 +39,8 @@ public final class SkyJewHuds {
         public int x;
         public int y;
         public float scale = 1f;
+        /** Draw the dark background behind the HUD. Toggled by right-clicking it in /sj gui. */
+        public boolean background = true;
     }
 
     /** A HUD element that draws itself instead of drawing text lines. Sizes are unscaled. */
@@ -112,7 +114,7 @@ public final class SkyJewHuds {
             List<Component> lines = safeLines(element);
             if (lines.isEmpty()) continue;
             Placement p = placement(element.id());
-            render(graphics, lines, p.x, p.y, p.scale);
+            render(graphics, lines, clampX(p.x, width(lines, p.scale)), clampY(p.y, height(lines, p.scale)), p.scale, p.background);
         }
     }
 
@@ -133,10 +135,21 @@ public final class SkyJewHuds {
         }
     }
 
+    /** Keeps a HUD on screen even if its saved position is past the edge (e.g. after a window or GUI scale change). */
+    private static int clampX(int x, int w) {
+        return Math.max(0, Math.min(x, Minecraft.getInstance().getWindow().getGuiScaledWidth() - w));
+    }
+
+    private static int clampY(int y, int h) {
+        return Math.max(0, Math.min(y, Minecraft.getInstance().getWindow().getGuiScaledHeight() - h));
+    }
+
     public static void renderCustom(GuiGraphicsExtractor graphics, Element element, boolean preview) {
         Placement p = placement(element.id());
+        int x = clampX(p.x, Math.round(element.custom().width() * p.scale));
+        int y = clampY(p.y, Math.round(element.custom().height() * p.scale));
         graphics.pose().pushMatrix();
-        graphics.pose().translate((float) p.x, (float) p.y);
+        graphics.pose().translate((float) x, (float) y);
         graphics.pose().scale(p.scale, p.scale);
         element.custom().render(graphics, preview);
         graphics.pose().popMatrix();
@@ -173,6 +186,10 @@ public final class SkyJewHuds {
     }
 
     public static void render(GuiGraphicsExtractor graphics, List<Component> lines, int x, int y, float scale) {
+        render(graphics, lines, x, y, scale, true);
+    }
+
+    public static void render(GuiGraphicsExtractor graphics, List<Component> lines, int x, int y, float scale, boolean background) {
         var font = Minecraft.getInstance().font;
         int w = 0;
         for (Component line : lines) w = Math.max(w, font.width(line));
@@ -180,11 +197,16 @@ public final class SkyJewHuds {
         graphics.pose().pushMatrix();
         graphics.pose().translate((float) x, (float) y);
         graphics.pose().scale(scale, scale);
-        graphics.fill(0, 0, w + PADDING * 2, h, 0x80000000);
+        if (background) graphics.fill(0, 0, w + PADDING * 2, h, 0x80000000);
         for (int i = 0; i < lines.size(); i++) {
             graphics.text(font, lines.get(i), PADDING, PADDING + i * LINE_HEIGHT, 0xFFFFFFFF, true);
         }
         graphics.pose().popMatrix();
+    }
+
+    public static void toggleBackground(String id) {
+        Placement p = placement(id);
+        p.background = !p.background;
     }
 
     public static void changeScale(String id, float delta) {

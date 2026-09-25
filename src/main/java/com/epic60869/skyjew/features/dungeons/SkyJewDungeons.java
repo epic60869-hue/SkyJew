@@ -87,6 +87,7 @@ public final class SkyJewDungeons {
         sb.dungeons.dungeonMap.enableMap = d.map.enabled;
         sb.dungeons.dungeonMap.fancyMap = d.map.fancy;
         sb.dungeons.dungeonMap.showRoomLabels = d.map.roomLabels;
+        sb.dungeons.dungeonMap.backgroundBlur = d.map.background;
         sb.dungeons.dungeonMap.mapX = d.map.x;
         sb.dungeons.dungeonMap.mapY = d.map.y;
         sb.dungeons.dungeonMap.mapScaling = d.map.scale;

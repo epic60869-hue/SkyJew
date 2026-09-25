@@ -44,7 +44,7 @@ public final class SkyJewConfig extends Config {
     public com.epic60869.skyjew.features.FeatureConfigs.Combat combat = new com.epic60869.skyjew.features.FeatureConfigs.Combat();
 
     @Expose
-    @Category(name = "Slayers", desc = "Slayer tracker, boss phases, profit and drop tracking.")
+    @Category(name = "Slayers", desc = "Slayer tracker, boss phases and drop tracking.")
     public Slayers slayers = new Slayers();
 
     @Expose
@@ -240,7 +240,7 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
-        @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker, boss phase and profit HUDs.")
+        @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker and boss phase HUDs.")
         public com.epic60869.skyjew.features.FeatureConfigs.Slayer huds = new com.epic60869.skyjew.features.FeatureConfigs.Slayer();
     }
 
@@ -271,6 +271,11 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Scale", desc = "Scale the pet HUD.")
         @ConfigEditorSlider(minValue = 0.5f, maxValue = 3.0f, minStep = 0.1f)
         public float scale = 1.0f;
+
+        @Expose
+        @ConfigOption(name = "Background", desc = "Draw a dark background behind the pet display.")
+        @ConfigEditorBoolean
+        public boolean background = false;
 
         @Expose public int x = 10;
         @Expose public int y = 10;

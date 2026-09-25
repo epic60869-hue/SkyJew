@@ -224,6 +224,12 @@ public final class SkyJewNopoFeatures {
         context.pose().pushMatrix();
         context.pose().translate((float) x, (float) y);
         context.pose().scale(scale, scale);
+        SkyJewConfig config = SkyJewConfig.current();
+        if (config != null && config.pets.display.background && !lines.isEmpty()) {
+            int w = 0;
+            for (Component line : lines) w = Math.max(w, font.width(line));
+            context.fill(-2, -2, w + 2, lines.size() * PET_LINE_HEIGHT, 0x80000000);
+        }
         for (int i = 0; i < lines.size(); i++) {
             context.text(font, lines.get(i), 0, i * PET_LINE_HEIGHT, -1);
         }
@@ -256,9 +262,15 @@ public final class SkyJewNopoFeatures {
         Pattern xpPattern = Pattern.compile("^(?:\\+)?[\\d,.]+(?:[kmb])?(?:\\s*/\\s*[\\d,.]+(?:[kmb])?)?\\s+XP.*$",
             Pattern.CASE_INSENSITIVE);
 
+        // Past max level Hypixel shows only the extra XP (" +123,456.7 XP"); NopoMod adds the XP of the
+        // capped levels back and recomputes the level on the legendary curve.
+        Pattern overflowXpPattern = Pattern.compile("^\\+(?<xp>[\\d,.]+) XP$");
+
         List<Component> display = new ArrayList<>();
         String petName = "";
         int level = -1;
+        int nameIndex = -1;
+        Component nameComponent = null;
         boolean inPet = false;
 
         for (PlayerInfo entry : entries) {
@@ -282,6 +294,8 @@ public final class SkyJewNopoFeatures {
                 display.clear();
                 display.add(Component.literal("Pet:")
                     .withStyle(style -> style.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
+                nameIndex = display.size();
+                nameComponent = component;
                 display.add(stylePetLine(component, level, petName, overflowLevel(petName, level)));
                 continue;
             }
@@ -306,8 +320,23 @@ public final class SkyJewNopoFeatures {
             if (normal.matches()) {
                 level = Integer.parseInt(normal.group("level"));
                 petName = normal.group("name").strip();
+                nameIndex = display.size();
+                nameComponent = component;
                 display.add(stylePetLine(component, level, petName, overflowLevel(petName, level)));
                 continue;
+            }
+
+            Matcher overflowXp = overflowXpPattern.matcher(text);
+            if (!petName.isBlank() && nameIndex >= 0 && overflowXp.matches() && overflowLevelsEnabled()) {
+                try {
+                    int offset = rarityOffsetFromComponent(nameComponent, petName.replace("✦", "").strip());
+                    float xp = Float.parseFloat(overflowXp.group("xp").replace(",", "")) + calculativeXpForLevel(level, offset);
+                    int overflow = calcLevel(xp);
+                    if (level == 200) overflow--; // Golden Dragon's curve starts at level 100
+                    if (overflow > level) display.set(nameIndex, stylePetLine(nameComponent, level, petName, overflow));
+                    display.add(overflowProgressLine(xp, overflow));
+                    continue;
+                } catch (NumberFormatException ignored) {}
             }
 
             if (!petName.isBlank() && xpPattern.matcher(text).matches()) {
@@ -334,6 +363,27 @@ public final class SkyJewNopoFeatures {
         }
 
         petDisplay = List.copyOf(display);
+    }
+
+    private static boolean overflowLevelsEnabled() {
+        SkyJewConfig config = SkyJewConfig.current();
+        return config != null && config.pets.display.overflowLevels;
+    }
+
+    /** " 1,832,110.4/1.9M XP (97.1%)" progress towards the next overflow level, as NopoMod shows it. */
+    private static Component overflowProgressLine(float xp, int overflowLevel) {
+        float progress = Math.max(0, leftoverXp(xp));
+        int next = getXpForLevel(overflowLevel - 1, 20);
+        return Component.literal(" " + String.format(Locale.US, "%,.1f", progress)).withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal("/").withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(compact(next) + " XP ").withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal("(" + String.format(Locale.US, "%.1f", progress / next * 100) + "%)").withStyle(ChatFormatting.GOLD));
+    }
+
+    private static String compact(double value) {
+        if (value >= 1_000_000) return String.format(Locale.US, "%.1fM", value / 1_000_000);
+        if (value >= 1_000) return String.format(Locale.US, "%.1fK", value / 1_000);
+        return String.valueOf((long) value);
     }
 
     private static Component stylePetLine(Component original, int level, String petName, int overflow) {

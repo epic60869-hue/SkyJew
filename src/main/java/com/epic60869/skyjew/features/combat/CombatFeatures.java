@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
 public final class CombatFeatures {
     // Quiver patterns from SkyHanni's repo (MIT).
     private static final Pattern ACTIVE_ARROW = Pattern.compile("Active Arrow: (?<type>.*) \\((?<amount>[\\d,]+)\\)");
+    private static final Pattern ARROWS_REMAINING = Pattern.compile("Arrows Remaining: (?<amount>[\\d,]+)");
+    private static final Pattern ARROW_ADDED = Pattern.compile("You've added (?<type>.*) x(?<amount>[\\d,]+) to your quiver!");
     private static final Pattern ARROW_SELECT = Pattern.compile("You set your selected arrow type to (?<arrow>.*)!");
     private static final Pattern ARROW_RAN_OUT = Pattern.compile("QUIVER! You have run out of (?<type>.*)s!");
     private static final Pattern COCOON = Pattern.compile("CAUGHT! You cocooned an? (?<name>[\\w ]+)!");
@@ -86,18 +88,22 @@ public final class CombatFeatures {
     private static void tick(Minecraft mc) {
         if (mc.player == null || mc.level == null) return;
 
-        // The quiver's active arrow is shown in the lore of an inventory item (the SkyBlock menu slot while holding a bow).
+        // The quiver's active arrow is shown in two ways (SkyHanni's QuiverApi): an "Active Arrow: X (N)" lore
+        // line, or a preview arrow item named after the arrow with "Arrows Remaining: N" in its lore.
         for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
-            ItemStack stack = mc.player.getInventory().getItem(i);
-            ItemLore lore = stack.get(DataComponents.LORE);
-            if (lore == null) continue;
-            for (Component loreLine : lore.lines()) {
-                Matcher m = ACTIVE_ARROW.matcher(SkyJewLocation.strip(loreLine.getString()));
-                if (m.find()) {
-                    arrowType = m.group("type").trim();
-                    arrowAmount = Long.parseLong(m.group("amount").replace(",", ""));
-                }
+            if (readArrowItem(mc.player.getInventory().getItem(i))) break;
+        }
+        // While the Quiver menu is open, count the arrows in it.
+        if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen
+            && screen.getTitle().getString().contains("Quiver") && arrowType != null) {
+            long total = 0;
+            var slots = screen.getMenu().slots;
+            for (var slot : slots) {
+                if (slot.container == mc.player.getInventory()) continue;
+                ItemStack stack = slot.getItem();
+                if (!stack.isEmpty() && SkyJewLocation.strip(stack.getHoverName().getString()).trim().equals(arrowType)) total += stack.getCount();
             }
+            if (total > 0) arrowAmount = total;
         }
 
         FeatureConfigs.Combat config = config();
@@ -109,6 +115,27 @@ public final class CombatFeatures {
             }
             legionCount = count;
         }
+    }
+
+    private static boolean readArrowItem(ItemStack stack) {
+        ItemLore lore = stack.get(DataComponents.LORE);
+        if (lore == null) return false;
+        for (Component loreLine : lore.lines()) {
+            String line = SkyJewLocation.strip(loreLine.getString());
+            Matcher m = ACTIVE_ARROW.matcher(line);
+            if (m.find()) {
+                arrowType = m.group("type").trim();
+                arrowAmount = Long.parseLong(m.group("amount").replace(",", ""));
+                return true;
+            }
+            m = ARROWS_REMAINING.matcher(line);
+            if (m.find()) {
+                arrowType = SkyJewLocation.strip(stack.getHoverName().getString()).trim();
+                arrowAmount = Long.parseLong(m.group("amount").replace(",", ""));
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void onChat(SkyJewChat.Message message) {
@@ -123,6 +150,9 @@ public final class CombatFeatures {
         } else if ((m = ARROW_RAN_OUT.matcher(text)).find()) {
             arrowType = m.group("type").trim();
             arrowAmount = 0;
+        } else if ((m = ARROW_ADDED.matcher(text)).find()) {
+            if (arrowType == null) arrowType = m.group("type").trim();
+            if (arrowType.equals(m.group("type").trim()) && arrowAmount >= 0) arrowAmount += Long.parseLong(m.group("amount").replace(",", ""));
         } else if (text.contains("Cleared your quiver!") || text.contains("Your quiver is now completely empty!")) {
             arrowAmount = 0;
         }
@@ -131,7 +161,7 @@ public final class CombatFeatures {
             String mob = null;
             if ((m = COCOON.matcher(text)).find()) mob = m.group("name").trim();
             else if (COCOON_BOSS.matcher(text).matches()) mob = "Slayer Boss";
-            if (mob != null && wanted(config.cocoonAlert.mobs, mob)) {
+            if (mob != null && (mob.equals("Slayer Boss") || important(mob))) {
                 SkyJewAlerts.title(Component.literal("COCOONED!").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD),
                     Component.literal(mob).withStyle(ChatFormatting.WHITE));
             }
@@ -140,11 +170,34 @@ public final class CombatFeatures {
         if ((m = RARE_DROP.matcher(text)).find()) onRareDrop(config.rareDrops, text, m.group("item").trim());
     }
 
-    private static boolean wanted(String list, String mob) {
-        if (list == null || list.isBlank()) return true;
+    /** Mobs worth a cocoon alert: slayer bosses and minibosses, elusive mobs and important bosses. */
+    private static final List<String> IMPORTANT_MOBS = List.of(
+        // Slayer bosses
+        "Revenant Horror", "Atoned Horror", "Tarantula Broodfather", "Conjoined Brood", "Sven Packmaster",
+        "Voidgloom Seraph", "Inferno Demonlord", "Riftstalker Bloodfiend",
+        // Slayer minibosses
+        "Revenant Sycophant", "Revenant Champion", "Deformed Revenant", "Atoned Champion", "Atoned Revenant",
+        "Tarantula Vermin", "Tarantula Beast", "Mutant Tarantula", "Primordial Jockey", "Primordial Viscount",
+        "Pack Enforcer", "Sven Follower", "Sven Alpha",
+        "Voidling Devotee", "Voidling Radical", "Voidcrazed Maniac",
+        "Flare Demon", "Kindleheart Demon", "Burningsoul Demon",
+        // Diana and other elusive mobs
+        "Minos Inquisitor", "Minos Champion", "King Minos", "Manticore", "Sphinx", "Vanquisher",
+        "Thunder", "Lord Jawbus", "Water Hydra", "Sea Emperor", "The Loch Emperor", "Great White Shark", "Phantom Fisher",
+        "Grim Reaper", "Yeti", "Reindrake", "Plhlegblast", "Ragnarok", "Wiki Tiki", "Titanoboa", "Abyssal Miner",
+        "Fire Mage", "Elusive",
+        // Important bosses
+        "Magma Boss", "Arachne", "Bladesoul", "Mage Outlaw", "Barbarian Duke", "Ashfang", "Endstone Protector",
+        "Dragon", "Bal", "Kuudra", "Leech Supreme", "Bacte", "Headless Horseman", "Dreadlord");
+
+    private static boolean important(String mob) {
         String lower = mob.toLowerCase(Locale.ROOT);
-        return Arrays.stream(list.split(",")).map(s -> s.trim().toLowerCase(Locale.ROOT))
-            .anyMatch(s -> !s.isEmpty() && (lower.contains(s) || s.contains(lower)));
+        for (String name : IMPORTANT_MOBS) {
+            String n = name.toLowerCase(Locale.ROOT);
+            // Short names must match a whole word so "Bal" does not match "Ball".
+            if (n.length() <= 5 ? (" " + lower + " ").contains(" " + n + " ") : lower.contains(n)) return true;
+        }
+        return false;
     }
 
     private static void onRareDrop(FeatureConfigs.RareDrops config, String text, String item) {

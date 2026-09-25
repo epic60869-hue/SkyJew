@@ -1,9 +1,7 @@
 // Ported from Skyblocker's mixins (LGPL-3.0) for SkyJew's dungeon port.
 package com.epic60869.skyjew.sb.mixins;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -18,6 +16,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityEvent;
@@ -29,17 +28,15 @@ import com.epic60869.skyjew.sb.skyblock.dungeon.secrets.DungeonManager;
 
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
-	@Shadow
-	@Final
-	private Minecraft minecraft;
-
 	@Inject(method = "handleMovePlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V", shift = At.Shift.AFTER))
 	private void skyjew$beforeTeleport(ClientboundPlayerPositionPacket packet, CallbackInfo ci, @Share("playerBeforeTeleportBlockPos") LocalRef<BlockPos> beforeTeleport) {
+		Minecraft minecraft = Minecraft.getInstance();
 		beforeTeleport.set(minecraft.player.blockPosition().immutable());
 	}
 
 	@Inject(method = "handleMovePlayer", at = @At(value = "RETURN"))
 	private void skyjew$onTeleport(ClientboundPlayerPositionPacket packet, CallbackInfo ci, @Share("playerBeforeTeleportBlockPos") LocalRef<BlockPos> beforeTeleport) {
+		Minecraft minecraft = Minecraft.getInstance();
 		if (beforeTeleport.get() != null) {
 			TeleportMaze.INSTANCE.onTeleport(minecraft, beforeTeleport.get(), minecraft.player.blockPosition().immutable());
 		}
@@ -57,5 +54,10 @@ public abstract class ClientPacketListenerMixin {
 			com.epic60869.skyjew.features.combat.ZealotCounter.onEntityDeath(entity);
 		}
 		return entity;
+	}
+
+	@Inject(method = "handleSoundEvent", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V", shift = At.Shift.AFTER))
+	private void skyjew$onSound(ClientboundSoundPacket packet, CallbackInfo ci) {
+		com.epic60869.skyjew.features.dungeons.DungeonRoutes.onSound(packet.getSound().value(), packet.getX(), packet.getY(), packet.getZ());
 	}
 }

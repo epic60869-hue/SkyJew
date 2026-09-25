@@ -45,14 +45,9 @@ public final class FeatureConfigs {
 
     public static final class CocoonAlert {
         @Expose
-        @ConfigOption(name = "Enabled", desc = "Show an on-screen alert when you cocoon a mob or your slayer boss.")
+        @ConfigOption(name = "Enabled", desc = "Show an on-screen alert when you cocoon a slayer boss, slayer miniboss, elusive mob or important boss.")
         @ConfigEditorBoolean
         public boolean enabled = true;
-
-        @Expose
-        @ConfigOption(name = "Mobs", desc = "Comma-separated mob names to alert for, e.g. \"Minos Inquisitor, Slayer Boss\". Leave empty to alert for every cocoon.")
-        @ConfigEditorText
-        public String mobs = "";
     }
 
     public static final class RareDrops {
@@ -82,11 +77,6 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Boss Phase Display", desc = "HUD showing your slayer boss's nametag lines, including Voidgloom hits and Inferno attunement.")
         @ConfigEditorBoolean
         public boolean phaseDisplay = true;
-
-        @Expose
-        @ConfigOption(name = "Profit Tracker", desc = "HUD with slayer profit and profit per hour this session.")
-        @ConfigEditorBoolean
-        public boolean profitTracker = true;
     }
 
     public static final class Garden {
@@ -257,6 +247,11 @@ public final class FeatureConfigs {
 
         @Expose
         @Accordion
+        @ConfigOption(name = "Mobs", desc = "Dungeon mob highlighting.")
+        public DungeonMobs mobs = new DungeonMobs();
+
+        @Expose
+        @Accordion
         @ConfigOption(name = "Timers and Alerts", desc = "Splits, tick timers, mask timers and debuff alerts.")
         public Timers timers = new Timers();
     }
@@ -276,6 +271,11 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Room Labels", desc = "Show room names and secret counts on the map.")
         @ConfigEditorBoolean
         public boolean roomLabels = true;
+
+        @Expose
+        @ConfigOption(name = "Background", desc = "Draw a blurred background behind the dungeon map.")
+        @ConfigEditorBoolean
+        public boolean background = false;
 
         @Expose public int x = 2;
         @Expose public int y = 2;
@@ -302,9 +302,16 @@ public final class FeatureConfigs {
         public boolean secretWaypoints = true;
 
         @Expose
-        @ConfigOption(name = "Show Routes", desc = "Show your recorded route for the current room. Record with /sj route start, /sj route point, /sj route save.")
+        @ConfigOption(name = "Show Routes", desc = "Show a secret route for the current room: yours if you recorded one, otherwise Stella's. Record with /sj route start and /sj route stop; share with /sj export.")
         @ConfigEditorBoolean
         public boolean routes = true;
+    }
+
+    public static final class DungeonMobs {
+        @Expose
+        @ConfigOption(name = "Highlight Starred Mobs", desc = "Draw a box around starred (✯) dungeon mobs, visible through walls.")
+        @ConfigEditorBoolean
+        public boolean starredMobs = true;
     }
 
     public static final class Terminals {
