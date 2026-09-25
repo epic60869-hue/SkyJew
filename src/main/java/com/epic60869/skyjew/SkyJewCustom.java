@@ -108,13 +108,8 @@ public final class SkyJewCustom {
         try {
             if (stack == null || stack.isEmpty()) return "";
 
-            // Use the same UUID accessor Skyblocker uses on 26.1.2. This is
-            // important because Hypixel item UUIDs are exposed through the
-            // ItemStack API even when their backing component layout changes.
-            String direct = stack.getUuid();
-            if (direct != null && !direct.isBlank()) return direct;
-
-            // Compatibility fallback for older/atypical Hypixel stacks.
+            // Hypixel stores the item UUID in the item's CustomData component.
+            // Keep this lookup compatible with the mappings used by this build.
             CustomData data = stack.get(DataComponents.CUSTOM_DATA);
             if (data != null) {
                 String legacy = data.copyTag().getStringOr("uuid", "");
