@@ -182,57 +182,102 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        // Prefer the shared TAB widget parser. It preserves Hypixel's actual
-        // ordered TAB boundaries and also handles inline "Pet: [Lvl ...]" rows.
-        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Pet");
-        if (widget.lines().isEmpty()) {
-            petDisplay = null;
-            return;
-        }
+        List<PlayerInfo> entries = new ArrayList<>(mc.getConnection().getOnlinePlayers());
+        try {
+            entries.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
+        } catch (Throwable ignored) {}
+
+        /*
+         * Read the actual ordered TAB rows directly. The generic widget parser is
+         * useful for most widgets, but Pet can be emitted by Hypixel as either
+         * "Pet:" + "[Lvl ...] ..." or a single "Pet: [Lvl ...] ..." component.
+         * In both cases the pet data is authoritative in these rows.
+         */
+        Pattern petPattern = Pattern.compile("^\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)(?:\\s+✦)?\\s*$",
+            Pattern.CASE_INSENSITIVE);
+        Pattern inlinePattern = Pattern.compile("^Pet\\s*:\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)(?:\\s+✦)?\\s*$",
+            Pattern.CASE_INSENSITIVE);
+        Pattern xpPattern = Pattern.compile("^(?:\\+)?[\\d,.]+(?:[kmb])?(?:\\s*/\\s*[\\d,.]+(?:[kmb])?)?\\s+XP.*$",
+            Pattern.CASE_INSENSITIVE);
 
         List<Component> display = new ArrayList<>();
-        display.add(Component.literal("Pet:")
-            .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
-
         String petName = "";
         int level = -1;
-        Pattern petNameRegex = Pattern.compile("\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
-        Pattern inlinePetRegex = Pattern.compile("^Pet:?\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
+        boolean inPet = false;
 
-        for (Component lineComponent : widget.lines()) {
-            String text = lineComponent.getString().strip();
-            Matcher inline = inlinePetRegex.matcher(text);
-            Matcher normal = petNameRegex.matcher(text);
+        for (PlayerInfo entry : entries) {
+            Component component = entry.getTabListDisplayName();
+            if (component == null && entry.getProfile() != null) {
+                component = Component.literal(entry.getProfile().name());
+            }
+            if (component == null) continue;
+
+            String raw = component.getString();
+            String text = raw.strip();
+            if (text.isBlank()) continue;
+
+            Matcher inline = inlinePattern.matcher(text);
+            Matcher normal = petPattern.matcher(text);
+
             if (inline.matches()) {
+                inPet = true;
                 level = Integer.parseInt(inline.group("level"));
                 petName = inline.group("name").strip();
-                display.add(stylePetLine(lineComponent, level, petName));
-            } else if (normal.matches()) {
+                display.clear();
+                display.add(Component.literal("Pet:")
+                    .withStyle(style -> style.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
+                display.add(stylePetLine(component, level, petName));
+                continue;
+            }
+
+            if (!inPet && (text.equalsIgnoreCase("Pet:") || text.equalsIgnoreCase("Pet"))) {
+                inPet = true;
+                display.clear();
+                display.add(Component.literal("Pet:")
+                    .withStyle(style -> style.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
+                continue;
+            }
+
+            if (!inPet) {
+                // Some Hypixel revisions omit the Pet header entirely.
+                if (normal.matches()) {
+                    inPet = true;
+                } else {
+                    continue;
+                }
+            }
+
+            if (normal.matches()) {
                 level = Integer.parseInt(normal.group("level"));
                 petName = normal.group("name").strip();
-                display.add(stylePetLine(lineComponent, level, petName));
-            } else if (level >= 0 && text.matches("(?i)^\\+?[\\d,.]+(?:[kmb])?(?:\\s*/\\s*[\\d,.]+(?:[kmb])?)?\\s+XP.*$")) {
-                display.add(lineComponent);
+                display.add(stylePetLine(component, level, petName));
+                continue;
+            }
+
+            if (!petName.isBlank() && xpPattern.matcher(text).matches()) {
+                display.add(component);
+                continue;
+            }
+
+            // Once the Pet block has started, a new top-level widget terminates it.
+            if (!raw.startsWith(" ") && text.contains(":")) {
+                break;
             }
         }
 
         if (petName.isBlank()) {
             petDisplay = null;
+            currentPet = "";
+            currentOverflowLevel = -1;
             return;
         }
 
-        // Keep the raw XP/progress component so Hypixel's percentage and
-        // formatting remain exact. Overflow XP is additionally rendered by Nopo's
-        // tooltip feature; the HUD should not invent a second progress format.
-        if (currentPet.isBlank()) {
-            currentPet = petName;
-            currentOverflowLevel = level;
-        } else if (!currentPet.equals(petName)) {
+        if (!currentPet.equals(petName)) {
             currentPet = petName;
             currentOverflowLevel = level;
         }
 
-        petDisplay = display;
+        petDisplay = List.copyOf(display);
     }
 
     private static Component stylePetLine(Component original, int level, String petName) {
