@@ -16,7 +16,8 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 public final class SkyJewCommissionHud {
     private static final Identifier ID = Identifier.fromNamespaceAndPath("skyjew", "commissions");
     private static final Pattern COMM_PATTERN =
-        Pattern.compile("(?<name>.+?):\\s*(?<progress>DONE|[0-9]+(?:\\.[0-9]+)?%?)");
+        Pattern.compile("(?<name>.+?):\\s*(?<progress>DONE|[0-9,.]+\\s*/\\s*[0-9,.]+|[0-9]+(?:\\.[0-9]+)?%?)",
+            Pattern.CASE_INSENSITIVE);
 
     private static SkyJewConfig config;
     private static List<Commission> commissions = List.of();
@@ -107,13 +108,23 @@ public final class SkyJewCommissionHud {
                 continue;
             }
 
-            String numeric = progress.endsWith("%")
-                ? progress.substring(0, progress.length() - 1)
-                : progress;
             try {
-                float percent = Math.max(0f, Math.min(100f, Float.parseFloat(numeric)));
-                found.add(new Commission(name,
-                    progress.endsWith("%") ? progress : progress + "%", percent));
+                float percent;
+                String shown = progress;
+                if (progress.contains("/")) {
+                    String[] parts = progress.split("/", 2);
+                    double current = Double.parseDouble(parts[0].replace(",", "").trim());
+                    double total = Double.parseDouble(parts[1].replace(",", "").trim());
+                    if (total <= 0) continue;
+                    percent = (float) Math.max(0, Math.min(100, current * 100.0 / total));
+                } else {
+                    String numeric = progress.endsWith("%")
+                        ? progress.substring(0, progress.length() - 1)
+                        : progress;
+                    percent = Math.max(0f, Math.min(100f, Float.parseFloat(numeric)));
+                    if (!progress.endsWith("%")) shown = progress + "%";
+                }
+                found.add(new Commission(name, shown, percent));
             } catch (NumberFormatException ignored) {
             }
         }
@@ -127,8 +138,10 @@ public final class SkyJewCommissionHud {
         g.pose().translate((float)x, (float)y);
         g.pose().scale(scale, scale);
 
-        // Deliberately no opaque panel/background. The old overlay looked like
-        // a second TAB window over the game; this is a clean floating HUD.
+        if (config != null && config.mining.commissions.background) {
+            int contentHeight = 18 + list.size() * 18;
+            g.fill(-5, -4, width() + 5, contentHeight + 4, 0x99000000);
+        }
         draw(g, "Commissions", 0, 0, 0xFF55FFFF, true);
 
         int row = 17;
