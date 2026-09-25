@@ -182,70 +182,36 @@ public final class SkyJewNopoFeatures {
             return;
         }
 
-        List<PlayerInfo> entries = new ArrayList<>(mc.getConnection().getOnlinePlayers());
-        try {
-            entries.sort(SkyJewPlayerTabOverlayAccessor.getOrdering());
-        } catch (Throwable ignored) {
+        // Prefer the shared TAB widget parser. It preserves Hypixel's actual
+        // ordered TAB boundaries and also handles inline "Pet: [Lvl ...]" rows.
+        SkyJewTabWidgetManager.Widget widget = SkyJewTabWidgetManager.get("Pet");
+        if (widget.lines().isEmpty()) {
+            petDisplay = null;
+            return;
         }
 
-        Pattern petNameRegex = Pattern.compile("^\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$");
-        Pattern inlinePetRegex = Pattern.compile("^\\s*Pet:?\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
-        Pattern petXpRegex = Pattern.compile("^\\s*\\+?[\\d,.]+(?:[kKmMbB])?(?:\\s*/\\s*[\\d,.]+(?:[kKmMbB])?)?\\s+XP.*$", Pattern.CASE_INSENSITIVE);
         List<Component> display = new ArrayList<>();
         display.add(Component.literal("Pet:")
             .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
 
         String petName = "";
         int level = -1;
-        boolean inPet = false;
+        Pattern petNameRegex = Pattern.compile("\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
+        Pattern inlinePetRegex = Pattern.compile("^Pet:?\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)\\s*$", Pattern.CASE_INSENSITIVE);
 
-        for (PlayerInfo entry : entries) {
-            Component lineComponent = entry.getTabListDisplayName();
-            if (lineComponent == null && entry.getProfile() != null) {
-                lineComponent = Component.literal(entry.getProfile().name());
-            }
-            if (lineComponent == null) continue;
-
-            String raw = lineComponent.getString().replaceAll("§.", "");
-            String text = raw.strip();
-            if (text.isBlank()) continue;
-
-            // Hypixel can send the pet header either as its own TAB line
-            // ("Pet:") or with the pet name on the same line ("Pet: [Lvl 100] ...").
-            Matcher inlinePetMatch = inlinePetRegex.matcher(text);
-            if (!inPet) {
-                if (inlinePetMatch.matches()) {
-                    inPet = true;
-                    level = Integer.parseInt(inlinePetMatch.group("level"));
-                    petName = inlinePetMatch.group("name").strip();
-                    display.add(Component.literal("Pet:")
-                        .withStyle(s -> s.withColor(ChatFormatting.LIGHT_PURPLE).withBold(true)));
-                    display.add(stylePetLine(lineComponent, level, petName));
-                    continue;
-                }
-                if (text.equalsIgnoreCase("Pet:") || text.equalsIgnoreCase("Pet")) {
-                    inPet = true;
-                }
-                continue;
-            }
-
-            // The next TAB section marks the end of the pet widget.
-            String lower = text.toLowerCase(Locale.ROOT);
-            if (!text.startsWith("[Lvl ") && !petXpRegex.matcher(text).matches()
-                && text.contains(":")
-                && !lower.startsWith("pet:")) {
-                break;
-            }
-
-            Matcher petMatch = petNameRegex.matcher(text);
-            if (petMatch.matches()) {
-                level = Integer.parseInt(petMatch.group("level"));
-                petName = petMatch.group("name").strip();
+        for (Component lineComponent : widget.lines()) {
+            String text = lineComponent.getString().strip();
+            Matcher inline = inlinePetRegex.matcher(text);
+            Matcher normal = petNameRegex.matcher(text);
+            if (inline.matches()) {
+                level = Integer.parseInt(inline.group("level"));
+                petName = inline.group("name").strip();
                 display.add(stylePetLine(lineComponent, level, petName));
-                continue;
-            }
-
-            if (level >= 0 && petXpRegex.matcher(text).matches()) {
+            } else if (normal.matches()) {
+                level = Integer.parseInt(normal.group("level"));
+                petName = normal.group("name").strip();
+                display.add(stylePetLine(lineComponent, level, petName));
+            } else if (level >= 0 && text.matches("(?i)^\\+?[\\d,.]+(?:[kmb])?(?:\\s*/\\s*[\\d,.]+(?:[kmb])?)?\\s+XP.*$")) {
                 display.add(lineComponent);
             }
         }
