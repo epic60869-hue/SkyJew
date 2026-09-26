@@ -74,10 +74,28 @@ public final class OdinTerminals {
 
     public static boolean enabled() {
         FeatureConfigs.Terminals config = config();
-        return config != null && config.odinSolver;
+        return config != null && config.solverStyle != FeatureConfigs.TerminalStyle.SKYBLOCKER;
+    }
+
+    /** The NoammAddons look: its own centred panel instead of drawing over the menu. */
+    static boolean noammStyle() {
+        FeatureConfigs.Terminals config = config();
+        return config != null && config.solverStyle == FeatureConfigs.TerminalStyle.NOAMM;
     }
 
     public static void init() {
+        // NoammAddons style: its panel is drawn over the whole screen and takes the clicks.
+        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (!(screen instanceof AbstractContainerScreen<?> container)) return;
+            net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterExtract(screen).register((s, g, mouseX, mouseY, delta) -> {
+                if (active() && noammStyle() && current.menu == container.getMenu()) renderNoamm(g, mouseX, mouseY);
+            });
+            net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> {
+                if (!active() || !noammStyle() || current.menu != container.getMenu()) return true;
+                clickNoamm(event.x(), event.y(), event.button());
+                return false;
+            });
+        });
         ServerTickCallback.EVENT.register(() -> {
             if (current != null) current.ticksOpened++;
         });
@@ -170,6 +188,7 @@ public final class OdinTerminals {
         Handler handler = current;
         FeatureConfigs.Terminals config = config();
         if (handler == null || config == null || screen.getMenu() != handler.menu) return;
+        if (noammStyle()) return; // drawn by renderNoamm instead
         if (handler.type() == Type.MELODY && !config.melodySolver) return;
         var font = Minecraft.getInstance().font;
         int rows = handler.type().windowSize / 9;
@@ -182,6 +201,165 @@ public final class OdinTerminals {
             graphics.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, r.colour());
             if (r.text() != null) graphics.text(font, r.text(), slot.x + 8 - font.width(r.text()) / 2, slot.y + 4, 0xFFFFFFFF, true);
         }
+    }
+
+    // ----- NoammAddons style (layout, colours and click handling follow NoammAddons' TerminalSolver) -----
+
+    private static final int NOAMM_SOLUTION = 0x8200FF00;
+    private static final int[] NOAMM_NUMBERS = {0x8200FF00, 0x8200C800, 0x82009600};
+    private static final int NOAMM_RUBIX_PLUS = 0x820072FF;
+    private static final int NOAMM_RUBIX_MINUS = 0x82CD0000;
+    private static final int NOAMM_MELODY_COLUMN = 0x82FF00FF;
+    private static final int NOAMM_MELODY_INDICATOR = 0x82FF7400;
+
+    /** Panel scale in GUI units: NoammAddons draws at 3x real pixels, times its Scale setting. */
+    private static float noammScale() {
+        FeatureConfigs.Terminals config = config();
+        double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
+        return (float) (3.0 * (config == null ? 1f : config.noammScale) / Math.max(1.0, guiScale));
+    }
+
+    /** Top-left of the panel (in panel units) for this window size. */
+    private static float[] noammOrigin(int guiWidth, int guiHeight, int windowSize, float scale) {
+        float width = 9 * 18;
+        float height = windowSize / 9f * 18;
+        return new float[]{guiWidth / scale / 2 - width / 2, guiHeight / scale / 2 - height / 2};
+    }
+
+    private static String noammTitle(Type type) {
+        return switch (type) {
+            case PANES -> "Panes";
+            case RUBIX -> "Rubix";
+            case NUMBERS -> "Numbers";
+            case STARTS_WITH -> "Starts With";
+            case SELECT -> "Colors";
+            case MELODY -> "Melody";
+        };
+    }
+
+    private static void renderNoamm(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        Handler handler = current;
+        FeatureConfigs.Terminals config = config();
+        if (handler == null || config == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        var font = mc.font;
+        g.nextStratum();
+        // Hide the menu behind the panel.
+        g.fill(0, 0, g.guiWidth(), g.guiHeight(), 0xC0000000);
+
+        float scale = noammScale();
+        int windowSize = handler.type().windowSize;
+        float[] origin = noammOrigin(g.guiWidth(), g.guiHeight(), windowSize, scale);
+        int width = 9 * 18;
+        int height = windowSize / 9 * 18;
+        g.pose().pushMatrix();
+        g.pose().scale(scale, scale);
+        g.pose().translate(origin[0], origin[1]);
+
+        String title = noammTitle(handler.type());
+        g.pose().pushMatrix();
+        g.pose().translate(width / 2f, -15);
+        g.pose().scale(1.2f, 1.2f);
+        g.text(font, title, -font.width(title) / 2, 0, 0xFFFFFFFF, true);
+        g.pose().popMatrix();
+
+        g.fill(0, 0, width, height, 0x64000000);
+        g.outline(0, 0, width, height, 0xFFFFFFFF);
+
+        if (handler.type() == Type.MELODY) {
+            for (int slot = 0; slot < windowSize; slot++) {
+                Render r = handler.solution.contains(slot) ? handler.render(slot) : null;
+                if (r == null) continue;
+                boolean column = (slot / 9) == 0 || (slot / 9) == 4;
+                noammSlot(g, config, slot % 9 * 18, slot / 9 * 18, column ? NOAMM_MELODY_COLUMN : NOAMM_MELODY_INDICATOR);
+            }
+            for (int slot : new int[]{16, 25, 34, 43}) {
+                if (slot < windowSize) noammSlot(g, config, slot % 9 * 18, slot / 9 * 18, NOAMM_SOLUTION);
+            }
+        } else {
+            List<Integer> distinct = new ArrayList<>(new java.util.LinkedHashSet<>(handler.solution));
+            for (int index = 0; index < distinct.size(); index++) {
+                int slot = distinct.get(index);
+                int x = slot % 9 * 18;
+                int y = slot / 9 * 18;
+                switch (handler.type()) {
+                    case NUMBERS -> {
+                        if (index > 2) continue;
+                        noammSlot(g, config, x, y, NOAMM_NUMBERS[index]);
+                        if (config.noammShowNumbers) {
+                            Render r = handler.render(slot);
+                            if (r != null && r.text() != null) g.text(font, r.text(), x + 8 - font.width(r.text()) / 2, y + 4, 0xFFFFFFFF, true);
+                        }
+                    }
+                    case RUBIX -> {
+                        Render r = handler.render(slot);
+                        if (r == null) continue;
+                        boolean positive = !r.text().startsWith("-");
+                        noammSlot(g, config, x, y, positive ? NOAMM_RUBIX_PLUS : NOAMM_RUBIX_MINUS);
+                        g.text(font, r.text(), x + 8 - font.width(r.text()) / 2, y + 4, 0xFFFFFFFF, true);
+                    }
+                    default -> noammSlot(g, config, x, y, NOAMM_SOLUTION);
+                }
+            }
+        }
+        g.pose().popMatrix();
+    }
+
+    private static void noammSlot(GuiGraphicsExtractor g, FeatureConfigs.Terminals config, int x, int y, int colour) {
+        switch (config.noammSlotStyle) {
+            case RECT -> g.fill(x, y, x + 16, y + 16, colour);
+            case BORDERED -> {
+                g.fill(x, y, x + 16, y + 16, (colour & 0x00FFFFFF) | 0x28000000);
+                g.outline(x, y, 16, 16, colour | 0xFF000000);
+            }
+            case BUTTON -> {
+                int solid = colour | 0xFF000000;
+                g.fill(x, y, x + 16, y + 16, darker(solid));
+                g.fill(x, y, x + 15, y + 15, solid);
+                g.fill(x + 1, y + 1, x + 15, y + 15, darker(solid));
+            }
+        }
+    }
+
+    private static int darker(int argb) {
+        int r = (int) (((argb >> 16) & 0xFF) * 0.7);
+        int gr = (int) (((argb >> 8) & 0xFF) * 0.7);
+        int b = (int) ((argb & 0xFF) * 0.7);
+        return (argb & 0xFF000000) | (r << 16) | (gr << 8) | b;
+    }
+
+    /** A click on the NoammAddons panel: works out the terminal slot and clicks it like NoammAddons would. */
+    private static void clickNoamm(double mouseX, double mouseY, int mouseButton) {
+        Handler handler = current;
+        if (handler == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        float scale = noammScale();
+        int windowSize = handler.type().windowSize;
+        float[] origin = noammOrigin(mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight(), windowSize, scale);
+        int col = (int) Math.floor((mouseX / scale - origin[0]) / 18);
+        int row = (int) Math.floor((mouseY / scale - origin[1]) / 18);
+        if (col < 0 || col > 8 || row < 0) return;
+        int slot = col + row * 9;
+        if (slot >= windowSize) return;
+        int button = mouseButton == 1 ? 1 : 0;
+        switch (handler.type()) {
+            case NUMBERS -> {
+                // Only the next number, like NoammAddons.
+                if (handler.solution.isEmpty() || handler.solution.getFirst() != slot) return;
+            }
+            case RUBIX -> {
+                // The right button for this slot, whichever one you pressed.
+                if (!(handler instanceof Rubix rubix) || !handler.solution.contains(slot)) return;
+                button = rubix.rightClick.contains(slot) ? 1 : 0;
+            }
+            case MELODY -> {
+                if (slot != 16 && slot != 25 && slot != 34 && slot != 43) return;
+            }
+            default -> {
+                if (!handler.solution.contains(slot)) return;
+            }
+        }
+        handler.click(slot, button);
     }
 
     static int colour(String value, int fallback) {

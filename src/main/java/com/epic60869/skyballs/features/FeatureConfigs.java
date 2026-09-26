@@ -492,8 +492,41 @@ public final class FeatureConfigs {
         public float starredLineWidth = 2f;
     }
 
+    public enum TerminalStyle {
+        ODIN("Odin"), NOAMM("NoammAddons"), SKYBLOCKER("Skyblocker Highlights");
+
+        private final String label;
+
+        TerminalStyle(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    public enum NoammSlotStyle {
+        RECT("Rect"), BORDERED("Bordered Rect"), BUTTON("Button");
+
+        private final String label;
+
+        NoammSlotStyle(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
     public static final class Terminals {
-        @Expose @ConfigOption(name = "Odin Terminal Solver", desc = "Odin's terminal solvers for all six terminals (panes, rubix, numbers, starts with, select, melody). Covers the terminal and shows only what to click. Off: Skyblocker's highlights below.") @ConfigEditorBoolean public boolean odinSolver = true;
+        @Expose @ConfigOption(name = "Terminal Solver", desc = "Which terminal solver to use. Odin: covers the terminal and shows what to click. NoammAddons: its big centred panel with the terminal's name, slot styles and colours. Skyblocker Highlights: the highlights below.") @ConfigEditorDropdown public TerminalStyle solverStyle = TerminalStyle.ODIN;
+        @Expose @ConfigOption(name = "NoammAddons: Scale", desc = "Size of the NoammAddons terminal panel.") @ConfigEditorSlider(minValue = 0.3f, maxValue = 2f, minStep = 0.05f) public float noammScale = 1f;
+        @Expose @ConfigOption(name = "NoammAddons: Slot Style", desc = "How solution slots are drawn in the NoammAddons panel.") @ConfigEditorDropdown public NoammSlotStyle noammSlotStyle = NoammSlotStyle.RECT;
+        @Expose @ConfigOption(name = "NoammAddons: Show Numbers", desc = "Show the number on each slot in Click in order!") @ConfigEditorBoolean public boolean noammShowNumbers = false;
         @Expose @ConfigOption(name = "Block Misclicks", desc = "In terminals, ignore clicks on slots that aren't part of the solution (and wrong-button rubix clicks).") @ConfigEditorBoolean public boolean blockMisclicks = true;
         @Expose @ConfigOption(name = "Client Prediction", desc = "Update the solution as soon as you click instead of waiting for the server.") @ConfigEditorBoolean public boolean clickPrediction = true;
         @Expose @ConfigOption(name = "Resolve Timeout (ms)", desc = "How long a predicted click waits for the server before the terminal is re-read.") @ConfigEditorSlider(minValue = 300, maxValue = 1200, minStep = 10) public int resolveTimeout = 600;
