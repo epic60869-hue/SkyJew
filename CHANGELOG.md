@@ -5,7 +5,7 @@ All notable changes to SkyBalls are listed here, newest first.
 ## 1.2.5 — 2026-09-26
 
 ### Changed
-- SkyJew is now **SkyBalls**: `/sb` and `/skyballs` (the old `/sj` and `/skyjew` still work), `/sbc` for SkyBalls chat (`/sjc` still works), and [SB] in chat. The [SB] in SkyBalls chat is dark green, like Hypixel's "Guild >". Your settings carry over.
+- SkyJew is now **SkyBalls**: `/sb`, `/skyballs`, `/sbc` for SkyBalls chat, and [SB] in chat (the old `/sj` commands are gone). The [SB] in SkyBalls chat is dark green, like Hypixel's "Guild >". Your settings carry over automatically. **Delete the old SkyJew jar** when you install this one, or both will load.
 - Ranks ([OWNER], [TESTER], ...) only show in SkyBalls chat, and Chat > Custom Chat > Show Ranks turns them off completely. Rank changes made on the website show up right away when the server announces them.
 - The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
 - The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing from chat. Turn that widget on in Hypixel's tab list settings.
@@ -29,6 +29,8 @@ All notable changes to SkyBalls are listed here, newest first.
 - `/sb nick`: picking a preset colour also updates the colour picker and hex box.
 - Calendar dates are also added from the menu's own tooltip, so another mod's tooltip code can't stop them showing.
 - Mouse Reset puts the cursor in the middle of the screen (it went near the top-left at GUI scales above 1).
+- `/sb log` said the changelog wasn't available; it shows it again.
+- No Swing Animation didn't do anything; it works now.
 
 ## 1.2.4 — 2026-09-26
 
