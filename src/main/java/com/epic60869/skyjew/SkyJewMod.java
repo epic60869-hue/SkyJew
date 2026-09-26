@@ -48,6 +48,7 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.combat.ZealotCounter.init(configDir);
         com.epic60869.skyjew.features.slayer.SlayerFeatures.init();
         com.epic60869.skyjew.features.garden.GardenFeatures.init();
+        com.epic60869.skyjew.features.garden.FarmingProfitTracker.init(configDir);
         com.epic60869.skyjew.features.fishing.FishingFeatures.init();
         com.epic60869.skyjew.features.mining.MiningFeatures.init();
         com.epic60869.skyjew.features.mining.PristineRecord.init(configDir);
@@ -57,6 +58,8 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.dungeons.DungeonFeatures.init(configDir);
         com.epic60869.skyjew.features.misc.PartyCommands.init();
         com.epic60869.skyjew.features.misc.HeldItemModel.init(configDir);
+        com.epic60869.skyjew.features.misc.ScrollableTooltips.init();
+        com.epic60869.skyjew.features.misc.ToggleSprint.init();
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);

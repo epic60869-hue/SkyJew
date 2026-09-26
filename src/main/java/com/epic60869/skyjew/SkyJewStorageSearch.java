@@ -22,7 +22,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -87,7 +87,10 @@ public final class SkyJewStorageSearch {
         // Pages are stored per SkyBlock profile so different profiles (e.g. an ironman) never share storage.
         com.epic60869.skyjew.features.core.SkyJewChat.onChat(message -> {
             java.util.regex.Matcher m = PROFILE_ID.matcher(message.text().trim());
-            if (m.matches()) profile = m.group("id").toLowerCase(Locale.ROOT);
+            if (m.matches()) {
+                profile = m.group("id").toLowerCase(Locale.ROOT);
+                com.epic60869.skyjew.features.garden.FarmingProfitTracker.setProfile(profile);
+            }
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> profile = "");
     }
@@ -114,9 +117,8 @@ public final class SkyJewStorageSearch {
         capturePlayerInventory(mc);
         applyPendingHighlight(mc);
 
-        boolean ctrl = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
-        boolean f = GLFW.glfwGetKey(mc.getWindow().handle(), GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
+        boolean ctrl = InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_LCONTROL) || InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_RCONTROL);
+        boolean f = InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_F);
         boolean open = ctrl && f;
 
         if (open && !previousOpenKey && mc.gui.screen() == null && isHypixel(mc)) {

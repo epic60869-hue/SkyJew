@@ -79,7 +79,8 @@ public final class SkyJewLocation {
             entries.sort(Comparator.comparingInt(PlayerScoreEntry::value).reversed().thenComparing(PlayerScoreEntry::owner));
             for (PlayerScoreEntry entry : entries) {
                 PlayerTeam team = board.getPlayersTeam(entry.owner());
-                lines.add(strip(PlayerTeam.formatNameForTeam(team, entry.ownerName()).getString()).trim());
+                // Hypixel pads lines with emoji (outside the basic plane) between the team prefix and suffix.
+                lines.add(strip(PlayerTeam.formatNameForTeam(team, entry.ownerName()).getString()).replaceAll("[\\x{10000}-\\x{10FFFF}]", "").trim());
             }
         } else {
             scoreboardTitle = "";

@@ -47,7 +47,7 @@ public final class SkyJewMouseLock {
 
     private static boolean isFarmingTool(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        String id = stack.getHoverName().getString();
+        String id = com.epic60869.skyjew.custom.util.Compat.realName(stack).getString();
         String lower = id.toLowerCase();
         return FARMING_TOOLS.stream().anyMatch(tool -> lower.contains(tool.toLowerCase().replace("_", " ")))
             || lower.contains("theoretical hoe")

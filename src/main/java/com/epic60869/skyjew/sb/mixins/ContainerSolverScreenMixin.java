@@ -21,11 +21,20 @@ public abstract class ContainerSolverScreenMixin {
 	@Inject(method = "extractSlots", at = @At("TAIL"))
 	private void skyjew$drawSolverHighlights(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
 		AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
+		if (com.epic60869.skyjew.features.dungeons.OdinTerminals.active()) {
+			com.epic60869.skyjew.features.dungeons.OdinTerminals.render(graphics, screen);
+			return;
+		}
 		ContainerSolverManager.onExtract(graphics, screen, screen.getMenu().slots);
 	}
 
-	@Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V", at = @At("HEAD"), cancellable = true)
 	private void skyjew$onSlotClicked(Slot slot, int slotId, int button, ContainerInput input, CallbackInfo ci) {
+		// SkyJew: Odin's terminal solver takes every click in a terminal (misclick and first-click protection).
+		if (com.epic60869.skyjew.features.dungeons.OdinTerminals.active()) {
+			if (com.epic60869.skyjew.features.dungeons.OdinTerminals.onSlotClicked(slot == null ? slotId : slot.index, button)) ci.cancel();
+			return;
+		}
 		if (slot == null || ContainerSolverManager.getCurrentSolver() == null) return;
 		if (ContainerSolverManager.onSlotClick(slotId, slot.getItem(), button)) ci.cancel();
 	}

@@ -117,6 +117,23 @@ public final class Compat {
 		return SkyJewCustom.uuid(stack);
 	}
 
+	/** Set while {@link #realName} runs, so the /sj custom rename mixin returns Hypixel's own name. */
+	public static boolean bypassCustomNames;
+
+	/**
+	 * The item's name without /sj custom renames. Features that recognise items by name use this,
+	 * so renaming e.g. your Last Breath doesn't break them.
+	 */
+	public static Component realName(ItemStack stack) {
+		boolean old = bypassCustomNames;
+		bypassCustomNames = true;
+		try {
+			return stack.getHoverName();
+		} finally {
+			bypassCustomNames = old;
+		}
+	}
+
 	public static String neuName(ItemStack stack) {
 		return getCustomData(stack).getStringOr("id", "");
 	}

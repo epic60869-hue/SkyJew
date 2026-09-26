@@ -38,6 +38,8 @@ public final class SkyJewKeyMappings {
             )
         );
 
+        com.epic60869.skyjew.features.misc.ToggleSprint.registerKey();
+
         initialized = true;
     }
 

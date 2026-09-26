@@ -98,7 +98,7 @@ public final class ZealotCounter {
         });
         UseItemCallback.EVENT.register((player, level, hand) -> {
             if (level.isClientSide() && inEnd()) {
-                String held = SkyJewLocation.strip(player.getItemInHand(hand).getHoverName().getString());
+                String held = SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(player.getItemInHand(hand)).getString());
                 // The teleport lands a tick or two later, so mark Zealots around you for a few ticks.
                 if (WITHER_BLADES.stream().anyMatch(held::contains)) witherImpactTicks = 4;
             }

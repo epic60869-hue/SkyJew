@@ -1,5 +1,6 @@
 package com.epic60869.skyjew.sb.utils.render.primitive;
 
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,6 +15,7 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3fc;
 
 /**
  * SkyJew's implementation of Skyblocker's PrimitiveCollector, drawn with Minecraft's gizmos
@@ -85,7 +87,11 @@ public final class GizmoPrimitiveCollector implements PrimitiveCollector {
 	public void submitLineFromCursor(Vec3 point, float[] colourComponents, float alpha, float lineWidth) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.player == null) return;
-		Vec3 start = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.5));
+		// Start from the render camera (interpolated every frame), not the player's last tick position,
+		// so the line doesn't jump around while moving.
+		Camera camera = mc.gameRenderer.mainCamera();
+		Vector3fc forward = camera.forwardVector();
+		Vec3 start = camera.position().add(forward.x() * 0.5, forward.y() * 0.5, forward.z() * 0.5);
 		Gizmos.line(start, point, argb(colourComponents, alpha), lineWidth).setAlwaysOnTop();
 	}
 

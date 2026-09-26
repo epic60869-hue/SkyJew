@@ -6,12 +6,14 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class SkyJewHudEditorScreen extends Screen {
+    /** GLFW key code for the keypad minus key. */
+    private static final int KEYPAD_MINUS = 333;
     private final Screen parent;
     private final List<EditableHud> elements = new ArrayList<>();
     private EditableHud selected;
@@ -68,8 +70,10 @@ public final class SkyJewHudEditorScreen extends Screen {
                     else com.epic60869.skyjew.features.core.SkyJewHuds.render(g, com.epic60869.skyjew.features.core.SkyJewHuds.editorLines(hud), x, y, placement.scale, placement.background);
                 }, "hud:" + hud.id()));
         }
-        // Pull anything saved off screen back into view so it can be grabbed.
-        for (EditableHud e : elements) e.setClamped(e.x(), e.y());
+        // Move every HUD to where it is drawn on this screen (GUI scale / window size may have changed since it
+        // was placed), pulling anything off screen back into view so it can be grabbed.
+        for (EditableHud e : elements) e.setClamped(com.epic60869.skyjew.features.core.SkyJewHuds.mapX(e.x(), e.width()), com.epic60869.skyjew.features.core.SkyJewHuds.mapY(e.y(), e.height()));
+        com.epic60869.skyjew.features.core.SkyJewHuds.setReferenceToScreen();
     }
 
     @Override
@@ -125,7 +129,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         int mx = (int) event.x(), my = (int) event.y();
-        if (event.button() == 1) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) {
             EditableHud hovered = findHovered(mx, my);
             if (hovered != null) {
                 hovered.toggleBackground();
@@ -133,7 +137,7 @@ public final class SkyJewHudEditorScreen extends Screen {
                 return true;
             }
         }
-        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+        if (event.button() != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubleClick);
 
         EditableHud hovered = findHovered(mx, my);
         if (hovered == null) {
@@ -149,7 +153,7 @@ public final class SkyJewHudEditorScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (selected == null || event.button() != 0) return super.mouseDragged(event, dx, dy);
+        if (selected == null || event.button() != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) return super.mouseDragged(event, dx, dy);
 
         selected.setClamped((int) event.x() - dragOffsetX, (int) event.y() - dragOffsetY);
         return true;
@@ -157,7 +161,7 @@ public final class SkyJewHudEditorScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0) save();
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) save();
         return super.mouseReleased(event);
     }
 
@@ -178,12 +182,12 @@ public final class SkyJewHudEditorScreen extends Screen {
         int keyCode = event.key();
         int d = event.hasShiftDown() ? 10 : 1;
         switch (keyCode) {
-            case GLFW.GLFW_KEY_LEFT -> selected.move(-d, 0);
-            case GLFW.GLFW_KEY_RIGHT -> selected.move(d, 0);
-            case GLFW.GLFW_KEY_UP -> selected.move(0, -d);
-            case GLFW.GLFW_KEY_DOWN -> selected.move(0, d);
-            case GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_KP_SUBTRACT -> selected.changeScale(-0.1f);
-            case GLFW.GLFW_KEY_EQUAL, GLFW.GLFW_KEY_KP_ADD -> selected.changeScale(0.1f);
+            case InputConstants.KEY_LEFT -> selected.move(-d, 0);
+            case InputConstants.KEY_RIGHT -> selected.move(d, 0);
+            case InputConstants.KEY_UP -> selected.move(0, -d);
+            case InputConstants.KEY_DOWN -> selected.move(0, d);
+            case InputConstants.KEY_MINUS, KEYPAD_MINUS -> selected.changeScale(-0.1f);
+            case InputConstants.KEY_EQUALS, InputConstants.KEY_ADD -> selected.changeScale(0.1f);
             default -> { return super.keyPressed(event); }
         }
         save();

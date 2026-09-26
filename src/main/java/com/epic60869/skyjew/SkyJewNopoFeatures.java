@@ -21,7 +21,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,7 +112,7 @@ public final class SkyJewNopoFeatures {
                 if (!json.has("active") || !json.get("active").getAsBoolean() || !json.has("exp")) continue;
                 activePetExp = json.get("exp").getAsFloat();
                 activePetTier = json.has("tier") ? json.get("tier").getAsString() : "LEGENDARY";
-                activePetName = clean(slot.getItem().getHoverName().getString()).replaceAll("^\\[Lvl \\d+\\]\\s*", "").trim();
+                activePetName = clean(com.epic60869.skyjew.custom.util.Compat.realName(slot.getItem()).getString()).replaceAll("^\\[Lvl \\d+\\]\\s*", "").trim();
                 return;
             } catch (Throwable ignored) {}
         }
@@ -182,7 +181,7 @@ public final class SkyJewNopoFeatures {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.pets.display.enabled) return;
         if (!isHypixel() || petDisplay == null || petDisplay.isEmpty()) return;
-        renderPetHudAt(context, petDisplay, config.pets.display.x, config.pets.display.y);
+        renderPetHudAt(context, petDisplay, com.epic60869.skyjew.features.core.SkyJewHuds.mapX(config.pets.display.x, petHudWidth()), com.epic60869.skyjew.features.core.SkyJewHuds.mapY(config.pets.display.y, petHudHeight()));
     }
 
     private static final List<Component> PET_PREVIEW = List.of(
@@ -255,9 +254,11 @@ public final class SkyJewNopoFeatures {
          * "Pet:" + "[Lvl ...] ..." or a single "Pet: [Lvl ...] ..." component.
          * In both cases the pet data is authoritative in these rows.
          */
-        Pattern petPattern = Pattern.compile("^\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)(?:\\s+✦)?\\s*$",
+        // Matched anywhere in the row, like Skyblocker's PetWidget: Hypixel sometimes puts icons or
+        // other text around "[Lvl N] Name".
+        Pattern petPattern = Pattern.compile("^(?!Pet\\s*:).*?\\[Lvl\\s+(?<level>\\d+)\\]\\s*(?<name>.+?)(?:\\s*✦)?\\s*$",
             Pattern.CASE_INSENSITIVE);
-        Pattern inlinePattern = Pattern.compile("^Pet\\s*:\\s*\\[Lvl\\s+(?<level>\\d+)\\]\\s+(?<name>.+?)(?:\\s+✦)?\\s*$",
+        Pattern inlinePattern = Pattern.compile("^Pet\\s*:.*?\\[Lvl\\s+(?<level>\\d+)\\]\\s*(?<name>.+?)(?:\\s*✦)?\\s*$",
             Pattern.CASE_INSENSITIVE);
         Pattern xpPattern = Pattern.compile("^(?:\\+)?[\\d,.]+(?:[kmb])?(?:\\s*/\\s*[\\d,.]+(?:[kmb])?)?\\s+XP.*$",
             Pattern.CASE_INSENSITIVE);
@@ -339,7 +340,7 @@ public final class SkyJewNopoFeatures {
                 } catch (NumberFormatException ignored) {}
             }
 
-            if (!petName.isBlank() && xpPattern.matcher(text).matches()) {
+            if (!petName.isBlank() && (xpPattern.matcher(text).matches() || text.contains("MAX LEVEL"))) {
                 display.add(component);
                 continue;
             }
@@ -597,9 +598,12 @@ public final class SkyJewNopoFeatures {
     private static boolean isHypixel() {
         try {
             Minecraft mc = Minecraft.getInstance();
+            // The sidebar is the reliable signal: the address can carry a port ("mc.hypixel.net:25565"),
+            // be an alias (hypixel.io) or go through a proxy.
+            if (com.epic60869.skyjew.features.core.SkyJewLocation.onSkyblock()) return true;
             if (mc.getCurrentServer() == null || mc.getCurrentServer().ip == null) return false;
             String ip = mc.getCurrentServer().ip.toLowerCase(Locale.ROOT);
-            return ip.equals("hypixel.net") || ip.endsWith(".hypixel.net");
+            return ip.contains("hypixel");
         } catch (Throwable ignored) {
             return false;
         }

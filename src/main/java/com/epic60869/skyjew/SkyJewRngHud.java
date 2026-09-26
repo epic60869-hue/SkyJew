@@ -26,7 +26,7 @@ public final class SkyJewRngHud {
         if (config == null || !config.farming.rng.enabled || Minecraft.getInstance().player == null) return;
         List<FarmingRngTracker.Drop> drops = FarmingRngTracker.get().active();
         if (drops.isEmpty()) return;
-        render(graphics, drops, positionX(), positionY());
+        render(graphics, drops, com.epic60869.skyjew.features.core.SkyJewHuds.mapX(positionX(), width()), com.epic60869.skyjew.features.core.SkyJewHuds.mapY(positionY(), height()));
     }
 
     private static final List<FarmingRngTracker.Drop> PREVIEW = List.of(

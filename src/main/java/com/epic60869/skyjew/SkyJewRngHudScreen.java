@@ -74,7 +74,7 @@ public final class SkyJewRngHudScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             int x = SkyJewRngHud.x();
             int y = SkyJewRngHud.y();
             if (event.x() >= x - 8 && event.x() <= x + SkyJewRngHud.width()
@@ -98,7 +98,7 @@ public final class SkyJewRngHudScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             dragging = false;
             SkyJewRngHud.setPosition((int) event.x(), (int) event.y());
         }

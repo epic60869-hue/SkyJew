@@ -24,6 +24,7 @@ public abstract class ContainerSolverMenuMixin {
 	@Inject(method = "setItem", at = @At("RETURN"))
 	private void skyjew$onSetItem(int slot, int revision, ItemStack stack, CallbackInfo ci) {
 		ContainerSolverManager.markHighlightsDirty();
+		com.epic60869.skyjew.features.dungeons.OdinTerminals.onSetItem((AbstractContainerMenu) (Object) this, slot);
 		// On the client, slot listeners (used by the Chronomatron solver) only fire from broadcastChanges.
 		if ((Object) this instanceof ChestMenu) broadcastChanges();
 	}
@@ -31,6 +32,7 @@ public abstract class ContainerSolverMenuMixin {
 	@Inject(method = "initializeContents", at = @At("RETURN"))
 	private void skyjew$onInitializeContents(int stateId, List<ItemStack> items, ItemStack carried, CallbackInfo ci) {
 		ContainerSolverManager.markHighlightsDirty();
+		com.epic60869.skyjew.features.dungeons.OdinTerminals.onSetItem((AbstractContainerMenu) (Object) this, 32);
 		if ((Object) this instanceof ChestMenu) broadcastChanges();
 	}
 }

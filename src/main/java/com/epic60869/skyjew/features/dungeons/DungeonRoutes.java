@@ -59,8 +59,10 @@ import java.util.concurrent.CompletableFuture;
  * Stella (https://github.com/Eclipse-5214/stella, LGPL-3.0): each room's origin is the blue
  * terracotta block in one of its roof corners, and the corner that holds it gives the rotation.
  *
- * <p>Your own routes are all kept in one file, {@code skyjew/routes.json}; any room without one
- * uses Stella's default route. {@code /sj export} writes that file for sharing.
+ * <p>Your own routes are all kept in one file, {@code skyjew/routes.json}. Route files you put in
+ * {@code config/skyjew/dungeon route/} (Stella / SkyJew, SecretRoutes or Dungeon Rooms Mod style) come
+ * next, and any room still without a route uses Stella's default route. {@code /sj export} writes your
+ * recorded routes for sharing.
  */
 public final class DungeonRoutes {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
@@ -130,6 +132,11 @@ public final class DungeonRoutes {
 
     private static final Map<String, List<Step>> STELLA = new LinkedHashMap<>();
     private static final Map<String, List<Step>> CUSTOM = new LinkedHashMap<>();
+    /** Routes from the files in the "dungeon route" folder. */
+    private static final Map<String, List<Step>> FOLDER = new LinkedHashMap<>();
+    private static Path routeFolder;
+    private static long folderStamp = Long.MIN_VALUE;
+    private static int folderCheckTicks;
     private static final Map<Room, Frame> FRAMES = new WeakHashMap<>();
     private static Path customFile;
     private static Path stellaFile;
@@ -156,8 +163,11 @@ public final class DungeonRoutes {
     public static void init(Path configDir) {
         customFile = configDir.resolve("skyjew").resolve("routes.json");
         stellaFile = configDir.resolve("skyjew").resolve("stella-routes.json");
+        routeFolder = configDir.resolve("skyjew").resolve("dungeon route");
+        createRouteFolder();
         load(customFile, CUSTOM);
         load(stellaFile, STELLA);
+        reloadFolder(false);
         CompletableFuture.runAsync(DungeonRoutes::downloadStella);
 
         ClientTickEvents.END_CLIENT_TICK.register(DungeonRoutes::tick);
@@ -202,6 +212,83 @@ public final class DungeonRoutes {
         } catch (Exception e) {
             System.err.println("[SkyJew] Stella route download failed: " + e.getMessage());
         }
+    }
+
+    // ----- The "dungeon route" folder -----
+
+    private static void createRouteFolder() {
+        try {
+            Files.createDirectories(routeFolder);
+            Path readme = routeFolder.resolve("README.txt");
+            if (!Files.exists(readme)) {
+                Files.writeString(readme, """
+                    Put the dungeon route file(s) you want to use in this folder.
+
+                    Any .json route file works: Stella / SkyJew exports, SecretRoutes files and
+                    Dungeon Rooms Mod style secret lists. With several files, files later in
+                    alphabetical order win for the same room.
+
+                    Rooms without a route here use Stella's default routes. Routes you record
+                    yourself with /sj route start always come first.
+
+                    Changes are picked up automatically; /sj route reload reloads right away.
+                    """, StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Could not create the dungeon route folder: " + e.getMessage());
+        }
+    }
+
+    /** Names and last-modified times of every route file, so edits are noticed. */
+    private static long folderStamp() {
+        long stamp = 17;
+        try (var files = Files.list(routeFolder)) {
+            for (Path p : (Iterable<Path>) files::iterator) {
+                if (!p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json")) continue;
+                stamp = stamp * 31 + p.getFileName().toString().hashCode();
+                stamp = stamp * 31 + Files.getLastModifiedTime(p).toMillis();
+            }
+        } catch (Exception ignored) {}
+        return stamp;
+    }
+
+    /** Loads every .json in the route folder. Returns how many rooms have a route. */
+    private static int reloadFolder(boolean announce) {
+        Map<String, List<Step>> loaded = new LinkedHashMap<>();
+        List<String> used = new ArrayList<>();
+        List<String> failed = new ArrayList<>();
+        try (var files = Files.list(routeFolder)) {
+            List<Path> jsons = files.filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json")).sorted().toList();
+            for (Path p : jsons) {
+                try {
+                    Map<String, List<Step>> routes = parseAny(Files.readString(p, StandardCharsets.UTF_8));
+                    if (routes.isEmpty()) {
+                        failed.add(p.getFileName().toString());
+                        continue;
+                    }
+                    for (var entry : routes.entrySet()) {
+                        String key = normalize(entry.getKey());
+                        loaded.keySet().removeIf(k -> normalize(k).equals(key));
+                        loaded.put(entry.getKey(), entry.getValue());
+                    }
+                    used.add(p.getFileName().toString());
+                } catch (Exception e) {
+                    failed.add(p.getFileName().toString());
+                }
+            }
+        } catch (Exception ignored) {}
+        synchronized (FOLDER) {
+            FOLDER.clear();
+            FOLDER.putAll(loaded);
+        }
+        folderStamp = folderStamp();
+        stepIndex = 0;
+        if (announce) {
+            if (used.isEmpty()) say("No routes in config/skyjew/dungeon route, using Stella's routes.", ChatFormatting.YELLOW);
+            else say("Loaded routes for " + loaded.size() + " rooms from " + String.join(", ", used) + ".", ChatFormatting.GREEN);
+            if (!failed.isEmpty()) say("Could not read: " + String.join(", ", failed) + ".", ChatFormatting.RED);
+        }
+        return loaded.size();
     }
 
     private static void load(Path file, Map<String, List<Step>> into) {
@@ -291,10 +378,13 @@ public final class DungeonRoutes {
         return ALIASES.getOrDefault(n, n);
     }
 
-    /** Your route for the room, or Stella's if you have not recorded one. */
+    /** Your recorded route for the room, else one from the route folder, else Stella's. */
     private static List<Step> routeFor(String roomName) {
         String key = normalize(roomName);
         for (var entry : CUSTOM.entrySet()) if (normalize(entry.getKey()).equals(key)) return entry.getValue();
+        synchronized (FOLDER) {
+            for (var entry : FOLDER.entrySet()) if (normalize(entry.getKey()).equals(key)) return entry.getValue();
+        }
         synchronized (STELLA) {
             for (var entry : STELLA.entrySet()) if (normalize(entry.getKey()).equals(key)) return entry.getValue();
         }
@@ -362,6 +452,13 @@ public final class DungeonRoutes {
     // ----- Playback and recording -----
 
     private static void tick(Minecraft mc) {
+        if (++folderCheckTicks >= 100) {
+            folderCheckTicks = 0;
+            if (routeFolder != null && folderStamp() != folderStamp) {
+                int rooms = reloadFolder(false);
+                if (mc.player != null) say("Dungeon route folder changed: " + rooms + " room routes loaded.", ChatFormatting.GREEN);
+            }
+        }
         Room room = currentRoom();
         if (room != playRoom) {
             playRoom = room;
@@ -426,7 +523,7 @@ public final class DungeonRoutes {
 
     private static String heldName() {
         var player = Minecraft.getInstance().player;
-        return player == null ? "" : SkyJewLocation.strip(player.getMainHandItem().getHoverName().getString());
+        return player == null ? "" : SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(player.getMainHandItem()).getString());
     }
 
     /** Called when a dungeon item secret is picked up. */
@@ -529,8 +626,16 @@ public final class DungeonRoutes {
                         .then(ClientCommands.literal("next").executes(c -> step(1)))
                         .then(ClientCommands.literal("back").executes(c -> step(-1)))
                         .then(ClientCommands.literal("clear").executes(c -> clear()))
+                        .then(ClientCommands.literal("reload").executes(c -> {
+                            reloadFolder(true);
+                            return 1;
+                        }))
+                        .then(ClientCommands.literal("folder").executes(c -> {
+                            net.minecraft.util.Util.getPlatform().openPath(routeFolder);
+                            return 1;
+                        }))
                         .then(ClientCommands.literal("list").executes(c -> say("Your routes: "
-                            + (CUSTOM.isEmpty() ? "none" : String.join(", ", CUSTOM.keySet())) + ". Stella routes loaded: " + STELLA.size() + ".", ChatFormatting.YELLOW))))
+                            + (CUSTOM.isEmpty() ? "none" : String.join(", ", CUSTOM.keySet())) + ". Route folder rooms: " + FOLDER.size() + ". Stella routes loaded: " + STELLA.size() + ".", ChatFormatting.YELLOW))))
                     .then(ClientCommands.literal("export").executes(c -> export())));
                 dispatcher.register(ClientCommands.literal(root)
                     .then(ClientCommands.literal("route")
@@ -664,8 +769,44 @@ public final class DungeonRoutes {
             if (!first.isJsonObject()) continue;
             if (first.getAsJsonObject().has("waypoints")) return parse(root.toString());
             if (first.getAsJsonObject().has("secret") || first.getAsJsonObject().has("locations")) return parseSecretRoutes(root);
+            if (first.getAsJsonObject().has("x") && first.getAsJsonObject().has("z")) return parseSecretList(root);
         }
         return new LinkedHashMap<>();
+    }
+
+    /**
+     * Dungeon Rooms Mod style: per room a list of secrets as {"secretName", "category", "x", "y", "z"}.
+     * Each secret becomes one step, in file order.
+     */
+    private static Map<String, List<Step>> parseSecretList(JsonObject root) {
+        Map<String, List<Step>> routes = new LinkedHashMap<>();
+        for (var entry : root.entrySet()) {
+            if (!entry.getValue().isJsonArray()) continue;
+            List<Step> steps = new ArrayList<>();
+            for (JsonElement element : entry.getValue().getAsJsonArray()) {
+                if (!element.isJsonObject()) continue;
+                JsonObject w = element.getAsJsonObject();
+                if (!w.has("x") || !w.has("y") || !w.has("z")) continue;
+                String category = w.has("category") ? w.get("category").getAsString().toLowerCase(Locale.ROOT) : "";
+                Type type = switch (category) {
+                    case "chest" -> Type.CHEST;
+                    case "wither", "essence" -> Type.ESSENCE;
+                    case "item" -> Type.ITEM;
+                    case "bat" -> Type.BAT;
+                    case "lever" -> Type.LEVER;
+                    case "superboom" -> Type.SUPERBOOM;
+                    case "stonk" -> Type.MINE;
+                    case "entrance" -> Type.START;
+                    default -> Type.CUSTOM;
+                };
+                String name = w.has("secretName") ? w.get("secretName").getAsString() : null;
+                Step step = new Step();
+                step.waypoints().add(new Waypoint(BlockPos.containing(w.get("x").getAsDouble(), w.get("y").getAsDouble(), w.get("z").getAsDouble()), type, type == Type.CUSTOM ? name : null));
+                steps.add(step);
+            }
+            if (!steps.isEmpty()) routes.put(entry.getKey(), steps);
+        }
+        return routes;
     }
 
     /**

@@ -2,6 +2,41 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## Unreleased
+
+### Changed
+- Dungeon map: new NoammAddons (Legit) style, now the default. Rooms are redrawn in clean colours with checkmarks, room names or secret counts, bordered player heads with optional names (Holding Leap / Always), and optional extra info under the map. Every colour and size can be changed. The old look is still there as Map Style: Skyblocker.
+- Score Display now uses NoammAddons' score calculation, read straight from the tab list and sidebar, so it no longer depends on the dungeon start being detected. Optional Detailed mode and Force Paul. The 270/300 alerts use it too.
+- Terminals: Odin's terminal solvers for all six terminals, with misclick blocking (clicks on wrong slots are ignored), first click protection and client prediction. Skyblocker's highlights are still available with Odin Terminal Solver off.
+- Devices: Odin's Simon Says, Arrow Align and Sharp Shooter (i4) solvers. Simon Says and Arrow Align block wrong clicks (hold Shift to click anyway).
+- Blood Camp now follows Odin: a head is only tracked once the Watcher throws it, so the heads hanging on the walls no longer throw off the landing boxes. Adds a position box moved ahead by your ping, box colours and size, offset, spawn tick, interpolation and the Watcher bar (blood mobs left in the boss bar).
+- Goldor tick timer counts 50 ticks by default (adjustable).
+- `/sj nick` has a new screen laid out like `/sj custom`: name and toggles, colour swatches with Rainbow and a custom colour picker, and live TAB / chat / nametag previews.
+- `/sj recipe` only uses the Recipe HUD now; the panel next to the inventory is gone.
+- HUDs keep their place relative to the screen when you change GUI scale or window size, instead of piling up at an edge. Storage search fits on the screen at high GUI scale.
+- All boxes, lines and text in the world are drawn every frame, so they follow moving mobs and your camera smoothly.
+- Last Breath RELEASE plays a bell by default (Bell, Note Block Bell, Ding, XP Orb or None) at full volume.
+
+### Added
+- Dungeon routes folder: put any route file in `config/skyjew/dungeon route/` (Stella / SkyJew, SecretRoutes or Dungeon Rooms Mod style). Rooms without a route there use Stella's routes. Changes load automatically; `/sj route reload` and `/sj route folder` too.
+- Farming Profit Tracker (Farming), ported from Skysoft: farming items from your inventory, sacks and chat drops, Replenish costs, pests, Kernels and coins, with uptime and profit per hour. Session or saved per profile; `/sj farmingprofit reset`.
+- Water Board: Skyblocker's water path and lever previews, next to Odin's solver.
+- SS skip helper: counts your Simon Says start button clicks above the button and blocks clicks past the limit (default 4).
+- Starred mob highlight colour, fill and line width.
+- Scrollable tooltips: scroll to move long tooltips (Shift for sideways).
+- Toggle Sprint, with a key in Controls and a small HUD.
+- "Your Class" option for the built-in positional waypoints, if your class isn't detected.
+
+### Fixed
+- Water Board: the line to the next lever jumped around while moving. Only Odin's solver draws it now (Skyblocker's solver drew a second line), and it starts from the camera.
+- Built-in positional waypoints (Py Stand Here, Mage Stop, ...) didn't show: your class is now read from any tab line with your name and remembered for the run, even as a ghost.
+- Sharp Shooter (i4) solver didn't work.
+- Pet display was blank when the server address had a port or wasn't exactly hypixel.net, and when Hypixel put icons around "[Lvl N]".
+- Calendar real-time dates didn't show: calendar menus and dates written in tooltips are matched more loosely.
+- Slayer tracker and boss phase HUDs didn't work: Hypixel's padding emoji in the sidebar broke the matching, and boss nametags are now text displays.
+- Last Breath, Ice Spray, masks, arrows, farming tools and other items renamed with `/sj custom` are still recognised.
+- The 1/10,000 jumpscare no longer happens in dungeons.
+
 ## 1.2.2 — 2026-09-25
 
 ### Added

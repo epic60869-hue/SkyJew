@@ -101,7 +101,7 @@ public final class CombatFeatures {
             for (var slot : slots) {
                 if (slot.container == mc.player.getInventory()) continue;
                 ItemStack stack = slot.getItem();
-                if (!stack.isEmpty() && SkyJewLocation.strip(stack.getHoverName().getString()).trim().equals(arrowType)) total += stack.getCount();
+                if (!stack.isEmpty() && SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(stack).getString()).trim().equals(arrowType)) total += stack.getCount();
             }
             if (total > 0) arrowAmount = total;
         }
@@ -130,7 +130,7 @@ public final class CombatFeatures {
             }
             m = ARROWS_REMAINING.matcher(line);
             if (m.find()) {
-                arrowType = SkyJewLocation.strip(stack.getHoverName().getString()).trim();
+                arrowType = SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(stack).getString()).trim();
                 arrowAmount = Long.parseLong(m.group("amount").replace(",", ""));
                 return true;
             }

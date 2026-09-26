@@ -35,6 +35,12 @@ public final class SkyJewHuds {
     private static final Map<String, Placement> PLACEMENTS = new LinkedHashMap<>();
     private static Path file;
     private static final String BACKGROUNDS_OFF = "#backgroundsOff";
+    /**
+     * The GUI-scaled screen size the positions were placed on. When the window or GUI scale changes, every HUD
+     * keeps its place relative to the screen instead of piling up against an edge.
+     */
+    private static int refWidth;
+    private static int refHeight;
 
     public static final class Placement {
         public int x;
@@ -102,6 +108,8 @@ public final class SkyJewHuds {
     private static void renderAll(GuiGraphicsExtractor graphics) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
+        // Positions saved before the reference size existed were placed on this screen size.
+        if (refWidth <= 0 || refHeight <= 0) setReferenceToScreen();
         for (Element element : ELEMENTS.values()) {
             if (!safe(element.enabled())) continue;
             if (element.custom() != null) {
@@ -115,7 +123,7 @@ public final class SkyJewHuds {
             List<Component> lines = safeLines(element);
             if (lines.isEmpty()) continue;
             Placement p = placement(element.id());
-            render(graphics, lines, clampX(p.x, width(lines, p.scale)), clampY(p.y, height(lines, p.scale)), p.scale, p.background);
+            render(graphics, lines, mapX(p.x, width(lines, p.scale)), mapY(p.y, height(lines, p.scale)), p.scale, p.background);
         }
     }
 
@@ -139,7 +147,33 @@ public final class SkyJewHuds {
     /** Where a text HUD with these lines is drawn on screen, after keeping it on screen: {x, y}. */
     public static int[] screenPosition(String id, List<Component> lines) {
         Placement p = placement(id);
-        return new int[]{clampX(p.x, width(lines, p.scale)), clampY(p.y, height(lines, p.scale))};
+        return new int[]{mapX(p.x, width(lines, p.scale)), mapY(p.y, height(lines, p.scale))};
+    }
+
+    /**
+     * Screen x for a HUD saved at x with width w: its centre keeps the same fraction of the screen width as when it
+     * was placed, so layouts survive GUI scale and window size changes. Always kept on screen.
+     */
+    public static int mapX(int x, int w) {
+        // Before the window exists (mod init) there is nothing to map to.
+        if (Minecraft.getInstance().getWindow() == null) return x;
+        int screen = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        if (refWidth <= 0 || refWidth == screen) return clampX(x, w);
+        return clampX(Math.round((x + w / 2f) * screen / refWidth - w / 2f), w);
+    }
+
+    public static int mapY(int y, int h) {
+        if (Minecraft.getInstance().getWindow() == null) return y;
+        int screen = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+        if (refHeight <= 0 || refHeight == screen) return clampY(y, h);
+        return clampY(Math.round((y + h / 2f) * screen / refHeight - h / 2f), h);
+    }
+
+    /** Called by /sj gui once every position has been converted to the current screen. */
+    public static void setReferenceToScreen() {
+        refWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        refHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+        save();
     }
 
     /** Keeps a HUD on screen even if its saved position is past the edge (e.g. after a window or GUI scale change). */
@@ -153,8 +187,8 @@ public final class SkyJewHuds {
 
     public static void renderCustom(GuiGraphicsExtractor graphics, Element element, boolean preview) {
         Placement p = placement(element.id());
-        int x = clampX(p.x, Math.round(element.custom().width() * p.scale));
-        int y = clampY(p.y, Math.round(element.custom().height() * p.scale));
+        int x = mapX(p.x, Math.round(element.custom().width() * p.scale));
+        int y = mapY(p.y, Math.round(element.custom().height() * p.scale));
         graphics.pose().pushMatrix();
         graphics.pose().translate((float) x, (float) y);
         graphics.pose().scale(p.scale, p.scale);
@@ -226,6 +260,8 @@ public final class SkyJewHuds {
         try {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
             for (var entry : root.entrySet()) {
+                if (entry.getKey().equals("#refWidth")) refWidth = entry.getValue().getAsInt();
+                if (entry.getKey().equals("#refHeight")) refHeight = entry.getValue().getAsInt();
                 if (entry.getKey().startsWith("#")) continue;
                 PLACEMENTS.put(entry.getKey(), GSON.fromJson(entry.getValue(), Placement.class));
             }
@@ -251,6 +287,8 @@ public final class SkyJewHuds {
             Files.createDirectories(file.getParent());
             JsonObject root = GSON.toJsonTree(PLACEMENTS).getAsJsonObject();
             root.addProperty(BACKGROUNDS_OFF, true);
+            if (refWidth > 0) root.addProperty("#refWidth", refWidth);
+            if (refHeight > 0) root.addProperty("#refHeight", refHeight);
             Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             System.err.println("[SkyJew] Failed to save HUD positions: " + e.getMessage());

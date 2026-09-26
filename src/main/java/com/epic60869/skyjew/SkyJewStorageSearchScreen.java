@@ -70,11 +70,12 @@ public final class SkyJewStorageSearchScreen extends Screen {
     }
 
     private int panelWidth() {
-        return Math.min(760, Math.max(430, width / 3 + 50));
+        // Never wider/taller than the screen, so it still fits at a high GUI scale.
+        return Math.min(width - 16, Math.min(760, Math.max(430, width / 3 + 50)));
     }
 
     private int panelHeight() {
-        return Math.min(520, Math.max(300, height / 3 + 50));
+        return Math.min(height - 16, Math.min(520, Math.max(300, height / 3 + 50)));
     }
 
     private int panelLeft() {
@@ -223,7 +224,7 @@ public final class SkyJewStorageSearchScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
+        if (event.button() != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             return super.mouseClicked(event, doubleClick);
         }
 
@@ -278,7 +279,7 @@ public final class SkyJewStorageSearchScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 256) {
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }

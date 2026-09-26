@@ -111,8 +111,7 @@ public final class PositionalMessages {
     }
 
     private static boolean isClass(com.epic60869.skyjew.sb.skyblock.dungeon.DungeonClass dungeonClass) {
-        var player = Minecraft.getInstance().player;
-        return player != null && com.epic60869.skyjew.sb.skyblock.dungeon.secrets.DungeonPlayerManager.getClassFromPlayer(player) == dungeonClass;
+        return SelfClass.get() == dungeonClass;
     }
 
     private static boolean onFloor7() {

@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 public final class SkyJewDateCalculator {
     private static final Pattern TIMER_PATTERN = Pattern.compile("((?<days>\\d+)d)? ?((?<hours>\\d+)h)? ?((?<minutes>\\d+)m)? ?((?<seconds>\\d+)s)?");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("E MMM d yyyy HH:mm", Locale.US).withZone(ZoneId.systemDefault());
-    private static final TimeProvider[] PROVIDERS = {new Events(), new Calendar()};
+    private static final TimeProvider[] PROVIDERS = {new Calendar(), new Events()};
     private static TimeProvider currentTimer;
 
     private SkyJewDateCalculator() {}
@@ -60,20 +60,55 @@ public final class SkyJewDateCalculator {
     private static void addToTooltip(ItemStack stack, List<Component> lines) {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.misc.calendarTimeToRealTime || !Compat.isOnSkyblock()) return;
-        if (currentTimer == null) return;
 
-        for (int i = 1; i < lines.size(); i++) {
-            String text = ChatFormatting.stripFormatting(lines.get(i).getString());
+        boolean added = false;
+        if (currentTimer != null) {
+            for (int i = 1; i < lines.size(); i++) {
+                String text = ChatFormatting.stripFormatting(lines.get(i).getString());
 
-            //Only attempt to look for a timer if the line contains the qualifying text
-            if (!currentTimer.qualifier().test(text)) continue;
+                //Only attempt to look for a timer if the line contains the qualifying text
+                if (!currentTimer.qualifier().test(text)) continue;
 
-            Instant instant = currentTimer.getStartTime(stack, text);
+                Instant instant = currentTimer.getStartTime(stack, text);
 
-            if (instant != null) {
-                lines.add(++i, Component.literal(DATE_FORMATTER.format(instant)).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
+                if (instant != null) {
+                    lines.add(++i, dateLine(instant));
+                    added = true;
+                }
+            }
+            // SkyJew: a day in the month view without an event line still gets its date, at the end.
+            if (!added && currentTimer instanceof Calendar calendar) {
+                Instant instant = calendar.getStartTime(stack, "");
+                if (instant != null) {
+                    lines.add(dateLine(instant));
+                    added = true;
+                }
             }
         }
+        if (added) return;
+
+        // SkyJew: any SkyBlock date written in the tooltip itself ("Late Spring 12th, Year 412"), in any menu.
+        for (int i = 0; i < lines.size(); i++) {
+            Matcher m = WRITTEN_DATE.matcher(ChatFormatting.stripFormatting(lines.get(i).getString()));
+            if (!m.find()) continue;
+            int month = Calendar.MONTHS.indexOf(m.group("month").toLowerCase(Locale.ROOT));
+            int day = Integer.parseInt(m.group("day"));
+            int year = m.group("year") != null ? Integer.parseInt(m.group("year")) : currentYear();
+            if (month < 0 || day < 1 || day > 31 || year < 1) continue;
+            lines.add(i + 1, dateLine(SkyJewSkyblockTime.toRealWorld(year, month, day).toInstant()));
+            return;
+        }
+    }
+
+    private static final Pattern WRITTEN_DATE = Pattern.compile("(?<month>(?:Early |Late )?(?:Spring|Summer|Autumn|Winter)) (?<day>\\d{1,2})(?:st|nd|rd|th)?(?:,? Year (?<year>\\d+))?");
+
+    private static int currentYear() {
+        long elapsed = System.currentTimeMillis() - SkyJewSkyblockTime.SKYBLOCK_EPOCH.toEpochMilli();
+        return (int) (elapsed / SkyJewSkyblockTime.YEAR_MILLIS) + 1;
+    }
+
+    private static Component dateLine(Instant instant) {
+        return Component.literal(DATE_FORMATTER.format(instant)).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
     }
 
     private static boolean hasAnyGroup(MatchResult result) {
@@ -92,7 +127,7 @@ public final class SkyJewDateCalculator {
         boolean test(String screenTitle);
 
         default Predicate<String> qualifier() {
-            return l -> l.contains("Starts in:") || l.contains(" (");
+            return l -> l.contains("Starts in") || l.contains("Ends in") || l.contains(" (");
         }
 
         Instant getStartTime(ItemStack stack, String qualifiedLine);
@@ -101,7 +136,8 @@ public final class SkyJewDateCalculator {
     private static class Events implements TimeProvider {
         @Override
         public boolean test(String screenTitle) {
-            return screenTitle.equals("Calendar and Events");
+            // SkyJew: also "SkyBlock Calendar" and other calendar menus.
+            return screenTitle.toLowerCase(Locale.ROOT).contains("calendar");
         }
 
         @Override
@@ -125,8 +161,8 @@ public final class SkyJewDateCalculator {
     }
 
     private static class Calendar implements TimeProvider {
-        private static final Pattern PATTERN = Pattern.compile("(?<month>.+), Year (?<year>\\d+)");
-        private static final List<String> MONTHS = List.of(
+        private static final Pattern PATTERN = Pattern.compile("(?<month>(?:Early |Late )?(?:Spring|Summer|Autumn|Winter)),? Year (?<year>\\d+)");
+        static final List<String> MONTHS = List.of(
             "early spring", "spring", "late spring", "early summer", "summer", "late summer",
             "early autumn", "autumn", "late autumn", "early winter", "winter", "late winter");
         private int monthIndex;
@@ -135,7 +171,7 @@ public final class SkyJewDateCalculator {
         @Override
         public boolean test(String screenTitle) {
             Matcher matcher = PATTERN.matcher(screenTitle);
-            if (!matcher.matches()) return false;
+            if (!matcher.find()) return false;
             int maybeMonth = MONTHS.indexOf(matcher.group("month").trim().toLowerCase(Locale.ROOT));
             if (maybeMonth < 0) return false;
             int maybeYear;
@@ -152,7 +188,7 @@ public final class SkyJewDateCalculator {
 
         @Override
         public Instant getStartTime(ItemStack stack, String qualifiedLine) {
-            if (stack.getCount() > 31) return null;
+            if (stack.getCount() < 1 || stack.getCount() > 31) return null;
             return SkyJewSkyblockTime.toRealWorld(year, monthIndex, stack.getCount()).toInstant();
         }
     }
