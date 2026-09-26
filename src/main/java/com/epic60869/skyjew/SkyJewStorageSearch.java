@@ -560,6 +560,29 @@ public final class SkyJewStorageSearch {
         }
     }
 
+    /** A saved Ender Chest page or backpack: its items are in menu slot order (navigation slots are empty). */
+    public record StoragePage(String type, int number, String label, List<ItemStack> items) {}
+
+    /** Every saved page on the current profile: Ender Chest pages first, then backpacks, by number. */
+    public static List<StoragePage> storagePages() {
+        List<StoragePage> out = new ArrayList<>();
+        for (Map.Entry<String, Page> entry : new ArrayList<>(pages.entrySet())) {
+            if (!currentProfile(entry.getKey())) continue;
+            Page page = entry.getValue();
+            List<ItemStack> items = decode(page.blob());
+            if (items != null) out.add(new StoragePage(page.type(), page.number(), page.label(), items));
+        }
+        out.sort((x, y) -> x.type().equals(y.type()) ? Integer.compare(x.number(), y.number())
+            : x.type().equals("ENDER_CHEST") ? -1 : 1);
+        return out;
+    }
+
+    /** "ENDER_CHEST:3" / "BACKPACK:12" for a storage page menu title, or null. */
+    public static String pageKey(String title) {
+        StorageTarget target = identify(cleanTitle(title));
+        return target == null ? null : target.type() + ":" + target.number();
+    }
+
     /** Item counts by SkyBlock id across the cached Ender Chest and Backpack pages (used by the craft helper). */
     /** Every item on the current profile's saved Ender Chest and backpack pages. */
     public static List<ItemStack> storedStacks() {

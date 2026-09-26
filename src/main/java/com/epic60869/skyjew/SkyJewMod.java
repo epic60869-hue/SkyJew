@@ -72,6 +72,7 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewToggleCommands.init();
         com.epic60869.skyjew.features.misc.CopyChat.init();
         com.epic60869.skyjew.features.misc.SlotLocking.init();
+        com.epic60869.skyjew.features.misc.StorageOverlay.init();
         com.epic60869.skyjew.features.dungeons.CaseOpening.init();
         SkyJewChangelog.init();
         SkyJewNopoFeatures.init(configDir);

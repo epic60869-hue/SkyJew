@@ -519,6 +519,11 @@ public final class SkyJewConfig extends Config {
         public com.epic60869.skyjew.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyjew.features.FeatureConfigs.PartyCommands();
 
         @Expose
+        @ConfigOption(name = "Storage Overlay", desc = "Show every Ender Chest page and backpack at once in /storage and in any page, like Firmament. Click a page's name to open it; the open page and your inventory can be clicked as normal.")
+        @ConfigEditorBoolean
+        public boolean storageOverlay = true;
+
+        @Expose
         @Accordion
         @ConfigOption(name = "Slot Locking & Binding", desc = "Lock inventory slots (L) and bind hotbar slots to inventory slots (B).")
         public SlotLocking slotLocking = new SlotLocking();
