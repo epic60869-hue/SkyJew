@@ -2,7 +2,7 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
-## 1.2.4
+## 1.2.4 — 2026-09-26
 
 ### Added
 - Update notifications: when a newer SkyJew is out you get "New SkyJew Mod Version 1.2.4 --> 1.2.6" in chat (always the newest one), with a Download link (Misc > Update Notifications).
