@@ -925,6 +925,41 @@ public final class FeatureConfigs {
         @Expose @ConfigOption(name = "!promote", desc = "Promotes the player who asked.") @ConfigEditorBoolean public boolean promote = false;
     }
 
+    public static final class ItemNotification {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Show items from your list on a HUD when you get them (in your sacks or your inventory), like the farming RNG HUD: amount, name and total price. Move it in /sj gui.")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @ConfigOption(name = "Items", desc = "Open the list of items to watch for: one per line, with item name suggestions as you type. Also /sj itemnotify.")
+        @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton(buttonText = "EDIT")
+        public Runnable editItems = com.epic60869.skyjew.features.misc.ItemNotification::openEditor;
+
+        /** The items, one per line (edited in the Items window). */
+        @Expose
+        public String items = "";
+
+        @Expose
+        @ConfigOption(name = "Check Sacks", desc = "Watch the [Sacks] messages for items on the list.")
+        @ConfigEditorBoolean
+        public boolean checkSacks = true;
+
+        @Expose
+        @ConfigOption(name = "Check Inventory", desc = "Watch your inventory for items on the list.")
+        @ConfigEditorBoolean
+        public boolean checkInventory = true;
+
+        @Expose
+        @ConfigOption(name = "Show For (seconds)", desc = "How long an item stays on the HUD after you get it. Getting more of it keeps it there and adds to the amount.")
+        @ConfigEditorSlider(minValue = 2, maxValue = 30, minStep = 1)
+        public int seconds = 5;
+
+        @Expose
+        @ConfigOption(name = "Sound", desc = "Play a sound when an item on the list comes in.")
+        @ConfigEditorBoolean
+        public boolean sound = true;
+    }
+
     public static final class AutoWelcome {
         public enum Destination {
             GUILD("Guild Chat"), MESSAGE("Private Message (/msg)");

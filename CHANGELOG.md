@@ -4,6 +4,9 @@ All notable changes to SkyJew are listed here, newest first.
 
 ## 1.2.5
 
+### Added
+- Item Notification (Misc > Item Notification): SkyOcean's Sack Notification as a HUD. Put item names on a list and when you get one, in your sacks or your inventory, it shows like the farming RNG HUD: "5x Enchanted Diamond 8.5k", with the price for all of them. More of the same item adds up while it's showing. The list is edited in its own window (the EDIT button, or `/sj itemnotify`), like /sj notes: one item per line, with item name suggestions as you type (Tab to use one). `/sj itemnotify add|remove <item name>` and `/sj itemnotify list` work too.
+
 ### Changed
 - The Enchanting Runes nickname font is now made of letters (the Unicode enchanting table alphabet, ᔑʖᓵ↸ᒷ...) instead of a Minecraft font, so it shows in tab lists drawn by other mods (SkyHanni, SkyblockAddons, ...) and to every SkyJew player. Illager Runes and Uniform still need SkyJew to draw the text, so those mods' tab lists show them as normal letters.
 - The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing the cooldown from chat, so it's always right. Turn that widget on in Hypixel's tab list settings.

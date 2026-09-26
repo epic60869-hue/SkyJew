@@ -102,6 +102,26 @@ public final class RepoItems {
 		}
 	}
 
+	/** Every item's name with its colour codes, for suggestions; empty until the item list has loaded. */
+	public static List<String> allNames() {
+		synchronized (ITEMS) {
+			List<String> names = new ArrayList<>();
+			for (RepoItem item : ITEMS.values()) if (item.name() != null && !item.name().isBlank()) names.add(item.name());
+			return names;
+		}
+	}
+
+	/** The item id for a plain item name (no colour codes, any case), e.g. "Enchanted Diamond"; null if unknown. */
+	public static @Nullable String idByName(String name) {
+		String wanted = net.minecraft.ChatFormatting.stripFormatting(name).trim();
+		synchronized (ITEMS) {
+			for (RepoItem item : ITEMS.values()) {
+				if (item.name() != null && net.minecraft.ChatFormatting.stripFormatting(item.name()).trim().equalsIgnoreCase(wanted)) return item.id();
+			}
+		}
+		return null;
+	}
+
 	public static @Nullable String displayName(String id) {
 		synchronized (ITEMS) {
 			RepoItem item = ITEMS.get(id);

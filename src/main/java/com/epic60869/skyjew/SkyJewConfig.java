@@ -443,6 +443,11 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
+        @ConfigOption(name = "Item Notification", desc = "Show items from your list on a HUD when they go into your sacks or inventory (SkyOcean's Sack Notification as a HUD).")
+        public com.epic60869.skyjew.features.FeatureConfigs.ItemNotification itemNotification = new com.epic60869.skyjew.features.FeatureConfigs.ItemNotification();
+
+        @Expose
+        @Accordion
         @ConfigOption(name = "Auto Welcome", desc = "Welcome players on your list in guild chat or with /msg when they come online.")
         public com.epic60869.skyjew.features.FeatureConfigs.AutoWelcome autoWelcome = new com.epic60869.skyjew.features.FeatureConfigs.AutoWelcome();
 
