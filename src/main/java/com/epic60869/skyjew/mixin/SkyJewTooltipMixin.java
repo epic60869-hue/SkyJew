@@ -1,30 +1,29 @@
 package com.epic60869.skyjew.mixin;
 
 import com.epic60869.skyjew.features.misc.ScrollableTooltips;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.gui.Font;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.resources.Identifier;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.List;
 
-/** Misc > Scrollable Tooltips: moves the tooltip by the scroll offset after vanilla has placed it. */
+/** Misc > Tooltip Scroll: wraps the tooltip positioner so the tooltip is moved by the scroll pan (Skysoft's approach). */
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class SkyJewTooltipMixin {
-    @ModifyExpressionValue(method = "tooltip", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;positionTooltip(IIIIII)Lorg/joml/Vector2ic;"))
-    private Vector2ic skyjew$scrollTooltip(Vector2ic position, Font font, List<ClientTooltipComponent> lines, int xo, int yo, ClientTooltipPositioner positioner, Identifier style) {
-        int width = 0;
-        int height = lines.size() == 1 ? -2 : 0;
-        for (ClientTooltipComponent line : lines) {
-            width = Math.max(width, line.getWidth(font));
-            height += line.getHeight(font);
+    @WrapOperation(method = "tooltip", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;positionTooltip(IIIIII)Lorg/joml/Vector2ic;"))
+    private Vector2ic skyjew$scrollTooltip(ClientTooltipPositioner positioner, int screenWidth, int screenHeight, int x, int y, int width, int height, Operation<Vector2ic> original, @Local(argsOnly = true) List<ClientTooltipComponent> lines) {
+        ClientTooltipPositioner scrolling = positioner;
+        try {
+            scrolling = ScrollableTooltips.decorate(lines, x, y, positioner);
+        } catch (Throwable t) {
+            System.err.println("[SkyJew] Tooltip scroll failed: " + t);
         }
-        GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
-        return ScrollableTooltips.offset(position, width, height, lines.size(), self.guiWidth(), self.guiHeight());
+        return original.call(scrolling, screenWidth, screenHeight, x, y, width, height);
     }
 }

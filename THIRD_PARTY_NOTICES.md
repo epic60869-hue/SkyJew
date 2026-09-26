@@ -136,11 +136,8 @@ SkyJew's dungeon map ("NoammAddons (Legit)" style) and dungeon score calculator 
 
 Ported to Java in `features/dungeons/NoammMap.java` and `features/dungeons/ScoreCalculator.java`. NoammAddons is dedicated to the public domain under CC0 1.0 Universal.
 
-## Skysoft
+## Skysoft Tooltip Scroll
 
-SkyJew's Farming Profit Tracker follows Skysoft's Profit Tracker "Farming" preset:
+SkyJew's tooltip scroll (`features/misc/ScrollableTooltips.java`, `SkyJewTooltipMixin`, `SkyJewTooltipScrollMixin`) is a Java port of Skysoft's Tooltip Scroll (src/main/kotlin/com/skysoft/gui/tooltip/TooltipViewport.kt and TooltipPanSession.kt, com/skysoft/config/TooltipScrollConfig.kt, and the tooltip positioner / mouse scroll mixins): the pan session with smooth movement, the keyboard and mouse wheel controls, and the settings.
 
-- https://github.com/Akinsoft/Skysoft (main branch)
-- Relevant source: `features/profit/ProfitTracker.kt`, `ProfitTrackerItemTracking.kt`, `ProfitReplenishCosts.kt`, `ProfitDropMessages.kt`, `FarmingKernelProfit.kt`, `data/skyblock/SkyBlockSackChanges.kt`, `ParsedGardenPestKill.kt` and the farming item list in `profit_tracker_presets.json`
-
-Ported to Java in `features/garden/FarmingProfitTracker.java`. Skysoft is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0), the same terms as the Skyblocker code above.
+- License: GNU Lesser General Public License v3.0 (LGPL-3.0)

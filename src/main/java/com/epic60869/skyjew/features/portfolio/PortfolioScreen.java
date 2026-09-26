@@ -1,5 +1,6 @@
 package com.epic60869.skyjew.features.portfolio;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -8,26 +9,40 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
-/** /sj portfolio: the portfolio sheet, sold log and value graph. */
+/**
+ * /sj portfolio: the portfolio sheet, sold log and value graph. Click a column header to sort by it (again to reverse).
+ */
 public final class PortfolioScreen extends Screen {
     private enum Tab { SHEET, SOLD, GRAPH }
 
-    private static final int ROW = 12;
+    private static final int ROW = 14;
+    private static final int ICON = 12;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d HH:mm").withZone(ZoneId.systemDefault());
+    private static final String[] SHEET_HEADERS = {"Item", "Qty (inv/stor/extra)", "Buy each", "Price each", "Value", "Profit/loss"};
+    private static final String[] SOLD_HEADERS = {"Item", "Sold", "Amount", "Sold for", "Bought for", "Profit"};
 
     private Tab tab = Tab.SHEET;
     private Portfolio.Entry selected;
+    private Portfolio.Sale selectedSale;
     private int scroll;
     private EditBox addBox, buyBox, extraBox;
     private String status = "";
+    /** Sorted column (-1 = the order you added them in) and direction, per tab. */
+    private int sortColumn = -1;
+    private boolean ascending = true;
+    private int soldSortColumn = -1;
+    private boolean soldAscending = true;
 
     public PortfolioScreen() {
         super(Component.literal("SkyJew Portfolio"));
@@ -38,7 +53,7 @@ public final class PortfolioScreen extends Screen {
     private int panelWidth() { return width - 20; }
     private int panelHeight() { return height - 20; }
     private int tableTop() { return top() + 78; }
-    private int tableBottom() { return top() + panelHeight() - (tab == Tab.SHEET ? 34 : 8); }
+    private int tableBottom() { return top() + panelHeight() - (tab == Tab.GRAPH ? 8 : 34); }
 
     @Override
     protected void init() {
@@ -85,11 +100,17 @@ public final class PortfolioScreen extends Screen {
             Portfolio.toggleAutoRemove();
             rebuild();
         }).bounds(rx, y, 120, 20).build());
-        rx -= 224;
-        addRenderableWidget(Button.builder(Component.literal("Prices: " + Portfolio.priceMode().label()), b -> {
-            Portfolio.cyclePriceMode();
+        // Auction house and bazaar prices are chosen separately.
+        rx -= 114;
+        addRenderableWidget(Button.builder(Component.literal("BZ: " + Portfolio.bzMode().label()), b -> {
+            Portfolio.toggleBzMode();
             rebuild();
-        }).bounds(rx, y, 220, 20).build());
+        }).bounds(rx, y, 110, 20).build());
+        rx -= 114;
+        addRenderableWidget(Button.builder(Component.literal("AH: " + Portfolio.ahMode().label()), b -> {
+            Portfolio.toggleAhMode();
+            rebuild();
+        }).bounds(rx, y, 110, 20).build());
 
         if (tab == Tab.SHEET) {
             int ay = top() + 50;
@@ -126,6 +147,7 @@ public final class PortfolioScreen extends Screen {
                     if (p < 0) status = "Type a price like 1.5m, 200k or 1,234,567.";
                     else {
                         selected.buyPrice = p;
+                        selected.buyPricePending = false;
                         Portfolio.changed();
                         status = "Buy price set.";
                     }
@@ -156,6 +178,14 @@ public final class PortfolioScreen extends Screen {
                     rebuild();
                 }).bounds(bx + 64, by, 56, 20).build());
             }
+        } else if (tab == Tab.SOLD && selectedSale != null && Portfolio.sold().contains(selectedSale)) {
+            int by = top() + panelHeight() - 28;
+            addRenderableWidget(Button.builder(Component.literal("Remove sale"), b -> {
+                Portfolio.removeSale(selectedSale);
+                status = "Removed " + selectedSale.name + " from the sold list.";
+                selectedSale = null;
+                rebuild();
+            }).bounds(left() + 8, by, 90, 20).build());
         }
     }
 
@@ -165,12 +195,13 @@ public final class PortfolioScreen extends Screen {
         g.fill(left(), top(), left() + panelWidth(), top() + panelHeight(), 0xFF181B21);
         g.fill(left(), top(), left() + panelWidth(), top() + 2, 0xFFFFAA00);
 
-        double total = Portfolio.totalValue(), profit = Portfolio.totalProfit();
+        double total = Portfolio.totalValue(), profit = Portfolio.totalProfit(), perHour = Portfolio.profitPerHour();
         g.text(font, Component.literal("Portfolio").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), left() + 8, top() + 8, 0xFFFFFFFF, true);
         Component summary = Component.literal("Value: ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal(Portfolio.coins(total)).withStyle(ChatFormatting.GOLD))
             .append(Component.literal("   Unrealised P/L: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(Portfolio.coins(profit)).withStyle(profit >= 0 ? ChatFormatting.GREEN : ChatFormatting.RED))
+            .append(Component.literal(" (" + Portfolio.coins(perHour) + "/h)").withStyle(perHour >= 0 ? ChatFormatting.DARK_GREEN : ChatFormatting.DARK_RED))
             .append(Component.literal("   Realised: ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(Portfolio.coins(Portfolio.realisedProfit())).withStyle(Portfolio.realisedProfit() >= 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
         g.text(font, summary, left() + 80, top() + 8, 0xFFFFFFFF, false);
@@ -179,87 +210,200 @@ public final class PortfolioScreen extends Screen {
 
         switch (tab) {
             case SHEET -> drawSheet(g, mouseX, mouseY);
-            case SOLD -> drawSold(g);
+            case SOLD -> drawSold(g, mouseX, mouseY);
             case GRAPH -> drawGraph(g);
         }
         if (!status.isEmpty()) g.text(font, status, left() + 382, top() + 56, 0xFFB8C0CC, false);
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
+    // ----- Columns and sorting -----
+
+    /**
+     * Column x positions, sized to fit their widest cell so nothing overlaps; the first (item) column gets
+     * whatever room is left.
+     */
+    private int[] columns(String[] headers, List<String[]> cells) {
+        int[] widths = new int[headers.length];
+        for (int i = 0; i < headers.length; i++) widths[i] = font.width(headers[i] + " ▲") + 10;
+        for (String[] row : cells) for (int i = 1; i < row.length; i++) widths[i] = Math.max(widths[i], font.width(row[i]) + 10);
+        int x = left() + 8;
+        int available = panelWidth() - 16;
+        int others = 0;
+        for (int i = 1; i < widths.length; i++) others += widths[i];
+        int first = Math.max(90, available - others);
+        int[] c = new int[headers.length];
+        c[0] = x;
+        c[1] = x + first;
+        for (int i = 2; i < c.length; i++) c[i] = c[i - 1] + widths[i - 1];
+        return c;
+    }
+
+    private void drawHeaders(GuiGraphicsExtractor g, String[] headers, int[] c, int y, int sorted, boolean asc) {
+        for (int i = 0; i < headers.length; i++) {
+            String text = headers[i] + (i == sorted ? (asc ? " ▲" : " ▼") : "");
+            g.text(font, text, c[i], y, i == sorted ? 0xFFFFD27A : 0xFFFFAA00, false);
+        }
+        g.fill(left() + 6, y + 10, left() + panelWidth() - 6, y + 11, 0xFF3A3F48);
+    }
+
+    /** Column under x, or -1. */
+    private static int columnAt(int[] c, double x, int right) {
+        for (int i = c.length - 1; i >= 0; i--) if (x >= c[i] && x < right) return i;
+        return -1;
+    }
+
+    private double profitOf(Portfolio.Entry e) {
+        double price = Portfolio.price(e.id);
+        return e.buyPrice > 0 && price > 0 ? Portfolio.count(e).total() * (price - e.buyPrice) : Double.NEGATIVE_INFINITY;
+    }
+
+    private List<Portfolio.Entry> sortedEntries() {
+        List<Portfolio.Entry> entries = new ArrayList<>(Portfolio.entries());
+        if (sortColumn < 0) return entries;
+        Comparator<Portfolio.Entry> order = switch (sortColumn) {
+            case 0 -> Comparator.comparing(e -> e.name.toLowerCase(Locale.ROOT));
+            case 1 -> Comparator.comparingInt(e -> Portfolio.count(e).total());
+            case 2 -> Comparator.comparingDouble(e -> e.buyPrice);
+            case 3 -> Comparator.comparingDouble(e -> Portfolio.price(e.id));
+            case 4 -> Comparator.comparingDouble(Portfolio::value);
+            default -> Comparator.comparingDouble(this::profitOf);
+        };
+        entries.sort(ascending ? order : order.reversed());
+        return entries;
+    }
+
+    private List<Portfolio.Sale> sortedSales() {
+        List<Portfolio.Sale> sold = new ArrayList<>(Portfolio.sold());
+        if (soldSortColumn < 0) {
+            java.util.Collections.reverse(sold); // newest first
+            return sold;
+        }
+        Comparator<Portfolio.Sale> order = switch (soldSortColumn) {
+            case 0 -> Comparator.comparing(s -> s.name.toLowerCase(Locale.ROOT));
+            case 1 -> Comparator.comparingLong(s -> s.time);
+            case 2 -> Comparator.comparingInt(s -> s.amount);
+            case 3 -> Comparator.comparingDouble(s -> s.price);
+            case 4 -> Comparator.comparingDouble(s -> s.buyPrice * s.amount);
+            default -> Comparator.comparingDouble(s -> s.buyPrice > 0 && s.price > 0 ? s.price - s.buyPrice * s.amount : Double.NEGATIVE_INFINITY);
+        };
+        sold.sort(soldAscending ? order : order.reversed());
+        return sold;
+    }
+
     // ----- Sheet -----
 
-    private int[] columns() {
-        int w = panelWidth() - 16;
-        int x = left() + 8;
-        return new int[]{x, x + (int) (w * 0.30), x + (int) (w * 0.50), x + (int) (w * 0.62), x + (int) (w * 0.74), x + (int) (w * 0.87)};
+    private String[] sheetCells(Portfolio.Entry e) {
+        Portfolio.Count count = Portfolio.count(e);
+        double price = Portfolio.price(e.id);
+        String profit = "-";
+        if (e.buyPrice > 0 && price > 0) {
+            double pl = count.total() * (price - e.buyPrice);
+            profit = Portfolio.coins(pl) + String.format(Locale.US, " (%+.0f%%)", (price - e.buyPrice) / e.buyPrice * 100);
+        }
+        return new String[]{
+            e.name,
+            count.total() + " (" + count.inventory() + "/" + count.storage() + "/" + count.extra() + ")",
+            e.buyPrice > 0 ? Portfolio.coins(e.buyPrice) : (e.buyPricePending ? "..." : "-"),
+            price > 0 ? Portfolio.coins(price) : "?",
+            Portfolio.coins(count.total() * price),
+            profit
+        };
+    }
+
+    private int[] sheetColumns() {
+        List<String[]> cells = new ArrayList<>();
+        for (Portfolio.Entry e : Portfolio.entries()) cells.add(sheetCells(e));
+        return columns(SHEET_HEADERS, cells);
     }
 
     private void drawSheet(GuiGraphicsExtractor g, int mouseX, int mouseY) {
-        int[] c = columns();
+        int[] c = sheetColumns();
         int y = tableTop();
-        String[] headers = {"Item", "Qty (inv / storage / extra)", "Buy each", "Price each", "Value", "Profit/loss"};
-        for (int i = 0; i < headers.length; i++) g.text(font, headers[i], c[i], y, 0xFFFFAA00, false);
-        g.fill(left() + 6, y + 10, left() + panelWidth() - 6, y + 11, 0xFF3A3F48);
+        drawHeaders(g, SHEET_HEADERS, c, y, sortColumn, ascending);
 
-        List<Portfolio.Entry> entries = Portfolio.entries();
+        List<Portfolio.Entry> entries = sortedEntries();
         if (entries.isEmpty()) {
             g.text(font, "Add an item above, or hold one and click Add held item. Quantities update from your inventory and every Ender Chest / backpack page you have opened.", c[0], y + 18, 0xFF7A8290, false);
         }
         int rowsVisible = (tableBottom() - y - 14) / ROW;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, entries.size() - rowsVisible)));
-        int ry = y + 14;
+        int ry = y + 16;
         for (int i = scroll; i < entries.size() && i < scroll + rowsVisible; i++) {
             Portfolio.Entry e = entries.get(i);
+            String[] cells = sheetCells(e);
             Portfolio.Count count = Portfolio.count(e);
-            double price = Portfolio.price(e.id);
-            boolean hover = mouseY >= ry - 1 && mouseY < ry + ROW - 1 && mouseX >= left() && mouseX < left() + panelWidth();
-            if (e == selected) g.fill(left() + 6, ry - 2, left() + panelWidth() - 6, ry + ROW - 2, 0xFF2E3440);
-            else if (hover) g.fill(left() + 6, ry - 2, left() + panelWidth() - 6, ry + ROW - 2, 0xFF22262E);
-            g.text(font, font.plainSubstrByWidth(e.name, c[1] - c[0] - 6), c[0], ry, 0xFFFFFFFF, false);
-            g.text(font, count.total() + "  (" + count.inventory() + " / " + count.storage() + " / " + count.extra() + ")", c[1], ry, count.total() > 0 ? 0xFFFFFFFF : 0xFF7A8290, false);
-            g.text(font, e.buyPrice > 0 ? Portfolio.coins(e.buyPrice) : "-", c[2], ry, 0xFFB8C0CC, false);
-            g.text(font, price > 0 ? Portfolio.coins(price) : "?", c[3], ry, 0xFFFFFFFF, false);
-            g.text(font, Portfolio.coins(count.total() * price), c[4], ry, 0xFFFFAA00, false);
-            if (e.buyPrice > 0 && price > 0) {
-                double pl = count.total() * (price - e.buyPrice);
-                double pct = (price - e.buyPrice) / e.buyPrice * 100;
-                g.text(font, Portfolio.coins(pl) + String.format(" (%+.0f%%)", pct), c[5], ry, pl >= 0 ? 0xFF55FF55 : 0xFFFF5555, false);
-            } else {
-                g.text(font, "-", c[5], ry, 0xFF7A8290, false);
+            boolean hover = mouseY >= ry - 3 && mouseY < ry + ROW - 3 && mouseX >= left() && mouseX < left() + panelWidth();
+            if (e == selected) g.fill(left() + 6, ry - 3, left() + panelWidth() - 6, ry + ROW - 3, 0xFF2E3440);
+            else if (hover) g.fill(left() + 6, ry - 3, left() + panelWidth() - 6, ry + ROW - 3, 0xFF22262E);
+            ItemStack icon = Portfolio.icon(e);
+            int nameX = c[0];
+            if (icon != null) {
+                g.pose().pushMatrix();
+                g.pose().translate(c[0], ry - 2);
+                g.pose().scale(ICON / 16f, ICON / 16f);
+                g.item(icon, 0, 0);
+                g.pose().popMatrix();
+                nameX += ICON + 3;
             }
+            g.text(font, font.plainSubstrByWidth(cells[0], c[1] - nameX - 6), nameX, ry, 0xFFFFFFFF, false);
+            g.text(font, cells[1], c[1], ry, count.total() > 0 ? 0xFFFFFFFF : 0xFF7A8290, false);
+            g.text(font, cells[2], c[2], ry, 0xFFB8C0CC, false);
+            g.text(font, cells[3], c[3], ry, 0xFFFFFFFF, false);
+            g.text(font, cells[4], c[4], ry, 0xFFFFAA00, false);
+            double pl = profitOf(e);
+            g.text(font, cells[5], c[5], ry, cells[5].equals("-") ? 0xFF7A8290 : pl >= 0 ? 0xFF55FF55 : 0xFFFF5555, false);
             ry += ROW;
         }
-        if (selected != null && entries.contains(selected)) {
+        if (selected != null && Portfolio.entries().contains(selected)) {
             g.text(font, font.plainSubstrByWidth(selected.name, 210), left() + 8, top() + panelHeight() - 22, 0xFFFFFFFF, true);
         }
     }
 
     // ----- Sold -----
 
-    private void drawSold(GuiGraphicsExtractor g) {
-        int[] c = columns();
+    private String[] soldCells(Portfolio.Sale s) {
+        String profit = s.buyPrice > 0 && s.price > 0 ? Portfolio.coins(s.price - s.buyPrice * s.amount) : "";
+        return new String[]{
+            s.name, DATE.format(Instant.ofEpochMilli(s.time)), String.valueOf(s.amount),
+            s.price > 0 ? Portfolio.coins(s.price) : "-", s.buyPrice > 0 ? Portfolio.coins(s.buyPrice * s.amount) : "-", profit
+        };
+    }
+
+    private int[] soldColumns() {
+        List<String[]> cells = new ArrayList<>();
+        for (Portfolio.Sale s : Portfolio.sold()) cells.add(soldCells(s));
+        return columns(SOLD_HEADERS, cells);
+    }
+
+    private void drawSold(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        int[] c = soldColumns();
         int y = tableTop();
-        String[] headers = {"Item", "Sold", "Amount", "Sold for", "Bought for", "Profit"};
-        for (int i = 0; i < headers.length; i++) g.text(font, headers[i], c[i], y, 0xFFFFAA00, false);
-        g.fill(left() + 6, y + 10, left() + panelWidth() - 6, y + 11, 0xFF3A3F48);
-        List<Portfolio.Sale> sold = new ArrayList<>(Portfolio.sold());
-        java.util.Collections.reverse(sold);
+        drawHeaders(g, SOLD_HEADERS, c, y, soldSortColumn, soldAscending);
+        List<Portfolio.Sale> sold = sortedSales();
         if (sold.isEmpty()) g.text(font, "No sales yet. Auction and bazaar sales of tracked items show up here.", c[0], y + 18, 0xFF7A8290, false);
         int rowsVisible = (tableBottom() - y - 14) / ROW;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, sold.size() - rowsVisible)));
-        int ry = y + 14;
+        int ry = y + 16;
         for (int i = scroll; i < sold.size() && i < scroll + rowsVisible; i++) {
             Portfolio.Sale s = sold.get(i);
-            g.text(font, font.plainSubstrByWidth(s.name, c[1] - c[0] - 6), c[0], ry, 0xFFFFFFFF, false);
-            g.text(font, DATE.format(Instant.ofEpochMilli(s.time)), c[1], ry, 0xFFB8C0CC, false);
-            g.text(font, String.valueOf(s.amount), c[2], ry, 0xFFFFFFFF, false);
-            g.text(font, s.price > 0 ? Portfolio.coins(s.price) : "-", c[3], ry, 0xFFFFAA00, false);
-            g.text(font, s.buyPrice > 0 ? Portfolio.coins(s.buyPrice * s.amount) : "-", c[4], ry, 0xFFB8C0CC, false);
-            if (s.buyPrice > 0 && s.price > 0) {
+            String[] cells = soldCells(s);
+            boolean hover = mouseY >= ry - 3 && mouseY < ry + ROW - 3 && mouseX >= left() && mouseX < left() + panelWidth();
+            if (s == selectedSale) g.fill(left() + 6, ry - 3, left() + panelWidth() - 6, ry + ROW - 3, 0xFF2E3440);
+            else if (hover) g.fill(left() + 6, ry - 3, left() + panelWidth() - 6, ry + ROW - 3, 0xFF22262E);
+            g.text(font, font.plainSubstrByWidth(cells[0], c[1] - c[0] - 6), c[0], ry, 0xFFFFFFFF, false);
+            g.text(font, cells[1], c[1], ry, 0xFFB8C0CC, false);
+            g.text(font, cells[2], c[2], ry, 0xFFFFFFFF, false);
+            g.text(font, cells[3], c[3], ry, 0xFFFFAA00, false);
+            g.text(font, cells[4], c[4], ry, 0xFFB8C0CC, false);
+            if (!cells[5].isEmpty()) {
                 double p = s.price - s.buyPrice * s.amount;
-                g.text(font, Portfolio.coins(p), c[5], ry, p >= 0 ? 0xFF55FF55 : 0xFFFF5555, false);
+                g.text(font, cells[5], c[5], ry, p >= 0 ? 0xFF55FF55 : 0xFFFF5555, false);
             }
             ry += ROW;
+        }
+        if (!sold.isEmpty() && selectedSale == null) {
+            g.text(font, "Click a sale to select it, then Remove sale.", left() + 8, top() + panelHeight() - 22, 0xFF7A8290, false);
         }
     }
 
@@ -336,16 +480,36 @@ public final class PortfolioScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) return true;
-        if (tab == Tab.SHEET || tab == Tab.GRAPH) {
-            int y = tableTop() + 14;
-            if (tab == Tab.SHEET && event.y() >= y - 2 && event.y() < tableBottom()) {
-                int index = scroll + (int) ((event.y() - y + 2) / ROW);
-                List<Portfolio.Entry> entries = Portfolio.entries();
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || tab == Tab.GRAPH) return false;
+        int y = tableTop();
+        int right = left() + panelWidth() - 6;
+        // Header: sort by that column, click again to reverse.
+        if (event.y() >= y - 2 && event.y() < y + 10) {
+            int column = columnAt(tab == Tab.SHEET ? sheetColumns() : soldColumns(), event.x(), right);
+            if (column < 0) return false;
+            if (tab == Tab.SHEET) {
+                ascending = column != sortColumn || !ascending;
+                sortColumn = column;
+            } else {
+                soldAscending = column != soldSortColumn || !soldAscending;
+                soldSortColumn = column;
+            }
+            return true;
+        }
+        int rowsTop = y + 13;
+        if (event.y() >= rowsTop && event.y() < tableBottom()) {
+            int index = scroll + (int) ((event.y() - rowsTop) / ROW);
+            if (tab == Tab.SHEET) {
+                List<Portfolio.Entry> entries = sortedEntries();
                 Portfolio.Entry clicked = index >= 0 && index < entries.size() ? entries.get(index) : null;
                 selected = clicked == selected ? null : clicked;
-                rebuild();
-                return true;
+            } else {
+                List<Portfolio.Sale> sold = sortedSales();
+                Portfolio.Sale clicked = index >= 0 && index < sold.size() ? sold.get(index) : null;
+                selectedSale = clicked == selectedSale ? null : clicked;
             }
+            rebuild();
+            return true;
         }
         return false;
     }

@@ -4,6 +4,8 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "accessors.AbstractContainerScreenAccessor",
+    "accessors.EditBoxAccessor",
+    "accessors.CheckboxAccessor",
     "accessors.MapItemSavedDataAccessor",
     "accessors.MapRendererInvoker",
     "ContainerSolverScreenMixin",

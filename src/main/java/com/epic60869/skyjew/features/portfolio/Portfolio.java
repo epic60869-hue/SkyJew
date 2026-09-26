@@ -1,5 +1,6 @@
 package com.epic60869.skyjew.features.portfolio;
 
+import com.epic60869.skyjew.SkyJewPriceTooltip;
 import com.epic60869.skyjew.SkyJewStorageSearch;
 import com.epic60869.skyjew.custom.util.Compat;
 import com.epic60869.skyjew.features.core.SkyJewAlerts;
@@ -48,7 +49,8 @@ import java.util.regex.Pattern;
 /**
  * Portfolio / net worth tracker. You add items; their quantity is counted from your inventory and the Ender Chest and
  * backpack pages SkyJew has seen (Storage Search), plus an optional extra amount you type for items it can't see.
- * Prices come live from Hypixel's bazaar API and the lowest BIN / 3-day average API Skyblocker uses (hysky.de).
+ * Prices come live from Hypixel's bazaar API and the lowest BIN / 3-day average API Skyblocker uses (hysky.de); rune
+ * names and textures come from the NEU repo. Items are keyed by their price key (runes: AXE_SHATTER_RUNE_3).
  * Value snapshots are saved to config/skyjew/portfolio/history.json for the graph and CSV export, and auction/bazaar
  * sales of tracked items are logged (asking first, or automatically).
  */
@@ -68,12 +70,31 @@ public final class Portfolio {
     private static final Pattern BAZAAR_SOLD = Pattern.compile("^\\[Bazaar] Sold (?<amount>[\\d,]+)x (?<item>.+) for (?<price>[\\d,.]+) coins!$");
     private static final Pattern BAZAAR_OFFER = Pattern.compile("^\\[Bazaar] Your Sell Offer for (?<amount>[\\d,]+)x (?<item>.+) was filled!$");
 
-    public enum PriceMode {
-        LOWEST_BIN("Lowest BIN / Bazaar sell"), AVERAGE("3-day avg BIN / Bazaar sell"), INSTABUY("Lowest BIN / Bazaar buy");
+    /** Old single price setting, only read to carry it over to the two new ones. */
+    public enum PriceMode { LOWEST_BIN, AVERAGE, INSTABUY }
+
+    /** How auction house items are priced. */
+    public enum AhMode {
+        LOWEST_BIN("Lowest BIN"), AVERAGE("3-day avg");
 
         final String label;
 
-        PriceMode(String label) {
+        AhMode(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
+    /** How bazaar items are priced. */
+    public enum BzMode {
+        SELL("Sell price"), BUY("Buy price");
+
+        final String label;
+
+        BzMode(String label) {
             this.label = label;
         }
 
@@ -89,6 +110,10 @@ public final class Portfolio {
         public double buyPrice;
         /** Extra copies SkyJew can't see (applied skins, pets, museum...). */
         public int extra;
+        /** When the item was added, for profit per hour. */
+        public long addedAt;
+        /** The buy price is filled in with the lowest BIN once prices have loaded. */
+        public boolean buyPricePending;
     }
 
     public static final class Sale {
@@ -109,7 +134,9 @@ public final class Portfolio {
     private static final class Data {
         List<Entry> entries = new ArrayList<>();
         List<Sale> sold = new ArrayList<>();
-        PriceMode priceMode = PriceMode.LOWEST_BIN;
+        PriceMode priceMode;
+        AhMode ahMode = AhMode.LOWEST_BIN;
+        BzMode bzMode = BzMode.SELL;
         boolean autoRemove = false;
     }
 
@@ -128,6 +155,12 @@ public final class Portfolio {
     private static volatile Map<String, Double> bazaarSell = Map.of();
     private static volatile Map<String, Double> bazaarBuy = Map.of();
     private static volatile Map<String, String> names = Map.of();
+    /** Rune price keys (e.g. AXE_SHATTER_RUNE_3) to names ("Barkshatter Rune III") and head textures, from the NEU repo. */
+    private static volatile Map<String, String> runeNames = Map.of();
+    private static volatile Map<String, String> runeTextures = Map.of();
+    private static final AtomicBoolean RUNES_LOADING = new AtomicBoolean();
+    /** One copy of each tracked item seen in your inventory or storage, for the icons. */
+    private static final Map<String, ItemStack> SAMPLES = new HashMap<>();
     private static volatile long lastPriceRefresh;
     private static final AtomicBoolean REFRESHING = new AtomicBoolean();
 
@@ -160,12 +193,26 @@ public final class Portfolio {
         return history;
     }
 
-    public static PriceMode priceMode() {
-        return data.priceMode;
+    public static AhMode ahMode() {
+        return data.ahMode;
     }
 
-    public static void cyclePriceMode() {
-        data.priceMode = PriceMode.values()[(data.priceMode.ordinal() + 1) % PriceMode.values().length];
+    public static BzMode bzMode() {
+        return data.bzMode;
+    }
+
+    public static void toggleAhMode() {
+        data.ahMode = data.ahMode == AhMode.LOWEST_BIN ? AhMode.AVERAGE : AhMode.LOWEST_BIN;
+        save();
+    }
+
+    public static void toggleBzMode() {
+        data.bzMode = data.bzMode == BzMode.SELL ? BzMode.BUY : BzMode.SELL;
+        save();
+    }
+
+    public static void removeSale(Sale sale) {
+        data.sold.remove(sale);
         save();
     }
 
@@ -192,18 +239,26 @@ public final class Portfolio {
     public static double price(String id) {
         Double sell = bazaarSell.get(id);
         if (sell != null) {
-            if (data.priceMode == PriceMode.INSTABUY) {
+            if (data.bzMode == BzMode.BUY) {
                 Double buy = bazaarBuy.get(id);
                 if (buy != null) return buy;
             }
             return sell;
         }
-        if (data.priceMode == PriceMode.AVERAGE) {
+        if (data.ahMode == AhMode.AVERAGE) {
             Double avg = averages.get(id);
             if (avg != null) return avg;
         }
         Double bin = lowestBins.get(id);
         return bin == null ? 0 : bin;
+    }
+
+    /** What you'd pay right now: the lowest BIN, or the bazaar buy price. 0 when unknown. */
+    private static double currentBuyPrice(String id) {
+        Double bin = lowestBins.get(id);
+        if (bin != null && bin > 0) return bin;
+        Double buy = bazaarBuy.get(id);
+        return buy == null ? 0 : buy;
     }
 
     public static void refreshPrices(boolean force) {
@@ -225,6 +280,7 @@ public final class Portfolio {
                 }
                 Map<String, Double> bins = numbers(fetch(LOWEST_BINS_URL));
                 if (!bins.isEmpty()) lowestBins = bins;
+                loadRuneNames();
                 Map<String, Double> avg = numbers(fetch(AVERAGE_URL));
                 if (!avg.isEmpty()) averages = avg;
                 if (names.isEmpty()) {
@@ -243,6 +299,63 @@ public final class Portfolio {
                 REFRESHING.set(false);
             }
         });
+    }
+
+    private static final Pattern RUNE_KEY = Pattern.compile("^(.+)_RUNE_(\\d)$");
+    private static final Pattern SKULL_TEXTURE = Pattern.compile("Value:\\\\?\"([A-Za-z0-9+/=]+)\\\\?\"");
+
+    /**
+     * Hypixel's item list only has one "Rune" item, so rune names and textures come from the NEU repo, once, for
+     * every rune on the auction house (cached in config/skyjew/portfolio/runes.json).
+     */
+    private static void loadRuneNames() {
+        if (!runeNames.isEmpty() || !RUNES_LOADING.compareAndSet(false, true)) return;
+        Path cache = dir.resolve("runes.json");
+        try {
+            if (Files.exists(cache)) {
+                JsonObject root = JsonParser.parseString(Files.readString(cache, StandardCharsets.UTF_8)).getAsJsonObject();
+                Map<String, String> n = new HashMap<>(), t = new HashMap<>();
+                for (var e : root.getAsJsonObject("names").entrySet()) n.put(e.getKey(), e.getValue().getAsString());
+                for (var e : root.getAsJsonObject("textures").entrySet()) t.put(e.getKey(), e.getValue().getAsString());
+                boolean complete = true;
+                for (String key : lowestBins.keySet()) if (RUNE_KEY.matcher(key).matches() && !n.containsKey(key)) complete = false;
+                runeNames = n;
+                runeTextures = t;
+                if (complete) return;
+            }
+            Map<String, CompletableFuture<HttpResponse<String>>> requests = new HashMap<>();
+            for (String key : lowestBins.keySet()) {
+                Matcher m = RUNE_KEY.matcher(key);
+                if (!m.matches()) continue;
+                String file = m.group(1) + "_RUNE%3B" + m.group(2) + ".json";
+                HttpRequest request = HttpRequest.newBuilder(URI.create("https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/" + file))
+                    .timeout(Duration.ofSeconds(20)).header("User-Agent", "SkyJew/1.0").GET().build();
+                requests.put(key, HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString()));
+            }
+            Map<String, String> n = new HashMap<>(runeNames), t = new HashMap<>(runeTextures);
+            for (var e : requests.entrySet()) {
+                try {
+                    HttpResponse<String> response = e.getValue().join();
+                    if (response.statusCode() != 200) continue;
+                    JsonObject item = JsonParser.parseString(response.body()).getAsJsonObject();
+                    String name = strip(item.get("displayname").getAsString()).replace("◆", "").trim();
+                    if (!name.isEmpty()) n.put(e.getKey(), name);
+                    Matcher tex = SKULL_TEXTURE.matcher(item.has("nbttag") ? item.get("nbttag").getAsString() : "");
+                    if (tex.find()) t.put(e.getKey(), tex.group(1));
+                } catch (Exception ignored) {}
+            }
+            runeNames = n;
+            runeTextures = t;
+            JsonObject root = new JsonObject();
+            root.add("names", GSON.toJsonTree(n));
+            root.add("textures", GSON.toJsonTree(t));
+            Files.createDirectories(dir);
+            Files.writeString(cache, GSON.toJson(root), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Could not load rune names: " + e.getMessage());
+        } finally {
+            RUNES_LOADING.set(false);
+        }
     }
 
     private static JsonObject fetch(String url) {
@@ -277,19 +390,29 @@ public final class Portfolio {
 
     public static void recount() {
         Minecraft mc = Minecraft.getInstance();
+        // Items are counted by their price key, so runes, pets and enchanted books match their row.
         Map<String, Integer> inv = new HashMap<>();
         if (mc.player != null) {
             var inventory = mc.player.getInventory();
             for (int i = 0; i < inventory.getContainerSize(); i++) {
                 ItemStack stack = inventory.getItem(i);
                 if (stack.isEmpty()) continue;
-                String id = Compat.neuName(stack);
-                if (!id.isEmpty()) inv.merge(id, stack.getCount(), Integer::sum);
+                String id = SkyJewPriceTooltip.marketId(stack);
+                if (id.isEmpty()) continue;
+                inv.merge(id, stack.getCount(), Integer::sum);
+                SAMPLES.putIfAbsent(id, stack.copyWithCount(1));
             }
             inventoryCounts = inv;
         }
         try {
-            storageCounts = SkyJewStorageSearch.storedItemCounts();
+            Map<String, Integer> stored = new HashMap<>();
+            for (ItemStack stack : SkyJewStorageSearch.storedStacks()) {
+                String id = SkyJewPriceTooltip.marketId(stack);
+                if (id.isEmpty()) continue;
+                stored.merge(id, stack.getCount(), Integer::sum);
+                SAMPLES.putIfAbsent(id, stack.copyWithCount(1));
+            }
+            storageCounts = stored;
         } catch (Exception ignored) {}
         lastCount = System.currentTimeMillis();
     }
@@ -301,6 +424,36 @@ public final class Portfolio {
     public static double totalValue() {
         double total = 0;
         for (Entry e : data.entries) total += value(e);
+        return total;
+    }
+
+    /** Icon for a row: a copy you own, else the rune head, else the item from Hypixel's item list. Null if unknown. */
+    public static ItemStack icon(Entry entry) {
+        ItemStack sample = SAMPLES.get(entry.id);
+        if (sample != null) return sample;
+        String texture = runeTextures.get(entry.id);
+        if (texture != null) {
+            ItemStack head = Compat.createSkull(texture);
+            SAMPLES.put(entry.id, head);
+            return head;
+        }
+        if (com.epic60869.skyjew.custom.RepoItems.displayName(entry.id) == null) return null;
+        ItemStack stack = com.epic60869.skyjew.custom.RepoItems.itemStack(entry.id);
+        SAMPLES.put(entry.id, stack);
+        return stack;
+    }
+
+    /** Profit per hour: each row's profit divided by the hours since it was added (at least one hour), summed. */
+    public static double profitPerHour() {
+        long now = System.currentTimeMillis();
+        double total = 0;
+        for (Entry e : data.entries) {
+            if (e.buyPrice <= 0 || e.addedAt <= 0) continue;
+            double price = price(e.id);
+            if (price <= 0) continue;
+            double hours = Math.max(1.0, (now - e.addedAt) / 3_600_000.0);
+            total += count(e).total() * (price - e.buyPrice) / hours;
+        }
         return total;
     }
 
@@ -320,6 +473,17 @@ public final class Portfolio {
     private static void tick(Minecraft mc) {
         if (mc.player == null || data.entries.isEmpty()) return;
         refreshPrices(false);
+        // Rows added before prices loaded get their default buy price now.
+        boolean filled = false;
+        for (Entry e : data.entries) {
+            if (!e.buyPricePending) continue;
+            double p = currentBuyPrice(e.id);
+            if (p <= 0) continue;
+            e.buyPrice = p;
+            e.buyPricePending = false;
+            filled = true;
+        }
+        if (filled) save();
         if (System.currentTimeMillis() - lastCount > COUNT_REFRESH_MS) recount();
         if (pricesLoaded() && System.currentTimeMillis() - lastSnapshot > SNAPSHOT_MS && lastPriceRefresh > 0) snapshot();
     }
@@ -331,9 +495,8 @@ public final class Portfolio {
         String id = resolve(query);
         if (id == null) return null;
         for (Entry e : data.entries) if (e.id.equals(id)) return e;
-        Entry entry = new Entry();
-        entry.id = id;
-        entry.name = names.getOrDefault(id, prettyId(id));
+        Entry entry = newEntry(id);
+        entry.name = runeNames.getOrDefault(id, names.getOrDefault(id, prettyId(id)));
         data.entries.add(entry);
         save();
         recount();
@@ -344,15 +507,25 @@ public final class Portfolio {
         var player = Minecraft.getInstance().player;
         if (player == null) return null;
         ItemStack stack = player.getMainHandItem();
-        String id = Compat.neuName(stack);
+        String id = SkyJewPriceTooltip.marketId(stack);
         if (id.isEmpty()) return null;
         for (Entry e : data.entries) if (e.id.equals(id)) return e;
-        Entry entry = new Entry();
-        entry.id = id;
-        entry.name = strip(stack.getHoverName().getString());
+        Entry entry = newEntry(id);
+        entry.name = strip(Compat.realName(stack).getString()).replace("◆", "").trim();
+        SAMPLES.put(id, stack.copyWithCount(1));
         data.entries.add(entry);
         save();
         recount();
+        return entry;
+    }
+
+    /** A new row, with the buy price defaulting to what the item costs right now (you can still change it). */
+    private static Entry newEntry(String id) {
+        Entry entry = new Entry();
+        entry.id = id;
+        entry.addedAt = System.currentTimeMillis();
+        entry.buyPrice = currentBuyPrice(id);
+        entry.buyPricePending = entry.buyPrice <= 0;
         return entry;
     }
 
@@ -373,6 +546,11 @@ public final class Portfolio {
         if (names.containsKey(asId) || lowestBins.containsKey(asId) || bazaarSell.containsKey(asId)) return asId;
         String wanted = normalize(q);
         String partial = null;
+        for (var e : runeNames.entrySet()) {
+            String n = normalize(e.getValue());
+            if (n.equals(wanted)) return e.getKey();
+            if (partial == null && n.contains(wanted)) partial = e.getKey();
+        }
         for (var e : names.entrySet()) {
             String n = normalize(e.getValue());
             if (n.equals(wanted)) return e.getKey();
@@ -386,6 +564,10 @@ public final class Portfolio {
         String wanted = normalize(query);
         if (wanted.length() < 2) return out;
         for (String name : names.values()) {
+            if (normalize(name).contains(wanted)) out.add(name);
+            if (out.size() >= limit) return out;
+        }
+        for (String name : runeNames.values()) {
             if (normalize(name).contains(wanted)) out.add(name);
             if (out.size() >= limit) break;
         }
@@ -521,7 +703,13 @@ public final class Portfolio {
                     data = loaded;
                     if (data.entries == null) data.entries = new ArrayList<>();
                     if (data.sold == null) data.sold = new ArrayList<>();
-                    if (data.priceMode == null) data.priceMode = PriceMode.LOWEST_BIN;
+                    if (data.ahMode == null) data.ahMode = AhMode.LOWEST_BIN;
+                    if (data.bzMode == null) data.bzMode = BzMode.SELL;
+                    if (data.priceMode != null) {
+                        data.ahMode = data.priceMode == PriceMode.AVERAGE ? AhMode.AVERAGE : AhMode.LOWEST_BIN;
+                        data.bzMode = data.priceMode == PriceMode.INSTABUY ? BzMode.BUY : BzMode.SELL;
+                        data.priceMode = null;
+                    }
                 }
             }
             Path hist = dir.resolve("history.json");
@@ -529,6 +717,17 @@ public final class Portfolio {
                 List<Snapshot> loaded = GSON.fromJson(Files.readString(hist, StandardCharsets.UTF_8), new TypeToken<List<Snapshot>>() {}.getType());
                 if (loaded != null) history = new ArrayList<>(loaded);
                 if (!history.isEmpty()) lastSnapshot = history.getLast().time;
+            }
+            // Rows from before "added at" existed: use the first snapshot that has them, else now.
+            for (Entry e : data.entries) {
+                if (e.addedAt > 0) continue;
+                e.addedAt = System.currentTimeMillis();
+                for (Snapshot snap : history) {
+                    if (snap.prices.containsKey(e.id)) {
+                        e.addedAt = snap.time;
+                        break;
+                    }
+                }
             }
         } catch (Exception e) {
             System.err.println("[SkyJew] Could not read portfolio: " + e);

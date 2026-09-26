@@ -48,9 +48,10 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.combat.ZealotCounter.init(configDir);
         com.epic60869.skyjew.features.slayer.SlayerFeatures.init();
         com.epic60869.skyjew.features.garden.GardenFeatures.init();
-        com.epic60869.skyjew.features.garden.FarmingProfitTracker.init(configDir);
         com.epic60869.skyjew.features.fishing.FishingFeatures.init();
         com.epic60869.skyjew.features.mining.MiningFeatures.init();
+        com.epic60869.skyjew.features.mining.CrystalHollowsWaypoints.init();
+        com.epic60869.skyjew.features.mining.PickaxeAbility.init();
         com.epic60869.skyjew.features.mining.PristineRecord.init(configDir);
         com.epic60869.skyjew.features.portfolio.Portfolio.init(configDir);
         com.epic60869.skyjew.features.skills.SkillFeatures.init();
@@ -60,6 +61,11 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.misc.HeldItemModel.init(configDir);
         com.epic60869.skyjew.features.misc.ScrollableTooltips.init();
         com.epic60869.skyjew.features.misc.ToggleSprint.init();
+        com.epic60869.skyjew.features.misc.WarpShortcuts.init();
+        com.epic60869.skyjew.features.misc.PricePaid.init(configDir);
+        com.epic60869.skyjew.features.misc.CollectionTracker.init(configDir);
+        SkyJewStaff.init();
+        SkyJewChangelog.init();
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
         SkyJewMouseLock.init(config);

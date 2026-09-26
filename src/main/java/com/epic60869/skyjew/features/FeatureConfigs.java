@@ -80,49 +80,6 @@ public final class FeatureConfigs {
         public boolean phaseDisplay = true;
     }
 
-    /** Skysoft's Farming profit tracker. */
-    public static final class FarmingProfit {
-        @Expose
-        @ConfigOption(name = "Enabled", desc = "Skysoft's farming profit tracker in the Garden: farming items gained (inventory, sacks and chat drops), Replenish costs, pests, Kernels and coins, with profit per hour. /sj farmingprofit reset clears it.")
-        @ConfigEditorBoolean
-        public boolean enabled = true;
-
-        @Expose
-        @ConfigOption(name = "Show", desc = "This session (since the game started) or the total saved for this profile.")
-        @ConfigEditorDropdown
-        public TrackerDisplay display = TrackerDisplay.SESSION;
-
-        @Expose
-        @ConfigOption(name = "Use NPC Prices", desc = "Value items at their NPC sell price instead of the bazaar instant-sell price.")
-        @ConfigEditorBoolean
-        public boolean npcPrices = false;
-
-        @Expose
-        @ConfigOption(name = "Pause After (seconds)", desc = "Stop the uptime clock when you haven't farmed for this long.")
-        @ConfigEditorSlider(minValue = 15, maxValue = 900, minStep = 5)
-        public int pauseAfterSeconds = 30;
-
-        @Expose
-        @ConfigOption(name = "Maximum Items", desc = "How many items to list, most valuable first.")
-        @ConfigEditorSlider(minValue = 1, maxValue = 15, minStep = 1)
-        public int maxItems = 10;
-    }
-
-    public enum TrackerDisplay {
-        SESSION("This Session"), TOTAL("Total");
-
-        private final String label;
-
-        TrackerDisplay(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-
     public static final class Garden {
         @Expose
         @ConfigOption(name = "Yaw and Pitch", desc = "HUD showing your yaw, pitch and facing direction.")
@@ -196,6 +153,26 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Crystal Hollows Map", desc = "HUD map of the Crystal Hollows with your position and the structures you have found.")
         @ConfigEditorBoolean
         public boolean crystalHollowsMap = true;
+
+        @Expose
+        @ConfigOption(name = "Crystal Hollows Waypoints", desc = "Mark Mines of Divan, Jungle Temple, Goblin Queen's Den and other places when you find them, like Skyblocker. /sj crystalwaypoints add|share|remove|clear.")
+        @ConfigEditorBoolean
+        public boolean crystalWaypoints = true;
+
+        @Expose
+        @ConfigOption(name = "Waypoints From Chat", desc = "Turn Crystal Hollows coordinates in chat into waypoints.")
+        @ConfigEditorBoolean
+        public boolean crystalWaypointsFromChat = true;
+
+        @Expose
+        @ConfigOption(name = "Pickaxe Ability HUD", desc = "Cooldown of your pickaxe ability (Mining Speed Boost, Pickobulus, ...) while mining. Move it in /sj gui.")
+        @ConfigEditorBoolean
+        public boolean pickaxeAbilityHud = true;
+
+        @Expose
+        @ConfigOption(name = "Pickaxe Ability Ready Alert", desc = "Show a title when your pickaxe ability is ready again.")
+        @ConfigEditorBoolean
+        public boolean pickaxeAbilityAlert = true;
 
         @Expose
         @ConfigOption(name = "Mines of Divan Tools Alert", desc = "Alert when you are holding all four scavenged tools for the Jade Crystal.")

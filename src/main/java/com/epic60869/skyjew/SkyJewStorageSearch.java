@@ -87,10 +87,7 @@ public final class SkyJewStorageSearch {
         // Pages are stored per SkyBlock profile so different profiles (e.g. an ironman) never share storage.
         com.epic60869.skyjew.features.core.SkyJewChat.onChat(message -> {
             java.util.regex.Matcher m = PROFILE_ID.matcher(message.text().trim());
-            if (m.matches()) {
-                profile = m.group("id").toLowerCase(Locale.ROOT);
-                com.epic60869.skyjew.features.garden.FarmingProfitTracker.setProfile(profile);
-            }
+            if (m.matches()) profile = m.group("id").toLowerCase(Locale.ROOT);
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> profile = "");
     }
@@ -564,6 +561,18 @@ public final class SkyJewStorageSearch {
     }
 
     /** Item counts by SkyBlock id across the cached Ender Chest and Backpack pages (used by the craft helper). */
+    /** Every item on the current profile's saved Ender Chest and backpack pages. */
+    public static List<ItemStack> storedStacks() {
+        List<ItemStack> stacks = new ArrayList<>();
+        for (Map.Entry<String, Page> entry : new ArrayList<>(pages.entrySet())) {
+            if (!currentProfile(entry.getKey())) continue;
+            List<ItemStack> contents = decode(entry.getValue().blob());
+            if (contents == null) continue;
+            for (ItemStack stack : contents) if (stack != null && !stack.isEmpty()) stacks.add(stack);
+        }
+        return stacks;
+    }
+
     public static Map<String, Integer> storedItemCounts() {
         Map<String, Integer> counts = new java.util.HashMap<>();
         for (Map.Entry<String, Page> entry : new ArrayList<>(pages.entrySet())) {

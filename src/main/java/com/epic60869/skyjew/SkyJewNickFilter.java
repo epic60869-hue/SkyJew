@@ -23,13 +23,35 @@ public final class SkyJewNickFilter {
 
     private SkyJewNickFilter() {}
 
-    /** Whether the nickname contains a blocked word. */
-    public static boolean isBlocked(String name) {
-        if (name == null || name.isBlank()) return false;
-        String lower = name.toLowerCase(Locale.ROOT)
+    /** Lowercase with look-alike characters swapped for letters (4 -> a, $ -> s, ...). */
+    private static String normalise(String name) {
+        return SkyJewNickFonts.plain(name)
             .replace('0', 'o').replace('1', 'i').replace('!', 'i').replace('3', 'e')
             .replace('4', 'a').replace('@', 'a').replace('5', 's').replace('$', 's')
             .replace('7', 't').replace('8', 'b');
+    }
+
+    /**
+     * Whether a nickname would pass for SJ staff: brackets (fake prefixes like "[OWNER]"), the words owner or
+     * tester (or any rank from tastyfish.org), or a ranked account's name (also with look-alike characters, e.g. "2M3S" or "Sv1nkus").
+     */
+    public static boolean impersonatesStaff(String name) {
+        if (name.indexOf('[') >= 0 || name.indexOf(']') >= 0) return true;
+        String joined = normalise(name).replaceAll("[^a-z0-9]+", "");
+        String letters = joined.replaceAll("[^a-z]+", "");
+        for (String word : SkyJewStaff.roleWords()) if (letters.contains(word)) return true;
+        for (String staff : SkyJewStaff.names()) {
+            String target = normalise(staff).replaceAll("[^a-z0-9]+", "");
+            if (joined.contains(target) || REPEATS.matcher(joined).replaceAll("$1").contains(REPEATS.matcher(target).replaceAll("$1"))) return true;
+        }
+        return false;
+    }
+
+    /** Whether the nickname contains a blocked word or pretends to be SJ staff. */
+    public static boolean isBlocked(String name) {
+        if (name == null || name.isBlank()) return false;
+        if (impersonatesStaff(name)) return true;
+        String lower = normalise(name);
 
         // Words separated by anything that is not a letter; collapsed version for "fuuuck" and "f.u.c.k".
         String spaced = lower.replaceAll("[^a-z]+", " ").trim();

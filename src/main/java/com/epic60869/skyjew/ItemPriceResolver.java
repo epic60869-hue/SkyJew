@@ -97,17 +97,6 @@ public final class ItemPriceResolver {
         return npc == null ? 0.0 : npc;
     }
 
-    /** SkyBlock item id for a display name ("Enchanted Hay Bale" -> "ENCHANTED_HAY_BALE"), or null if unknown. */
-    public static String idByName(String name) {
-        if (name == null || name.isBlank()) return null;
-        ensureRefresh();
-        String normalized = normalize(name);
-        String id = ALIASES.get(normalized);
-        if (id == null) id = NAME_TO_ID.get(normalized);
-        if (id == null) id = generatedId(normalized);
-        return id;
-    }
-
     public static double valueByName(String name) {
         if (name == null || name.isBlank()) return 0.0;
         ensureRefresh();

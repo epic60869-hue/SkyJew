@@ -17,10 +17,10 @@ An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are no
 
 ## Commands
 
-`/sj` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `farmingprofit reset` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
+`/sj` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `waypoints` · `crystalwaypoints` · `log` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
 
 `/sjc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyjew` works the same as `/sj`.
 
 ## Credits
 
-Ports code from Skyblocker, CommandKeys, SkyOcean, SkyHanni, NopoMod, Stella, Odin, NoammAddons and Skysoft. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built with Java 25 and Gradle 9.5+; GitHub Actions builds every push.
+Ports code from Skyblocker, CommandKeys, SkyOcean, SkyHanni, NopoMod, Stella, Odin and NoammAddons. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built with Java 25 and Gradle 9.5+; GitHub Actions builds every push.

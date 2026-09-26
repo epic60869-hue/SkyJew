@@ -116,6 +116,7 @@ public final class SkyJewGlobalChat {
         packet.addProperty("nicknameEnabled", SkyJewNick.enabled());
         packet.addProperty("nicknameMode", SkyJewNick.mode());
         packet.addProperty("nicknameHex", SkyJewNick.customHex());
+        packet.addProperty("nicknameFont", SkyJewNick.font());
         packet.addProperty("message", clean.substring(0, Math.min(clean.length(), 500)));
         int[] level = ownLevel();
         if (level != null) {
@@ -177,6 +178,7 @@ public final class SkyJewGlobalChat {
         packet.addProperty("name", SkyJewNick.outgoingName());
         packet.addProperty("mode", SkyJewNick.mode());
         packet.addProperty("customHex", SkyJewNick.customHex());
+        packet.addProperty("font", SkyJewNick.font());
         ws.sendText(GSON.toJson(packet), true);
         nicknameUpdatePending = false;
     }
@@ -259,10 +261,13 @@ public final class SkyJewGlobalChat {
                 hello.addProperty("type", "hello");
                 hello.addProperty("username", username);
                 hello.addProperty("minecraftUuid", Minecraft.getInstance().getUser().getProfileId().toString());
+                hello.addProperty("modVersion", net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("skyjew")
+                    .map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("dev"));
                 hello.addProperty("nicknameEnabled", SkyJewNick.enabled());
                 hello.addProperty("nickname", SkyJewNick.outgoingName());
                 hello.addProperty("nicknameMode", SkyJewNick.mode());
                 hello.addProperty("nicknameHex", SkyJewNick.customHex());
+                hello.addProperty("nicknameFont", SkyJewNick.font());
                 ws.sendText(GSON.toJson(hello), true);
                 flushPending(ws);
                 // Always publish the current nickname state after a connection
@@ -393,7 +398,8 @@ public final class SkyJewGlobalChat {
                         String name = packet.has("name") ? packet.get("name").getAsString() : "";
                         String mode = packet.has("mode") ? packet.get("mode").getAsString() : "Plain";
                         String hex = packet.has("customHex") ? packet.get("customHex").getAsString() : "";
-                        SkyJewNick.updateRemote(uuid, username, enabled, name, mode, hex);
+                        String font = packet.has("font") ? packet.get("font").getAsString() : "Default";
+                        SkyJewNick.updateRemote(uuid, username, enabled, name, mode, hex, font);
                     } catch (Exception ignored) {}
                     return;
                 }
@@ -454,7 +460,8 @@ public final class SkyJewGlobalChat {
                         // contain nickname styling, so it must never erase a
                         // nickname that was already synced from the relay.
                         if (nickEnabled) {
-                            SkyJewNick.updateRemote(messageUuid, messageUsername, true, displayName, nickMode, nickHex);
+                            String nickFont = packet.has("nicknameFont") ? packet.get("nicknameFont").getAsString() : null;
+                            SkyJewNick.updateRemote(messageUuid, messageUsername, true, displayName, nickMode, nickHex, nickFont);
                         }
                     }
                 } catch (Exception ignored) {}
@@ -474,6 +481,9 @@ public final class SkyJewGlobalChat {
                 }
                 Component messageComponent = SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message));
                 MutableComponent line = Component.literal(prefix + " ");
+                // Staff prefix, by account UUID, only for messages sent from the mod (not Discord).
+                MutableComponent staff = "discord".equalsIgnoreCase(source) ? null : SkyJewStaff.prefix(messageUuid);
+                if (staff != null) line.append(staff);
                 int level = packet.has("level") ? packet.get("level").getAsInt() : 0;
                 if (level > 0) {
                     int levelColor = 0xAAAAAA;
@@ -494,6 +504,8 @@ public final class SkyJewGlobalChat {
                     .append(sender)
                     .append(Component.literal("]: "))
                     .append(linkify(messageComponent));
+                SkyJewConfig chatConfig = SkyJewConfig.current();
+                if (chatConfig != null && !chatConfig.chat.customChat.showSjChat) return;
                 mcMessage(line);
             } catch (Exception ignored) {
             }

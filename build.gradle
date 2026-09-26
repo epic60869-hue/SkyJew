@@ -92,6 +92,10 @@ processResources {
     filesMatching('fabric.mod.json') {
         expand 'version': project.version
     }
+    // /sj log reads the changelog from the jar.
+    from(rootProject.file('CHANGELOG.md')) {
+        into 'assets/skyjew'
+    }
 }
 
 jar {

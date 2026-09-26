@@ -48,6 +48,7 @@ public final class SkyJewNick {
             config().misc.nickname.name = "";
             config().misc.nickname.style = "Plain";
             config().misc.nickname.customHex = "";
+            config().misc.nickname.font = "Default";
             save();
             SkyJewGlobalChat.sendNicknameUpdate();
             message("Nickname disabled.", 0x55FF55);
@@ -107,6 +108,15 @@ public final class SkyJewNick {
         return config().misc.nickname.customHex == null ? "" : config().misc.nickname.customHex;
     }
 
+    /** The nickname font's name, e.g. "Script" or "Bold". */
+    public static String font() {
+        return font(config());
+    }
+
+    private static String font(SkyJewConfig c) {
+        return c == null ? "Default" : SkyJewNickFonts.parse(c.misc.nickname.font).label;
+    }
+
     public static void applyGuiName(String name) {
         String value = clean(name);
         if (SkyJewNickFilter.isBlocked(value)) {
@@ -123,7 +133,7 @@ public final class SkyJewNick {
         if (!config().misc.nickname.enabled || config().misc.nickname.name == null || config().misc.nickname.name.isBlank()) {
             return Minecraft.getInstance().getUser().getName();
         }
-        return config().misc.nickname.name;
+        return SkyJewNickFonts.letters(config().misc.nickname.name, SkyJewNickFonts.parse(font()));
     }
 
     public static Component tabDisplayName(Component original, UUID uuid, String actualName) {
@@ -140,11 +150,13 @@ public final class SkyJewNick {
         String nickName = null;
         String nickMode = null;
         String nickHex = null;
+        String nickFont = null;
 
         if (remote != null && remote.enabled && !remote.name.isBlank()) {
             nickName = remote.name;
             nickMode = remote.mode;
             nickHex = remote.customHex;
+            nickFont = remote.font;
         } else if (local
                 && config().misc.nickname.enabled
                 && config().misc.nickname.name != null
@@ -152,6 +164,7 @@ public final class SkyJewNick {
             nickName = config().misc.nickname.name;
             nickMode = config().misc.nickname.style;
             nickHex = config().misc.nickname.customHex;
+            nickFont = font();
         }
 
         if (nickName == null) {
@@ -161,12 +174,12 @@ public final class SkyJewNick {
             Component result = original;
             if (localNickActive()) {
                 result = replaceExactName(result, mc.getUser().getName(),
-                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
+                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex, font()));
             }
             if (config().misc.nickname.seeOtherNicks) {
                 for (RemoteNick r : REMOTE_NICKS.values()) {
                     if (!r.enabled || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
-                    result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex));
+                    result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex, r.font));
                 }
             }
             return result;
@@ -176,7 +189,7 @@ public final class SkyJewNick {
         final String finalNickMode = nickMode;
         final String finalNickHex = nickHex;
 
-        Component replacement = styled(finalNickName, finalNickMode, finalNickHex);
+        Component replacement = styled(finalNickName, finalNickMode, finalNickHex, nickFont);
         Component result = replaceExactName(original, actualName, replacement);
 
         // If the name is not in the text, leave the entry alone rather than replacing its formatting.
@@ -192,12 +205,12 @@ public final class SkyJewNick {
         if (isLocalUuid(uuid)) {
             if (!localNickActive()) return original;
             return replaceExactName(original, actualName,
-                styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
+                styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex, font()));
         }
         if (!config().misc.nickname.seeOtherNicks) return original;
         RemoteNick remote = REMOTE_NICKS.get(uuid);
         if (remote == null || !remote.enabled || remote.name.isBlank()) return original;
-        return replaceExactName(original, actualName, styled(remote.name, remote.mode, remote.customHex));
+        return replaceExactName(original, actualName, styled(remote.name, remote.mode, remote.customHex, remote.font));
     }
 
     /**
@@ -213,13 +226,13 @@ public final class SkyJewNick {
             String self = mc.player.getGameProfile().name();
             if (plain.contains(self)) {
                 result = replaceExactName(result, self,
-                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex));
+                    styled(config().misc.nickname.name, config().misc.nickname.style, config().misc.nickname.customHex, font()));
             }
         }
         if (config().misc.nickname.seeOtherNicks) {
             for (RemoteNick remote : REMOTE_NICKS.values()) {
                 if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank() || isLocalUuid(remote.uuid)) continue;
-                if (plain.contains(remote.username)) result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex));
+                if (plain.contains(remote.username)) result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex, remote.font));
             }
         }
         return result;
@@ -254,7 +267,7 @@ public final class SkyJewNick {
         for (RemoteNick remote : REMOTE_NICKS.values()) {
             if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank()) continue;
             if (isLocalUuid(remote.uuid)) continue;
-            result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex));
+            result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex, remote.font));
         }
 
         // Fill in missing usernames from the live tab list for older persisted
@@ -269,7 +282,7 @@ public final class SkyJewNick {
             if (!remote.username.equals(actualName)) {
                 REMOTE_NICKS.put(uuid, remote.withUsername(actualName));
             }
-            result = replaceExactName(result, actualName, styled(remote.name, remote.mode, remote.customHex));
+            result = replaceExactName(result, actualName, styled(remote.name, remote.mode, remote.customHex, remote.font));
         }
         return result;
     }
@@ -383,7 +396,7 @@ public final class SkyJewNick {
         if (actualName == null || actualName.isBlank()) return message;
 
         return replaceExactName(message, actualName,
-            styled(config().misc.nickname.name, mode(), customHex()));
+            styled(config().misc.nickname.name, mode(), customHex(), font()));
     }
 
     public static Component displayName(String actualName) {
@@ -393,24 +406,29 @@ public final class SkyJewNick {
             || config().misc.nickname.name.isBlank()) {
             return Component.literal(actualName);
         }
-        return styled(config().misc.nickname.name, mode(), customHex());
+        return styled(config().misc.nickname.name, mode(), customHex(), font());
     }
 
     public static Component displayName(UUID uuid, String actualName) {
         if (uuid != null) {
             RemoteNick remote = REMOTE_NICKS.get(uuid);
             if (remote != null && remote.enabled && !remote.name.isBlank()) {
-                return styled(remote.name, remote.mode, remote.customHex);
+                return styled(remote.name, remote.mode, remote.customHex, remote.font);
             }
         }
         return displayName(actualName);
     }
 
     public static void updateRemote(UUID uuid, boolean enabled, String name, String mode, String customHex) {
-        updateRemote(uuid, "", enabled, name, mode, customHex);
+        updateRemote(uuid, "", enabled, name, mode, customHex, "Default");
     }
 
     public static void updateRemote(UUID uuid, String username, boolean enabled, String name, String mode, String customHex) {
+        updateRemote(uuid, username, enabled, name, mode, customHex, null);
+    }
+
+    /** {@code font} null keeps the font already known for this player (message packets may not carry it). */
+    public static void updateRemote(UUID uuid, String username, boolean enabled, String name, String mode, String customHex, String font) {
         if (uuid == null) return;
         // Nicknames with blocked words are not shown; the player's real name is used instead.
         if (!enabled || name == null || name.isBlank() || SkyJewNickFilter.isBlocked(name)) {
@@ -420,12 +438,14 @@ public final class SkyJewNick {
         String safeUsername = username == null ? "" : cleanUsername(username);
         RemoteNick previous = REMOTE_NICKS.get(uuid);
         if (safeUsername.isBlank() && previous != null) safeUsername = previous.username;
+        String safeFont = font != null ? SkyJewNickFonts.parse(font).label : previous != null ? previous.font : "Default";
         REMOTE_NICKS.put(uuid, new RemoteNick(
             uuid,
             safeUsername,
             clean(name),
             cleanMode(mode),
             cleanHex(customHex),
+            safeFont,
             true
         ));
     }
@@ -439,20 +459,28 @@ public final class SkyJewNick {
     }
 
     public static Component styled(String text) {
-        return styled(text, mode(), customHex());
+        return styled(text, mode(), customHex(), font());
     }
 
     public static Component styled(String text, String style, String customHex) {
+        return styled(text, style, customHex, "Default");
+    }
+
+    /** The nickname in its colour (or rainbow) and font. */
+    public static Component styled(String text, String style, String customHex, String fontName) {
         String safeStyle = style == null ? "Plain" : style;
+        SkyJewNickFonts.NickFont font = SkyJewNickFonts.parse(fontName);
+        String shown = SkyJewNickFonts.letters(text, font);
 
         if ("Rainbow".equalsIgnoreCase(safeStyle)) {
             MutableComponent out = Component.empty();
-            int n = Math.max(1, text.length());
-            for (int i = 0; i < text.length(); i++) {
+            int[] codePoints = shown.codePoints().toArray();
+            int n = Math.max(1, codePoints.length);
+            for (int i = 0; i < codePoints.length; i++) {
                 float hue = (float) i / n;
                 int rgb = Color.HSBtoRGB(hue, 0.95f, 1.0f) & 0xFFFFFF;
-                out.append(Component.literal(String.valueOf(text.charAt(i)))
-                    .setStyle(Style.EMPTY.withColor(rgb)));
+                out.append(Component.literal(new String(Character.toChars(codePoints[i])))
+                    .setStyle(SkyJewNickFonts.style(Style.EMPTY.withColor(rgb), font)));
             }
             return out;
         }
@@ -464,14 +492,14 @@ public final class SkyJewNick {
             rgb = Integer.parseInt(customHex.substring(1), 16);
         }
 
-        return rgb == null
-            ? Component.literal(text)
-            : Component.literal(text).setStyle(Style.EMPTY.withColor(rgb));
+        Style base = rgb == null ? Style.EMPTY : Style.EMPTY.withColor(rgb);
+        return Component.literal(shown).setStyle(SkyJewNickFonts.style(base, font));
     }
 
     private static String clean(String value) {
         value = value.replace("\\r", "").replace("\\n", "").trim();
-        return value.substring(0, Math.min(32, value.length()));
+        int[] codePoints = value.codePoints().limit(32).toArray();
+        return new String(codePoints, 0, codePoints.length);
     }
 
     private static String cleanMode(String value) {
@@ -520,9 +548,9 @@ public final class SkyJewNick {
 
     private record StyledRun(String text, Style style) {}
 
-    private record RemoteNick(UUID uuid, String username, String name, String mode, String customHex, boolean enabled) {
+    private record RemoteNick(UUID uuid, String username, String name, String mode, String customHex, String font, boolean enabled) {
         private RemoteNick withUsername(String value) {
-            return new RemoteNick(uuid, value, name, mode, customHex, enabled);
+            return new RemoteNick(uuid, value, name, mode, customHex, font, enabled);
         }
     }
 }

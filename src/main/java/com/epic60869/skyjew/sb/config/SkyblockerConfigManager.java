@@ -19,4 +19,10 @@ public final class SkyblockerConfigManager {
 	public static void update(Consumer<SkyblockerConfig> action) {
 		action.accept(CONFIG);
 	}
+
+	/** SkyJew: same as {@link #update}; the waypoint options save themselves (see Waypoints). */
+	public static void updateOnly(Consumer<SkyblockerConfig> action) {
+		action.accept(CONFIG);
+		com.epic60869.skyjew.sb.skyblock.waypoint.Waypoints.saveOptions();
+	}
 }

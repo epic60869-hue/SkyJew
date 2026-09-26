@@ -378,14 +378,22 @@ public final class DungeonFeatures {
 
     // ----- Tick timers -----
 
+    /**
+     * Ticks left in a repeating timer, like Odin's TickTimers: the full period on the starting tick, then down to 0 on
+     * the tick it happens (e.g. the Storm pad), then from period - 1 again.
+     */
+    private static long countdown(long elapsed, int period) {
+        return elapsed <= 0 ? period : (period - elapsed % period) % period;
+    }
+
     private static List<Component> tickLines() {
         List<Component> lines = new ArrayList<>();
         if (stormStartTick >= 0 && goldorStartTick < 0) {
-            lines.add(kv("Storm pillars: ", (20 - (serverTicks - stormStartTick) % 20) + " ticks"));
+            lines.add(kv("Storm pillars: ", countdown(serverTicks - stormStartTick, 20) + " ticks"));
         }
         if (goldorStartTick >= 0) {
             int period = Math.max(1, config() == null ? 50 : config().timers.goldorTickPeriod);
-            lines.add(kv("Goldor death tick: ", (period - (serverTicks - goldorStartTick) % period) + " ticks"));
+            lines.add(kv("Goldor death tick: ", countdown(serverTicks - goldorStartTick, period) + " ticks"));
         }
         return lines;
     }

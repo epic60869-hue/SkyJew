@@ -13,6 +13,7 @@ import net.minecraft.resources.Identifier;
 public final class SkyblockerMod {
 	public static final String NAMESPACE = "skyjew";
 	public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	public static final Gson GSON_COMPACT = new GsonBuilder().create();
 	public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("skyjew");
 	public static final ExecutorService VIRTUAL_THREAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 

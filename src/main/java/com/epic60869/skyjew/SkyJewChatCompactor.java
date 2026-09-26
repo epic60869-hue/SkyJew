@@ -66,7 +66,7 @@ public final class SkyJewChatCompactor {
      * Compact the newest chat message against a matching copy that arrived
      * of the same message. This deliberately does not require adjacency.
      *
-     * Returns true when the new message was absorbed into an older one.
+     * Returns true when an older copy was merged into the newest message.
      */
     public static boolean compact(java.util.List<GuiMessage> messages) {
         if (!enabled() || messages == null || messages.size() < 2) return false;
@@ -88,11 +88,12 @@ public final class SkyJewChatCompactor {
             Component base = BASE_MESSAGES.getOrDefault(key, stripCount(old.content()));
             BASE_MESSAGES.putIfAbsent(key, base.copy());
 
+            // The count stacks onto the newest (bottom) line and the older copy is removed.
             Component compacted = withCount(base, newCount);
-            messages.set(i, new GuiMessage(
-                old.addedTime(), compacted, old.signature(), old.source(), old.tag()
+            messages.set(0, new GuiMessage(
+                newest.addedTime(), compacted, newest.signature(), newest.source(), newest.tag()
             ));
-            messages.remove(0);
+            messages.remove(i);
             return true;
         }
 

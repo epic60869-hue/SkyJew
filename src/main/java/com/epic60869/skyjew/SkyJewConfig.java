@@ -6,7 +6,10 @@ import com.google.gson.annotations.Expose;
 import io.github.notenoughupdates.moulconfig.Config;
 import io.github.notenoughupdates.moulconfig.annotations.Category;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
+import org.lwjgl.glfw.GLFW;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorText;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
@@ -80,6 +83,88 @@ public final class SkyJewConfig extends Config {
     public Misc misc = new Misc();
 
 
+    public static final class TooltipScroll {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Allow tooltips to be moved with the mouse wheel and movement keys.")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "Enable Scroll Wheel", desc = "Move tooltips with the mouse wheel.")
+        @ConfigEditorBoolean
+        public boolean enableScrollWheel = true;
+
+        @Expose
+        @ConfigOption(name = "Enable in Chat", desc = "Allow tooltip movement while chat is open.")
+        @ConfigEditorBoolean
+        public boolean enabledInChat = false;
+
+        @Expose
+        @ConfigOption(name = "Enable WASD", desc = "Use WASD to move the hovered tooltip.")
+        @ConfigEditorBoolean
+        public boolean enableWASD = false;
+
+        @Expose
+        @ConfigOption(name = "Mouse Scrolling Speed", desc = "Pixels moved per mouse-wheel step.")
+        @ConfigEditorSlider(minValue = 1f, maxValue = 40f, minStep = 1f)
+        public int mouseScrollingSpeed = 10;
+
+        @Expose
+        @ConfigOption(name = "Keyboard Scrolling Speed", desc = "Pixels moved per tick while a tooltip movement key is held.")
+        @ConfigEditorSlider(minValue = 1f, maxValue = 40f, minStep = 1f)
+        public int keyboardScrollingSpeed = 5;
+
+        @Expose
+        @ConfigOption(name = "Move Up Key", desc = "Move the hovered tooltip up.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_PAGE_UP)
+        public int moveUpKey = GLFW.GLFW_KEY_PAGE_UP;
+
+        @Expose
+        @ConfigOption(name = "Move Down Key", desc = "Move the hovered tooltip down.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_PAGE_DOWN)
+        public int moveDownKey = GLFW.GLFW_KEY_PAGE_DOWN;
+
+        @Expose
+        @ConfigOption(name = "Horizontal Movement Key", desc = "Hold this key to make up and down movement horizontal.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
+        public int horizontalMovementKey = GLFW.GLFW_KEY_UNKNOWN;
+
+        @Expose
+        @ConfigOption(name = "Reset Tooltip Key", desc = "Reset the hovered tooltip's moved position.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
+        public int resetTooltipKey = GLFW.GLFW_KEY_UNKNOWN;
+
+        @Expose
+        @ConfigOption(name = "Start On Top", desc = "Show the top of oversized tooltips when they first appear.")
+        @ConfigEditorBoolean
+        public boolean startOnTop = false;
+
+        @Expose
+        @ConfigOption(name = "Reset Position When Not Hovered", desc = "Reset tooltip movement after the tooltip disappears.")
+        @ConfigEditorBoolean
+        public boolean resetWhenNotHovered = true;
+
+        @Expose
+        @ConfigOption(name = "Use Left Shift", desc = "Hold left shift to move tooltips horizontally with the mouse wheel.")
+        @ConfigEditorBoolean
+        public boolean useLeftShift = true;
+
+        @Expose
+        @ConfigOption(name = "Invert Horizontal Movement", desc = "Invert horizontal tooltip movement.")
+        @ConfigEditorBoolean
+        public boolean invertHorizontal = false;
+
+        @Expose
+        @ConfigOption(name = "Invert Vertical Movement", desc = "Invert vertical tooltip movement.")
+        @ConfigEditorBoolean
+        public boolean invertVertical = false;
+
+        @Expose
+        @ConfigOption(name = "Scroll Smoothness", desc = "How quickly tooltips slide toward the moved position. 100 is instant.")
+        @ConfigEditorSlider(minValue = 5f, maxValue = 100f, minStep = 5f)
+        public int scrollSmoothness = 25;
+    }
+
     public static final class General {
         @Expose
         @Accordion
@@ -137,6 +222,11 @@ public final class SkyJewConfig extends Config {
 
     public static final class CustomChat {
         @Expose
+        @ConfigOption(name = "Show SJ Chat", desc = "Show SkyJew chat (/sjc) messages from other players. Off hides them; you can still send with /sjc.")
+        @ConfigEditorBoolean
+        public boolean showSjChat = true;
+
+        @Expose
         @ConfigOption(name = "Hide Other Players' Commands", desc = "Hide SkyJew command result messages when they belong to another player. Your own command results remain visible.")
         @ConfigEditorBoolean
         public boolean hideOtherCommands = true;
@@ -157,11 +247,6 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Garden", desc = "Yaw/pitch, pest cooldown, blocks per second and special drop animations.")
         public com.epic60869.skyjew.features.FeatureConfigs.Garden garden = new com.epic60869.skyjew.features.FeatureConfigs.Garden();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Farming Profit Tracker", desc = "Skysoft's farming profit tracker.")
-        public com.epic60869.skyjew.features.FeatureConfigs.FarmingProfit profitTracker = new com.epic60869.skyjew.features.FeatureConfigs.FarmingProfit();
 
     }
 
@@ -308,6 +393,11 @@ public final class SkyJewConfig extends Config {
         public boolean enabled = true;
 
         @Expose
+        @ConfigOption(name = "Bazaar Prices", desc = "For items sold on the bazaar instead of the auction house, show the bazaar insta-buy and insta-sell price where the lowest BIN and 3 day average would be (for the whole stack, or the whole sack in the Sacks menu).")
+        @ConfigEditorBoolean
+        public boolean bazaar = true;
+
+        @Expose
         @ConfigOption(name = "NPC Sell Price", desc = "How much an NPC buys the item for.")
         @ConfigEditorBoolean
         public boolean npcPrice = true;
@@ -402,14 +492,34 @@ public final class SkyJewConfig extends Config {
         public boolean calendarTimeToRealTime = true;
 
         @Expose
-        @ConfigOption(name = "Scrollable Tooltips", desc = "Scroll the mouse wheel while a tooltip is showing to move it up and down (hold Shift to move it sideways), so long tooltips can be read.")
+        @ConfigOption(name = "Price Paid", desc = "Remember what you paid for items you buy on the auction house and show it in their tooltip, like NoFrills.")
         @ConfigEditorBoolean
-        public boolean scrollableTooltips = true;
+        public boolean pricePaid = true;
 
         @Expose
-        @ConfigOption(name = "Only Scroll Long Tooltips", desc = "Only take over the mouse wheel for tooltips that don't fit on the screen.")
+        @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sj gui.")
         @ConfigEditorBoolean
-        public boolean scrollOnlyLongTooltips = false;
+        public boolean collectionTracker = true;
+
+        @Expose
+        @ConfigOption(name = "Collection Tracker Elite Rank", desc = "Also show your rank on the Elite (elitebot.dev) collection leaderboard and how much you need to pass the next player.")
+        @ConfigEditorBoolean
+        public boolean collectionTrackerRank = true;
+
+        @Expose
+        @ConfigOption(name = "Warp Shortcuts", desc = "Type /dhub instead of /warp dhub (and the same for every name in the list below). Applies next time you join a server.")
+        @ConfigEditorBoolean
+        public boolean warpShortcuts = true;
+
+        @Expose
+        @ConfigOption(name = "Warp Shortcut List", desc = "Warps that get their own command, separated by commas.")
+        @ConfigEditorText
+        public String warpShortcutList = "dhub, dungeon_hub, garden, barn, desert, trapper, park, howl, jungle, gold, deep, mines, forge, crystals, nucleus, base, camp, tunnels, end, drag, void, spider, nest, arachne, crimson, isle, kuudra, smold, museum, da, castle, wiz, jerry, rift, galatea, murkwater";
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Tooltip Scroll", desc = "Move tooltips with the mouse wheel and keys so long tooltips can be read (Skysoft's Tooltip Scroll). Off automatically when Skysoft is installed.")
+        public TooltipScroll tooltipScroll = new TooltipScroll();
 
         @Expose
         @ConfigOption(name = "Toggle Sprint", desc = "Always sprint, like Odin's Auto Sprint. Set a \"Toggle Sprint\" key in Controls to switch it on and off.")
@@ -525,6 +635,9 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         public String customHex = "";
+
+        @Expose
+        public String font = "Default";
     }
 
     public static final class Discord {
@@ -571,7 +684,10 @@ public final class SkyJewConfig extends Config {
 
     @Override
     public StructuredText getTitle() {
-        return StructuredText.of("§dSkyJew Mod");
+        // "SkyJew Mod v1.2.3": the installed version, from fabric.mod.json.
+        String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("skyjew")
+            .map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("");
+        return StructuredText.of("§dSkyJew Mod" + (version.isEmpty() ? "" : " §7v" + version));
     }
 
     private static final Gson SNAPSHOT_GSON = new com.google.gson.GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();

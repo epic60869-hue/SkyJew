@@ -24,6 +24,24 @@ public final class Utils {
 		return SkyJewLocation.inDungeon();
 	}
 
+	/** The SkyBlock island you're on, from the tab list's "Area:" line. */
+	public static Location getLocation() {
+		if (!SkyJewLocation.onSkyblock()) return Location.UNKNOWN;
+		if (SkyJewLocation.inDungeon()) return Location.DUNGEON;
+		String area = SkyJewLocation.area();
+		return switch (area) {
+			case "Galatea" -> Location.GALATEA;
+			case "Glacite Mineshafts", "Mineshaft" -> Location.GLACITE_MINESHAFTS;
+			case "Kuudra" -> Location.KUUDRAS_HOLLOW;
+			default -> Location.fromFriendlyName(area);
+		};
+	}
+
+	/** Non-empty while on SkyBlock (Skyblocker uses Hypixel's raw location id here). */
+	public static String getLocationRaw() {
+		return SkyJewLocation.onSkyblock() ? getLocation().id() : "";
+	}
+
 	/** SkyJew does not track the SkyBlock profile name; dungeon data is stored under one profile. */
 	public static String getProfile() {
 		return "";

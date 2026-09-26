@@ -47,6 +47,7 @@ public final class SkyJewDungeons {
 
         // Skyblocker runs these through its @Init annotation processor.
         FairySouls.init();
+        com.epic60869.skyjew.sb.skyblock.waypoint.Waypoints.init();
         ContainerSolverManager.init();
         DungeonManager.init();
         DungeonPlayerManager.init();

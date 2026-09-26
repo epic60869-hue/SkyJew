@@ -66,6 +66,7 @@ public final class SkyJewNickScreen extends Screen {
     /** A colour name, "Rainbow", or "Plain" (with customHex set for a custom colour, or none for default). */
     private String style = "Plain";
     private String customHex = "";
+    private SkyJewNickFonts.NickFont nickFont = SkyJewNickFonts.NickFont.DEFAULT;
 
     // Panel rectangles, recomputed in layout().
     private int leftX, midX, rightX, panelY, panelH, leftW, midW, rightW;
@@ -79,6 +80,7 @@ public final class SkyJewNickScreen extends Screen {
             seeOtherNicks = config.misc.nickname.seeOtherNicks;
             style = config.misc.nickname.style == null ? "Plain" : config.misc.nickname.style;
             customHex = config.misc.nickname.customHex == null ? "" : config.misc.nickname.customHex;
+            nickFont = SkyJewNickFonts.parse(config.misc.nickname.font);
         }
     }
 
@@ -115,8 +117,12 @@ public final class SkyJewNickScreen extends Screen {
             enabled = false;
             style = "Plain";
             customHex = "";
+            nickFont = SkyJewNickFonts.NickFont.DEFAULT;
             rebuildWidgets();
         }).bounds(leftX + 8, panelY + panelH - 28, leftW - 16, 20).build());
+
+        // Font: click to go to the next one, right-click for the previous one; the button shows it in that font.
+        addRenderableWidget(new FontButton(leftX + 8, panelY + 136, leftW - 16));
 
         // Colour swatches: 4 per row, then Rainbow and Default.
         int gridX = midX + 8;
@@ -217,7 +223,8 @@ public final class SkyJewNickScreen extends Screen {
             leftX + 8, panelY + 108, 0xFFFFFFFF, false);
 
         // Live previews.
-        Component name = SkyJewNick.styled(previewName(), style, customHex);
+        g.text(font, Component.literal("Font").withStyle(ChatFormatting.GRAY), leftX + 8, panelY + 124, 0xFFAAAAAA, false);
+        Component name = SkyJewNick.styled(previewName(), style, customHex, nickFont.label);
         int py = panelY + 30;
         int px = rightX + 8;
         g.text(font, Component.literal("TAB").withStyle(ChatFormatting.DARK_GRAY), px, py, 0xFFFFFFFF, false);
@@ -258,6 +265,7 @@ public final class SkyJewNickScreen extends Screen {
             config.misc.nickname.seeOtherNicks = seeOtherNicks;
             config.misc.nickname.style = style;
             config.misc.nickname.customHex = "Plain".equalsIgnoreCase(style) ? customHex : "";
+            config.misc.nickname.font = nickFont.label;
             SkyJewConfig.saveCurrent(config);
             SkyJewGlobalChat.sendNicknameUpdate();
         }
@@ -272,6 +280,54 @@ public final class SkyJewNickScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    /** Cycles the nickname font; shows the font's name written in that font. */
+    private final class FontButton extends AbstractWidget {
+        FontButton(int x, int y, int w) {
+            super(x, y, w, 20, Component.literal("Font"));
+            setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
+                "Click for the next font, right-click for the previous one.\nLetter fonts (Script, Bubble, ...) are seen by every SkyJew user.")));
+        }
+
+        @Override
+        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+            g.fill(getX(), getY(), getX() + width, getY() + height, isHovered() ? 0xFFAAAAAA : 0xFF3A3F48);
+            g.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, 0xFF1B1E24);
+            Component label = SkyJewNick.styled(nickFont.label, "White", "", nickFont.label);
+            g.text(font, Component.literal("\u25C0").withStyle(ChatFormatting.DARK_GRAY), getX() + 5, getY() + 6, 0xFFFFFFFF, false);
+            g.text(font, Component.literal("\u25B6").withStyle(ChatFormatting.DARK_GRAY), getX() + width - 11, getY() + 6, 0xFFFFFFFF, false);
+            int textW = font.width(label);
+            g.text(font, label, getX() + (width - textW) / 2, getY() + 6, 0xFFFFFFFF, true);
+        }
+
+        @Override
+        public void onClick(MouseButtonEvent click, boolean doubled) {
+            nickFont = nickFont.next();
+        }
+
+        @Override
+        protected boolean isValidClickButton(net.minecraft.client.input.MouseButtonInfo button) {
+            return true;
+        }
+
+        @Override
+        public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+            if (!active || !visible || !isMouseOver(click.x(), click.y())) return false;
+            if (click.button() == 1) {
+                SkyJewNickFonts.NickFont[] all = SkyJewNickFonts.NickFont.values();
+                nickFont = all[(nickFont.ordinal() + all.length - 1) % all.length];
+            } else {
+                nickFont = nickFont.next();
+            }
+            playDownSound(minecraft.getSoundManager());
+            return true;
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
     }
 
     /** A clickable colour square with a white frame when selected and the name as tooltip. */

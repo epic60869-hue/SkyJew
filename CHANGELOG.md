@@ -2,7 +2,7 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
-## Unreleased
+## 1.2.3 — 2026-09-26
 
 ### Changed
 - Dungeon map: new NoammAddons (Legit) style, now the default. Rooms are redrawn in clean colours with checkmarks, room names or secret counts, bordered player heads with optional names (Holding Leap / Always), and optional extra info under the map. Every colour and size can be changed. The old look is still there as Map Style: Skyblocker.
@@ -16,18 +16,35 @@ All notable changes to SkyJew are listed here, newest first.
 - HUDs keep their place relative to the screen when you change GUI scale or window size, instead of piling up at an edge. Storage search fits on the screen at high GUI scale.
 - All boxes, lines and text in the world are drawn every frame, so they follow moving mobs and your camera smoothly.
 - Last Breath RELEASE plays a bell by default (Bell, Note Block Bell, Ding, XP Orb or None) at full volume.
+- Compact chat stacks repeats onto the newest message at the bottom instead of the old one higher up.
+- Price tooltips: items sold on the bazaar show the bazaar insta-buy and insta-sell price where the lowest BIN and 3 day average would be (for the whole sack in the Sacks menu).
+- The settings title shows the installed version (e.g. SkyJew Mod v1.2.3).
 
 ### Added
 - Dungeon routes folder: put any route file in `config/skyjew/dungeon route/` (Stella / SkyJew, SecretRoutes or Dungeon Rooms Mod style). Rooms without a route there use Stella's routes. Changes load automatically; `/sj route reload` and `/sj route folder` too.
-- Farming Profit Tracker (Farming), ported from Skysoft: farming items from your inventory, sacks and chat drops, Replenish costs, pests, Kernels and coins, with uptime and profit per hour. Session or saved per profile; `/sj farmingprofit reset`.
 - Water Board: Skyblocker's water path and lever previews, next to Odin's solver.
 - SS skip helper: counts your Simon Says start button clicks above the button and blocks clicks past the limit (default 4).
 - Starred mob highlight colour, fill and line width.
 - Scrollable tooltips: scroll to move long tooltips (Shift for sideways).
 - Toggle Sprint, with a key in Controls and a small HUD.
 - "Your Class" option for the built-in positional waypoints, if your class isn't detected.
+- `/sj waypoints`: Skyblocker's waypoint editor, with groups per island, ordered waypoints (`/sj waypoints ordered next|previous|reset`) and Skyblocker / Skytils / Coleweight import and export.
+- `/sj log`: the changes in the version you have installed, in game.
+- Crystal Hollows waypoints, like Skyblocker: places you find are marked (Mines of Divan, Jungle Temple, Goblin Queen's Den, ...), coordinates in chat become waypoints, and `/sj crystalwaypoints add|share|remove|clear`.
+- Pickaxe ability HUD: cooldown of Mining Speed Boost, Pickobulus and the other abilities, with a ready alert.
+- Warp shortcuts: `/dhub` instead of `/warp dhub`, and the same for every warp in Misc > Warp Shortcut List.
+- Price Paid tooltip, like NoFrills: items you buy on the auction house show what you paid for them.
+- Collection tracker, like SkyHanni's farming display but for every collection: while you mine, farm, forage or fish it shows your collection, what you've gained this session (and per hour) and your rank on the Elite collection leaderboard, with how much you need to pass the next player. Enchanted items from compactors count as the items they're made of (Enchanted Cobblestone = 160 Cobblestone).
+- /sj nick fonts: a Font button in the nickname menu with Bold, Italic, Small Caps, Full Width, Bubble, Script, Fraktur, Double Struck, Monospace, Sans Bold, Minecraft's enchanting and illager runes and Uniform. The nickname filter also sees through look-alike letters now.
+- Custom Chat > Show SJ Chat: turn off to hide other players' `/sjc` messages.
+- SJ chat rank prefixes, tied to the accounts themselves and managed from the tastyfish.org admin page (the mod checks for changes every 5 minutes). [OWNER] and [TESTER] are built in. Nicknames that copy a ranked player's name or a rank are not allowed.
+- Portfolio: auction house and bazaar prices have their own buttons (AH: Lowest BIN / 3-day avg, BZ: Sell / Buy price), so all four combinations work.
+- Portfolio: new rows get today's lowest BIN (or bazaar buy price) as their buy price; you can still change it.
+- Portfolio: click any column header to sort by it, click again to reverse; the sorted column shows an arrow.
+- Portfolio: item icons next to names, columns sized to fit so Qty and Buy each no longer overlap, sales can be removed from the Sold list, and the summary shows profit per hour (each row's profit divided by the hours since you added it).
 
 ### Fixed
+- Portfolio: runes (e.g. Barkshatter Rune III) showed "?" as their price. Runes, pets and enchanted books are now counted and priced by their market ID, and rune names can be typed in.
 - Water Board: the line to the next lever jumped around while moving. Only Odin's solver draws it now (Skyblocker's solver drew a second line), and it starts from the camera.
 - Built-in positional waypoints (Py Stand Here, Mage Stop, ...) didn't show: your class is now read from any tab line with your name and remembered for the run, even as a ghost.
 - Sharp Shooter (i4) solver didn't work.
@@ -36,6 +53,12 @@ All notable changes to SkyJew are listed here, newest first.
 - Slayer tracker and boss phase HUDs didn't work: Hypixel's padding emoji in the sidebar broke the matching, and boss nametags are now text displays.
 - Last Breath, Ice Spray, masks, arrows, farming tools and other items renamed with `/sj custom` are still recognised.
 - The 1/10,000 jumpscare no longer happens in dungeons.
+- Storm pad tick timer was one tick short; it now counts down to 0 on the pad tick like Odin (the Goldor timer too).
+- Superpairs solver didn't show the cards you had revealed; they now stay visible on their slots.
+- Scrollable tooltips are now Skysoft's Tooltip Scroll: smooth panning, WASD / Page Up / Page Down keys, a reset key, speed and smoothness settings (Misc > Tooltip Scroll). It steps aside when Skysoft itself is installed.
+
+### Removed
+- Farming Profit Tracker (the Skysoft port).
 
 ## 1.2.2 — 2026-09-25
 
