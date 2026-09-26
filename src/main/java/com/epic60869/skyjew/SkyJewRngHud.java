@@ -63,12 +63,12 @@ public final class SkyJewRngHud {
         return PADDING + drops.size() * LINE_HEIGHT;
     }
 
-    /** Slug pets in their rarity colour (Epic purple, Legendary gold); everything else white. */
+    /** Slug pets in their rarity colour (Epic purple, Legendary gold); everything else cyan. */
     private static int rarityColour(FarmingRngTracker.Drop drop) {
         return switch (drop.rarity()) {
             case "LEGENDARY" -> 0xFFFFAA00;
             case "EPIC" -> 0xFFAA00AA;
-            default -> 0xFFFFFFFF;
+            default -> 0xFF55FFFF;
         };
     }
 
