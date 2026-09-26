@@ -195,6 +195,11 @@ public final class SkyBallsConfig extends Config {
         public TooltipScroll tooltipScroll = new TooltipScroll();
 
         @Expose
+        @ConfigOption(name = "Join Commands", desc = "Quick commands to join dungeons and Kuudra: /f0 (Entrance) to /f7, /m1 to /m7, and /t1 to /t5 for Kuudra (Basic to Infernal). Applies next time you join a server.")
+        @ConfigEditorBoolean
+        public boolean joinCommands = true;
+
+        @Expose
         @ConfigOption(name = "Screenshot Sharing", desc = "After F2, the screenshot message gets an [Upload] button that gives you a link to post in /sbc, like Skysoft. Uploads are public to anyone with the link.")
         @ConfigEditorBoolean
         public boolean screenshotSharing = true;
