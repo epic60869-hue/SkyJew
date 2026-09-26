@@ -260,7 +260,7 @@ public class ARGBTextInput extends AbstractWidget {
 			anInt = OptionalInt.of(parsedInt);
 		} catch (NumberFormatException e) {
 			anInt = OptionalInt.empty();
-			LOGGER.error("[SkyJew] Failed to parse integer", e);
+			LOGGER.error("[SkyBalls] Failed to parse integer", e);
 		}
 		if (anInt.isPresent()) {
 			int prev = anInt.getAsInt();

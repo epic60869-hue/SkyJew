@@ -350,7 +350,7 @@ public final class CollectionTracker {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             if (mc.player != null) mc.gui.hud.getChat().addClientSystemMessage(
-                Component.literal("[SJ] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
+                Component.literal("[SB] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
         });
         return 1;
     }
@@ -393,7 +393,7 @@ public final class CollectionTracker {
                 // Don't count the enchanted items already in the inventory as a gain.
                 Minecraft.getInstance().execute(() -> lastInventory = null);
             } catch (Exception e) {
-                System.err.println("[SkyJew] Could not resolve " + id + ": " + e.getMessage());
+                System.err.println("[SkyBalls] Could not resolve " + id + ": " + e.getMessage());
             } finally {
                 RESOLVING.remove(id);
             }
@@ -464,7 +464,7 @@ public final class CollectionTracker {
                 for (JsonElement e : root.getAsJsonArray("notCompacted")) NOT_COMPACT.add(e.getAsString());
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read compacted-items.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not read compacted-items.json: " + e.getMessage());
         }
     }
 
@@ -485,7 +485,7 @@ public final class CollectionTracker {
             Files.createDirectories(compactFile.getParent());
             Files.writeString(compactFile, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save compacted-items.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not save compacted-items.json: " + e.getMessage());
         }
     }
 
@@ -598,7 +598,7 @@ public final class CollectionTracker {
             .map(m -> m.getMetadata().getVersion().getFriendlyString()).orElse("dev");
         HttpRequest request = HttpRequest.newBuilder(URI.create(API + path))
             .timeout(Duration.ofSeconds(15))
-            .header("User-Agent", "SkyJew/" + version)
+            .header("User-Agent", "SkyBalls/" + version)
             .GET().build();
         return HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
             if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());

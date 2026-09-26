@@ -641,11 +641,11 @@ public final class OdinPuzzleSolvers {
     }
 
     private static JsonElement read(String name) {
-        try (InputStream in = OdinPuzzleSolvers.class.getResourceAsStream("/assets/skyjew/puzzles/" + name)) {
+        try (InputStream in = OdinPuzzleSolvers.class.getResourceAsStream("/assets/skyballs/puzzles/" + name)) {
             if (in == null) return null;
             return JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read puzzle data " + name + ": " + e);
+            System.err.println("[SkyBalls] Could not read puzzle data " + name + ": " + e);
             return null;
         }
     }

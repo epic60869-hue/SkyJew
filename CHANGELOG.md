@@ -4,6 +4,14 @@ All notable changes to SkyJew are listed here, newest first.
 
 ## 1.2.5
 
+### Changed
+- SkyJew is now **SkyBalls**: `/sb` and `/skyballs` (the old `/sj` and `/skyjew` still work), `/sbc` for SkyBalls chat (`/sjc` still works), and [SB] in chat. The [SB] in SkyBalls chat is dark green, like Hypixel's "Guild >". Your settings carry over.
+- Ranks ([OWNER], [TESTER], ...) only show in SkyBalls chat again, and Chat > Custom Chat > Show Ranks turns them off completely.
+- Rank changes made on the website show up right away when the server announces them.
+
+### Fixed
+- `/sb nick`: picking a preset colour now also updates the colour picker and hex box.
+
 ### Added
 - Item Notification (Misc > Item Notification): SkyOcean's Sack Notification as a HUD. Put item names on a list and when you get one, in your sacks or your inventory, it shows like the farming RNG HUD: "5x Enchanted Diamond 8.5k", with the price for all of them. More of the same item adds up while it's showing. The list is edited in its own window (the EDIT button, or `/sj itemnotify`), like /sj notes: one item per line, with item name suggestions as you type (Tab to use one). `/sj itemnotify add|remove <item name>` and `/sj itemnotify list` work too.
 

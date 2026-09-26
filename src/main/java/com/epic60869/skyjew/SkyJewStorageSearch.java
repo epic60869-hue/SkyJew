@@ -491,7 +491,7 @@ public final class SkyJewStorageSearch {
                 else pages.put(key, page);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load storage search cache: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load storage search cache: " + e.getMessage());
             pages.clear();
         }
     }
@@ -525,7 +525,7 @@ public final class SkyJewStorageSearch {
             dirty = false;
             lastSave = System.currentTimeMillis();
         } catch (IOException e) {
-            System.err.println("[SkyJew] Failed to save storage search cache: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save storage search cache: " + e.getMessage());
         }
     }
 

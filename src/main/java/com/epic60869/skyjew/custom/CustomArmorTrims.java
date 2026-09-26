@@ -60,10 +60,10 @@ public class CustomArmorTrims {
 				}
 			}
 
-			LOGGER.info("[SkyJew] Successfully cached all armor trims!");
+			LOGGER.info("[SkyBalls] Successfully cached all armor trims!");
 			trimsInitialized = true;
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew] Encountered an exception while caching armor trims", e);
+			LOGGER.error("[SkyBalls] Encountered an exception while caching armor trims", e);
 		}
 	}
 

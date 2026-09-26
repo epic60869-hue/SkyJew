@@ -58,9 +58,9 @@ public final class SkyJewCommandKeysMigration {
 
             Config.save();
             Files.move(oldFile, oldFile.resolveSibling(OLD_FILE_NAME + ".migrated"), StandardCopyOption.REPLACE_EXISTING);
-            CommandKeys.LOG.info("Imported SkyJew command keys from {}", OLD_FILE_NAME);
+            CommandKeys.LOG.info("Imported SkyBalls command keys from {}", OLD_FILE_NAME);
         } catch (Exception e) {
-            CommandKeys.LOG.error("Failed to import SkyJew command keys", e);
+            CommandKeys.LOG.error("Failed to import SkyBalls command keys", e);
         }
     }
 

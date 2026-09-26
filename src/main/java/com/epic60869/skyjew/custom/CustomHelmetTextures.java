@@ -47,9 +47,9 @@ public class CustomHelmetTextures {
 			}
 
 			TEXTURES.sort(Comparator.comparing(NamedTexture::internalName));
-			LOGGER.info("[SkyJew] Loaded and sorted {} helmet textures from repo", TEXTURES.size());
+			LOGGER.info("[SkyBalls] Loaded and sorted {} helmet textures from repo", TEXTURES.size());
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew] Failed to load helmet textures from repo", e);
+			LOGGER.error("[SkyBalls] Failed to load helmet textures from repo", e);
 		}
 	}
 

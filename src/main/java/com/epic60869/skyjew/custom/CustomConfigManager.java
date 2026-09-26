@@ -104,7 +104,7 @@ public final class CustomConfigManager {
 			forEach(root, "customArmorModel", null, (k, v) -> general.customArmorModel.put(k, Identifier.parse(v.getAsString())));
 			forEach(root, "customAnimatedHelmetTextures", null, (k, v) -> general.customAnimatedHelmetTextures.put(k, v.getAsString()));
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew] Failed to load custom item config", e);
+			LOGGER.error("[SkyBalls] Failed to load custom item config", e);
 		}
 	}
 
@@ -115,7 +115,7 @@ public final class CustomConfigManager {
 			try {
 				action.accept(entry.getKey(), entry.getValue());
 			} catch (Exception e) {
-				LOGGER.warn("[SkyJew] Skipping invalid custom item entry {}", entry.getKey(), e);
+				LOGGER.warn("[SkyBalls] Skipping invalid custom item entry {}", entry.getKey(), e);
 			}
 		}
 	}
@@ -208,7 +208,7 @@ public final class CustomConfigManager {
 			Files.createDirectories(configDir);
 			Files.writeString(configDir.resolve(FILE_NAME), GSON.toJson(root), StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			LOGGER.error("[SkyJew] Failed to save custom item config", e);
+			LOGGER.error("[SkyBalls] Failed to save custom item config", e);
 		}
 	}
 }

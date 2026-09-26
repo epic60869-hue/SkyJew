@@ -116,7 +116,7 @@ public final class SkyJewHuds {
                 try {
                     if (element.custom().visible()) renderCustom(graphics, element, false);
                 } catch (Exception e) {
-                    System.err.println("[SkyJew] HUD " + element.id() + " failed: " + e);
+                    System.err.println("[SkyBalls] HUD " + element.id() + " failed: " + e);
                 }
                 continue;
             }
@@ -277,7 +277,7 @@ public final class SkyJewHuds {
                 save();
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load HUD positions: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load HUD positions: " + e.getMessage());
         }
     }
 
@@ -291,7 +291,7 @@ public final class SkyJewHuds {
             if (refHeight > 0) root.addProperty("#refHeight", refHeight);
             Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to save HUD positions: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save HUD positions: " + e.getMessage());
         }
     }
 }

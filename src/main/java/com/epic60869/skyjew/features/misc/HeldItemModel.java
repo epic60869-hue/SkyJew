@@ -51,12 +51,12 @@ public final class HeldItemModel {
                 if (loaded != null) perItem = new LinkedHashMap<>(loaded);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read held item transforms: " + e);
+            System.err.println("[SkyBalls] Could not read held item transforms: " + e);
         }
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
             for (String root : Compat.COMMAND_ROOTS) {
                 dispatcher.register(ClientCommands.literal(root).then(ClientCommands.literal("helditem")
-                    .executes(c -> say("/sj helditem save | remove | list. Save stores the current Held Item Model settings for the item in your hand.", ChatFormatting.YELLOW))
+                    .executes(c -> say("/sb helditem save | remove | list. Save stores the current Held Item Model settings for the item in your hand.", ChatFormatting.YELLOW))
                     .then(ClientCommands.literal("save").executes(c -> saveHeld()))
                     .then(ClientCommands.literal("remove").executes(c -> removeHeld()))
                     .then(ClientCommands.literal("list").executes(c -> say(perItem.isEmpty() ? "No per-item transforms." : "Per-item transforms: " + String.join(", ", perItem.keySet()), ChatFormatting.YELLOW)))));
@@ -131,7 +131,7 @@ public final class HeldItemModel {
         try {
             Files.writeString(file, GSON.toJson(perItem), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save held item transforms: " + e);
+            System.err.println("[SkyBalls] Could not save held item transforms: " + e);
         }
     }
 

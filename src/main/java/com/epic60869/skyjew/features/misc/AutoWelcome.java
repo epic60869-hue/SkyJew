@@ -126,7 +126,7 @@ public final class AutoWelcome {
         setNames(new ArrayList<>(list));
         FeatureConfigs.AutoWelcome c = config();
         String where = c != null && c.destination == FeatureConfigs.AutoWelcome.Destination.MESSAGE ? "with /msg" : "in guild chat";
-        String off = c != null && !c.enabled ? " (Auto Welcome is off: turn it on in /sj > Misc > Auto Welcome)" : "";
+        String off = c != null && !c.enabled ? " (Auto Welcome is off: turn it on in /sb > Misc > Auto Welcome)" : "";
         return say(Component.literal("Added " + name + " to your welcome list. They'll be welcomed " + where + " when they come online." + off)
             .withStyle(ChatFormatting.GREEN));
     }
@@ -143,7 +143,7 @@ public final class AutoWelcome {
     private static int list() {
         List<String> list = names();
         if (list.isEmpty()) {
-            return say(Component.literal("Your welcome list is empty. Add someone with /sj welcome add <name>.").withStyle(ChatFormatting.YELLOW));
+            return say(Component.literal("Your welcome list is empty. Add someone with /sb welcome add <name>.").withStyle(ChatFormatting.YELLOW));
         }
         return say(Component.literal("Welcome list (" + list.size() + "): ").withStyle(ChatFormatting.GOLD)
             .append(Component.literal(String.join(", ", list)).withStyle(ChatFormatting.WHITE)));
@@ -153,7 +153,7 @@ public final class AutoWelcome {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             if (mc.player != null) mc.gui.hud.getChat().addClientSystemMessage(
-                Component.literal("[SJ] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
+                Component.literal("[SB] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
         });
         return 1;
     }

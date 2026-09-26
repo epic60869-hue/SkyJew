@@ -37,7 +37,7 @@ jobs:
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: skyjew-mod
+          name: skyballs-mod
           path: build/libs/*.jar
 
       - name: Create GitHub Release
@@ -53,5 +53,5 @@ jobs:
           fi
 
           gh release create "v${VERSION}" "$JAR" \
-            --title "SkyJew Mod v${VERSION}" \
+            --title "SkyBalls Mod v${VERSION}" \
             --generate-notes

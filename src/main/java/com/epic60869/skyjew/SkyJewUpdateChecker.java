@@ -54,7 +54,7 @@ public final class SkyJewUpdateChecker {
         HttpRequest request = HttpRequest.newBuilder(URI.create(LATEST_URL))
             .timeout(Duration.ofSeconds(10))
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "SkyJew/" + installed())
+            .header("User-Agent", "SkyBalls/" + installed())
             .GET().build();
         HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
             if (response.statusCode() != 200) return;
@@ -73,13 +73,13 @@ public final class SkyJewUpdateChecker {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             if (mc.player == null) return;
-            Component message = Component.literal("New SkyJew Mod Version ").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+            Component message = Component.literal("New SkyBalls Mod Version ").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
                 .append(Component.literal(current).withStyle(Style.EMPTY.withColor(ChatFormatting.RED).withBold(false)))
                 .append(Component.literal(" --> ").withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY).withBold(false)))
                 .append(Component.literal(latest).withStyle(Style.EMPTY.withColor(ChatFormatting.GREEN).withBold(false)))
                 .append(Component.literal("  [Download]").withStyle(Style.EMPTY.withColor(ChatFormatting.AQUA).withBold(false).withUnderlined(true)
                     .withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
-                    .withHoverEvent(new HoverEvent.ShowText(Component.literal("Open the SkyJew " + latest + " release on GitHub")))));
+                    .withHoverEvent(new HoverEvent.ShowText(Component.literal("Open the SkyBalls " + latest + " release on GitHub")))));
             mc.gui.hud.getChat().addClientSystemMessage(message);
         });
     }

@@ -170,7 +170,7 @@ public final class FishingFeatures {
         RepoItems.runAsync(() -> {
             try {
                 String url = "https://raw.githubusercontent.com/hannibal002/SkyHanni-REPO/main/constants/SeaCreatures.json";
-                var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).header("User-Agent", "SkyJew/1.0").build();
+                var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).header("User-Agent", "SkyBalls/1.0").build();
                 String body = java.net.http.HttpClient.newHttpClient().send(request, java.net.http.HttpResponse.BodyHandlers.ofString()).body();
                 JsonObject root = JsonParser.parseString(body).getAsJsonObject();
                 for (var category : root.entrySet()) {
@@ -185,7 +185,7 @@ public final class FishingFeatures {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("[SkyJew] Failed to load sea creatures: " + e.getMessage());
+                System.err.println("[SkyBalls] Failed to load sea creatures: " + e.getMessage());
             }
         });
     }

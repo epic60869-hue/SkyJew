@@ -156,10 +156,10 @@ public final class ItemPriceResolver {
                 synchronized (NAME_TO_ID) { NAME_TO_ID.clear(); NAME_TO_ID.putAll(names); }
                 lastRefresh = System.currentTimeMillis();
             } catch (Throwable error) {
-                System.err.println("[SkyJew] Failed to parse item prices: " + rootMessage(error));
+                System.err.println("[SkyBalls] Failed to parse item prices: " + rootMessage(error));
             }
         }).exceptionally(error -> {
-            System.err.println("[SkyJew] Failed to refresh item prices: " + rootMessage(error));
+            System.err.println("[SkyBalls] Failed to refresh item prices: " + rootMessage(error));
             return null;
         }).whenComplete((ignored, error) -> REFRESHING.set(false));
     }

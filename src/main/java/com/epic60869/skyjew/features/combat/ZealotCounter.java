@@ -274,7 +274,7 @@ public final class ZealotCounter {
             totalEyes = root.has("eyes") ? root.get("eyes").getAsInt() : 0;
             showSession = root.has("showSession") && root.get("showSession").getAsBoolean();
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load zealot tracker: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load zealot tracker: " + e.getMessage());
         }
     }
 
@@ -287,7 +287,7 @@ public final class ZealotCounter {
             root.addProperty("showSession", showSession);
             Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to save zealot tracker: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save zealot tracker: " + e.getMessage());
         }
     }
 }

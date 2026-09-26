@@ -28,7 +28,7 @@ public final class FairySouls {
 					else if (entry.getValue().isJsonArray()) COUNTS.put(entry.getKey(), entry.getValue().getAsJsonArray().size());
 				}
 			} catch (Exception e) {
-				System.err.println("[SkyJew] Failed to load fairy souls: " + e.getMessage());
+				System.err.println("[SkyBalls] Failed to load fairy souls: " + e.getMessage());
 			}
 			LOADED.complete(null);
 		});

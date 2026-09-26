@@ -52,7 +52,7 @@ public final class SkyJewRecipeCommand {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.hypixel.net/v2/resources/skyblock/items"))
                 .timeout(java.time.Duration.ofSeconds(10))
-                .header("User-Agent", "SkyJew/1.0")
+                .header("User-Agent", "SkyBalls/1.0")
                 .GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return;
@@ -76,9 +76,9 @@ public final class SkyJewRecipeCommand {
                 ITEMS.addAll(next);
             }
             loaded = true;
-            System.out.println("[SkyJew] Loaded " + next.size() + " Hypixel items for recipe autocomplete.");
+            System.out.println("[SkyBalls] Loaded " + next.size() + " Hypixel items for recipe autocomplete.");
         } catch (Exception e) {
-            System.err.println("[SkyJew] Recipe item list load failed: " + e.getMessage());
+            System.err.println("[SkyBalls] Recipe item list load failed: " + e.getMessage());
         }
     }
 
@@ -93,7 +93,7 @@ public final class SkyJewRecipeCommand {
             .then(literal("amount").then(argument("amount", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
                 .executes(context -> {
                     if (!SkyJewCraftHelper.active()) {
-                        message("No recipe selected. Use /sj recipe <item>.", 0xFF5555);
+                        message("No recipe selected. Use /sb recipe <item>.", 0xFF5555);
                         return 0;
                     }
                     SkyJewCraftHelper.setAmount(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "amount"));

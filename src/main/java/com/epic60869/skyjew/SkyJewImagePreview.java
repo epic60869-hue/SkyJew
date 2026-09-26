@@ -111,7 +111,7 @@ public final class SkyJewImagePreview {
             if (!Files.exists(file)) {
                 HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                     .timeout(Duration.ofSeconds(15))
-                    .header("User-Agent", "SkyJew/1.0")
+                    .header("User-Agent", "SkyBalls/1.0")
                     .GET().build();
                 HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());

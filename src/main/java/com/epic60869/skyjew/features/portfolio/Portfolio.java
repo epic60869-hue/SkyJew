@@ -348,7 +348,7 @@ public final class Portfolio {
                 if (!m.matches()) continue;
                 String file = m.group(1) + "_RUNE%3B" + m.group(2) + ".json";
                 HttpRequest request = HttpRequest.newBuilder(URI.create("https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items/" + file))
-                    .timeout(Duration.ofSeconds(20)).header("User-Agent", "SkyJew/1.0").GET().build();
+                    .timeout(Duration.ofSeconds(20)).header("User-Agent", "SkyBalls/1.0").GET().build();
                 requests.put(key, HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString()));
             }
             Map<String, String> n = new HashMap<>(runeNames), t = new HashMap<>(runeTextures);
@@ -371,7 +371,7 @@ public final class Portfolio {
             Files.createDirectories(dir);
             Files.writeString(cache, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not load rune names: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not load rune names: " + e.getMessage());
         } finally {
             RUNES_LOADING.set(false);
         }
@@ -380,12 +380,12 @@ public final class Portfolio {
     private static JsonObject fetch(String url) {
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(20))
-                .header("User-Agent", "SkyJew/1.0").GET().build();
+                .header("User-Agent", "SkyBalls/1.0").GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return null;
             return JsonParser.parseString(response.body()).getAsJsonObject();
         } catch (Exception e) {
-            System.err.println("[SkyJew] Portfolio price download failed for " + url + ": " + e.getMessage());
+            System.err.println("[SkyBalls] Portfolio price download failed for " + url + ": " + e.getMessage());
             return null;
         }
     }
@@ -619,7 +619,7 @@ public final class Portfolio {
             recordSale(entry, amount, price, true);
             return;
         }
-        String cmd = "/sj portfolio sold " + entry.id + " " + amount + " " + (long) price;
+        String cmd = "/sb portfolio sold " + entry.id + " " + amount + " " + (long) price;
         MutableComponent line = Component.literal("Sold " + (amount > 1 ? amount + "x " : "") + entry.name + (price > 0 ? " for " + coins(price) : "") + ". ").withStyle(ChatFormatting.GOLD)
             .append(button("[Log sale & remove]", cmd + " remove", ChatFormatting.GREEN))
             .append(Component.literal(" "))
@@ -749,7 +749,7 @@ public final class Portfolio {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read portfolio: " + e);
+            System.err.println("[SkyBalls] Could not read portfolio: " + e);
         }
     }
 
@@ -758,7 +758,7 @@ public final class Portfolio {
             Files.createDirectories(dir);
             Files.writeString(dir.resolve("portfolio.json"), GSON.toJson(data), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save portfolio: " + e);
+            System.err.println("[SkyBalls] Could not save portfolio: " + e);
         }
     }
 
@@ -767,7 +767,7 @@ public final class Portfolio {
             Files.createDirectories(dir);
             Files.writeString(dir.resolve("history.json"), new Gson().toJson(history), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save portfolio history: " + e);
+            System.err.println("[SkyBalls] Could not save portfolio history: " + e);
         }
     }
 
@@ -781,7 +781,7 @@ public final class Portfolio {
                     .then(ClientCommands.literal("add")
                         .executes(c -> {
                             Entry e = addHeld();
-                            return say(e == null ? "Hold a SkyBlock item, or use /sj portfolio add <name or ID>." : "Added " + e.name + " to your portfolio.", e == null ? ChatFormatting.RED : ChatFormatting.GREEN);
+                            return say(e == null ? "Hold a SkyBlock item, or use /sb portfolio add <name or ID>." : "Added " + e.name + " to your portfolio.", e == null ? ChatFormatting.RED : ChatFormatting.GREEN);
                         })
                         .then(ClientCommands.argument("item", StringArgumentType.greedyString()).executes(c -> {
                             String q = StringArgumentType.getString(c, "item");

@@ -53,7 +53,7 @@ import static com.epic60869.skyjew.commandkeys.util.Localization.translationKey;
 public class CommandKeys {
 
     public static final String MOD_ID = "skyjew_commandkeys";
-    public static final String MOD_NAME = "SkyJew Keys";
+    public static final String MOD_NAME = "SkyBalls Keys";
     public static final Logger LOG = Logging.getLogger(MOD_ID);
     public static final Component PREFIX = Component.empty()
             .append(Component.literal("[").withStyle(ChatFormatting.DARK_GRAY))

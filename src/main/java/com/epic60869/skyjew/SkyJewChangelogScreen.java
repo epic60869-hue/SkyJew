@@ -39,7 +39,7 @@ public final class SkyJewChangelogScreen extends Screen {
     private Button newer;
 
     public SkyJewChangelogScreen(List<SkyJewChangelog.Version> versions, int index, String installed) {
-        super(Component.literal("SkyJew Changelog"));
+        super(Component.literal("SkyBalls Changelog"));
         this.versions = versions;
         this.index = Mth.clamp(index, 0, Math.max(0, versions.size() - 1));
         this.installed = installed;
@@ -125,7 +125,7 @@ public final class SkyJewChangelogScreen extends Screen {
         // Version title between the arrows.
         if (!versions.isEmpty()) {
             SkyJewChangelog.Version version = versions.get(index);
-            Component title = Component.literal("SkyJew " + version.name()).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+            Component title = Component.literal("SkyBalls " + version.name()).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
             g.centeredText(font, title, width / 2, 17, 0xFFFFFFFF);
             String sub = version.date() + (version.name().equalsIgnoreCase(installed) ? (version.date().isEmpty() ? "" : "  •  ") + "installed" : "");
             g.centeredText(font, Component.literal(sub).withStyle(ChatFormatting.GRAY), width / 2, 29, 0xFFAAAAAA);

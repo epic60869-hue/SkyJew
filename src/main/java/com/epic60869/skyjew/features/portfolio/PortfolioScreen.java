@@ -45,7 +45,7 @@ public final class PortfolioScreen extends Screen {
     private boolean soldAscending = true;
 
     public PortfolioScreen() {
-        super(Component.literal("SkyJew Portfolio"));
+        super(Component.literal("SkyBalls Portfolio"));
     }
 
     private int left() { return 10; }
@@ -163,7 +163,7 @@ public final class PortfolioScreen extends Screen {
                     else {
                         selected.extra = (int) v;
                         Portfolio.changed();
-                        status = "Extra amount set (copies SkyJew can't see, e.g. applied skins).";
+                        status = "Extra amount set (copies SkyBalls can't see, e.g. applied skins).";
                     }
                 }).bounds(bx + 54, by, 60, 20).build());
                 bx += 120;

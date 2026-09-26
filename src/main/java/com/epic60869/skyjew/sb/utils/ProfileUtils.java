@@ -10,6 +10,6 @@ public final class ProfileUtils {
 	private ProfileUtils() {}
 
 	public static CompletableFuture<JsonObject> fetchProfileMember(String name) {
-		return CompletableFuture.failedFuture(new UnsupportedOperationException("Hypixel API lookups are not available in SkyJew"));
+		return CompletableFuture.failedFuture(new UnsupportedOperationException("Hypixel API lookups are not available in SkyBalls"));
 	}
 }

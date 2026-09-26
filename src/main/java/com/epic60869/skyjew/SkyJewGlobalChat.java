@@ -48,15 +48,15 @@ public final class SkyJewGlobalChat {
 
     public static void enterSkyJewChannel() {
         inSkyJewChannel = true;
-        mcMessage(Component.literal("You are now in the SkyJew channel")
+        mcMessage(Component.literal("You are now in the SkyBalls channel")
             .withStyle(Style.EMPTY.withColor(0x55FFFF).withBold(true))
-            .append(Component.literal(" — anything you type will be sent to SkyJew chat.")
+            .append(Component.literal(" — anything you type will be sent to SkyBalls chat.")
                 .withStyle(Style.EMPTY.withColor(0xAAAAAA))));
     }
 
     public static void leaveSkyJewChannel() {
         inSkyJewChannel = false;
-        mcMessage(Component.literal("You have left the SkyJew channel.")
+        mcMessage(Component.literal("You have left the SkyBalls channel.")
             .withStyle(Style.EMPTY.withColor(0xFFAA00).withBold(true)));
     }
 
@@ -75,7 +75,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SJ] Bot command is still connecting...")
+            mcMessage(Component.literal("[SB] Bot command is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -85,7 +85,7 @@ public final class SkyJewGlobalChat {
         packet.addProperty("username", username);
         packet.addProperty("command", clean.substring(0, Math.min(clean.length(), 500)));
         ws.sendText(GSON.toJson(packet), true);
-        mcMessage(Component.literal("[SJ] Sending " + clean).withStyle(Style.EMPTY.withColor(0xAAAAAA)));
+        mcMessage(Component.literal("[SB] Sending " + clean).withStyle(Style.EMPTY.withColor(0xAAAAAA)));
     }
 
     public static void send(String message) {
@@ -99,7 +99,7 @@ public final class SkyJewGlobalChat {
                 PENDING_MESSAGES.offer(clean.substring(0, Math.min(clean.length(), 500)));
             }
             connect();
-            mcMessage(Component.literal("[SJ] Global chat is connecting; your message will be sent when connected.")
+            mcMessage(Component.literal("[SB] Global chat is connecting; your message will be sent when connected.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -187,7 +187,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SJ] Discord is still connecting...")
+            mcMessage(Component.literal("[SB] Discord is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -204,13 +204,13 @@ public final class SkyJewGlobalChat {
         String cleanMessage = String.valueOf(message == null ? "" : message).trim();
 
         if (cleanTarget.isEmpty()) {
-            mcMessage(Component.literal("[SJ] Usage: /sj dm <discord-user> <message/link>")
+            mcMessage(Component.literal("[SB] Usage: /sb dm <discord-user> <message/link>")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
 
         if (cleanMessage.isEmpty()) {
-            mcMessage(Component.literal("[SJ] The Discord DM cannot be empty.")
+            mcMessage(Component.literal("[SB] The Discord DM cannot be empty.")
                 .withStyle(Style.EMPTY.withColor(0xFF5555)));
             return;
         }
@@ -224,7 +224,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SJ] Discord link is still connecting. Try again in a moment.")
+            mcMessage(Component.literal("[SB] Discord link is still connecting. Try again in a moment.")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }
@@ -247,7 +247,7 @@ public final class SkyJewGlobalChat {
                     if (relayIndex + 1 < RELAY_URLS.length) {
                         relayIndex++;
                     }
-                    mcMessage(Component.literal("[SJ] Global chat connection failed: "
+                    mcMessage(Component.literal("[SB] Global chat connection failed: "
                         + shortError(error) + " — retrying.")
                         .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     scheduleReconnect();
@@ -390,6 +390,12 @@ public final class SkyJewGlobalChat {
                 JsonObject packet = JsonParser.parseString(raw).getAsJsonObject();
                 String type = packet.has("type") ? packet.get("type").getAsString() : "";
 
+                // The website changed someone's rank: reload them now instead of waiting for the next check.
+                if ("ranksUpdated".equals(type) || "ranks".equals(type)) {
+                    SkyJewStaff.refreshNow();
+                    return;
+                }
+
                 if ("nicknameUpdate".equals(type)) {
                     try {
                         UUID uuid = UUID.fromString(packet.get("minecraftUuid").getAsString());
@@ -427,10 +433,10 @@ public final class SkyJewGlobalChat {
                     String detail = packet.has("message") ? packet.get("message").getAsString() : "";
 
                     if (ok) {
-                        mcMessage(Component.literal("[SJ] Discord DM sent to " + target + ".")
+                        mcMessage(Component.literal("[SB] Discord DM sent to " + target + ".")
                             .withStyle(Style.EMPTY.withColor(0x55FF55)));
                     } else {
-                        mcMessage(Component.literal("[SJ] Discord DM failed: " + detail)
+                        mcMessage(Component.literal("[SB] Discord DM failed: " + detail)
                             .withStyle(Style.EMPTY.withColor(0xFF5555)));
                     }
                     return;
@@ -470,7 +476,7 @@ public final class SkyJewGlobalChat {
                 if (name.isBlank()) name = "Unknown";
 
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
-                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
+                String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SB]";
 
                 if (SkyJewNickFilter.isBlocked(displayName, messageUuid)) displayName = name;
                 Component shownName;
@@ -480,9 +486,14 @@ public final class SkyJewGlobalChat {
                     shownName = SkyJewNick.displayName(displayName);
                 }
                 Component messageComponent = SkyJewNopoFeatures.replaceChatEmojis(Component.literal(message));
-                MutableComponent line = Component.literal(prefix + " ");
-                // Staff prefix, by account UUID, only for messages sent from the mod (not Discord).
-                MutableComponent staff = "discord".equalsIgnoreCase(source) ? null : SkyJewStaff.prefix(messageUuid);
+                // [SB] in dark green, like Hypixel's "Guild >".
+                MutableComponent line = Component.empty()
+                    .append(Component.literal(prefix).withStyle("[SB]".equals(prefix) ? net.minecraft.ChatFormatting.DARK_GREEN : net.minecraft.ChatFormatting.BLUE))
+                    .append(Component.literal(" "));
+                // Rank prefix, by account UUID, only for messages sent from the mod (not Discord), if turned on.
+                SkyJewConfig rankConfig = SkyJewConfig.current();
+                boolean showRanks = rankConfig == null || rankConfig.chat.customChat.showRanks;
+                MutableComponent staff = "discord".equalsIgnoreCase(source) || !showRanks ? null : SkyJewStaff.prefix(messageUuid);
                 if (staff != null) line.append(staff);
                 int level = packet.has("level") ? packet.get("level").getAsInt() : 0;
                 if (level > 0) {
@@ -507,6 +518,14 @@ public final class SkyJewGlobalChat {
                 SkyJewConfig chatConfig = SkyJewConfig.current();
                 if (chatConfig != null && !chatConfig.chat.customChat.showSjChat) return;
                 mcMessage(line);
+                // Optional ping for other players' messages.
+                java.util.UUID self = Minecraft.getInstance().getUser().getProfileId();
+                if (chatConfig != null && chatConfig.chat.customChat.pingSound && (messageUuid == null || !messageUuid.equals(self))) {
+                    Minecraft mc = Minecraft.getInstance();
+                    mc.execute(() -> {
+                        if (mc.player != null) mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.5f, 1.8f);
+                    });
+                }
             } catch (Exception ignored) {
             }
         }

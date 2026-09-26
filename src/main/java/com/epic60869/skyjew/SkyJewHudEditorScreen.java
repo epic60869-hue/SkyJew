@@ -21,7 +21,7 @@ public final class SkyJewHudEditorScreen extends Screen {
     private int dragOffsetY;
 
     public SkyJewHudEditorScreen(Screen parent) {
-        super(Component.literal("SkyJew Position Editor"));
+        super(Component.literal("SkyBalls Position Editor"));
         this.parent = parent;
     }
 
@@ -82,7 +82,7 @@ public final class SkyJewHudEditorScreen extends Screen {
         g.fill(width / 2 - 1, 0, width / 2 + 1, height, 0x18FFFFFF);
         g.fill(0, height / 2 - 1, width, height / 2 + 1, 0x18FFFFFF);
 
-        g.text(font, Component.literal("SkyJew Position Editor"), 18, 18, 0xFFFFFFFF, true);
+        g.text(font, Component.literal("SkyBalls Position Editor"), 18, 18, 0xFFFFFFFF, true);
         g.text(font, Component.literal("Drag to move • Scroll to resize • Right-click toggles background • Arrow keys move"), 18, 36, 0xFFB8BEC9, false);
 
         EditableHud hovered = null;
@@ -119,7 +119,7 @@ public final class SkyJewHudEditorScreen extends Screen {
             g.text(font, Component.literal("Scroll to resize"), tx + 8, ty + 51, 0xFF9EA5B1, false);
             g.text(font, Component.literal("Right-click: background " + (hovered.background() ? "ON" : "OFF")), tx + 8, ty + 65, 0xFF9EA5B1, false);
         } else if (selected == null) {
-            g.text(font, Component.literal("SkyJew Position Editor"), 18, height - 42, 0xFF9097A3, true);
+            g.text(font, Component.literal("SkyBalls Position Editor"), 18, height - 42, 0xFF9097A3, true);
             g.text(font, Component.literal("Select a HUD element to edit its position and scale."), 18, height - 26, 0xFF707783, false);
         }
 

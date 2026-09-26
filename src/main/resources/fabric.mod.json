@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "skyjew",
   "version": "${version}",
-  "name": "SkyJew",
-  "description": "SkyJew utilities and Hypixel SkyBlock features.",
+  "name": "SkyBalls",
+  "description": "SkyBalls utilities and Hypixel SkyBlock features.",
   "authors": [
     "2m3s"
   ],

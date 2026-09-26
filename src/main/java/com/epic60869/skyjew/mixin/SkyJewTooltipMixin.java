@@ -22,7 +22,7 @@ public abstract class SkyJewTooltipMixin {
         try {
             scrolling = ScrollableTooltips.decorate(lines, x, y, positioner);
         } catch (Throwable t) {
-            System.err.println("[SkyJew] Tooltip scroll failed: " + t);
+            System.err.println("[SkyBalls] Tooltip scroll failed: " + t);
         }
         return original.call(scrolling, screenWidth, screenHeight, x, y, width, height);
     }

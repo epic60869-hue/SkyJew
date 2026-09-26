@@ -155,7 +155,7 @@ public final class FeatureConfigs {
         public boolean crystalHollowsMap = true;
 
         @Expose
-        @ConfigOption(name = "Crystal Hollows Waypoints", desc = "Mark Mines of Divan, Jungle Temple, Goblin Queen's Den and other places when you find them, like Skyblocker. /sj crystalwaypoints add|share|remove|clear.")
+        @ConfigOption(name = "Crystal Hollows Waypoints", desc = "Mark Mines of Divan, Jungle Temple, Goblin Queen's Den and other places when you find them, like Skyblocker. /sb crystalwaypoints add|share|remove|clear.")
         @ConfigEditorBoolean
         public boolean crystalWaypoints = true;
 
@@ -165,7 +165,7 @@ public final class FeatureConfigs {
         public boolean crystalWaypointsFromChat = true;
 
         @Expose
-        @ConfigOption(name = "Pickaxe Ability HUD", desc = "Cooldown of your pickaxe ability (Mining Speed Boost, Pickobulus, ...) while mining. Move it in /sj gui.")
+        @ConfigOption(name = "Pickaxe Ability HUD", desc = "Cooldown of your pickaxe ability (Mining Speed Boost, Pickobulus, ...) while mining. Move it in /sb gui.")
         @ConfigEditorBoolean
         public boolean pickaxeAbilityHud = true;
 
@@ -185,7 +185,7 @@ public final class FeatureConfigs {
         public boolean mineshaftTimer = true;
 
         @Expose
-        @ConfigOption(name = "Pristine Record", desc = "Keep your highest pristine proc, overall and per gemstone, and alert on a new PB. /sj pristine to see them.")
+        @ConfigOption(name = "Pristine Record", desc = "Keep your highest pristine proc, overall and per gemstone, and alert on a new PB. /sb pristine to see them.")
         @ConfigEditorBoolean
         public boolean pristineRecord = true;
     }
@@ -279,7 +279,7 @@ public final class FeatureConfigs {
 
         @Expose
         @Accordion
-        @ConfigOption(name = "Positional Messages", desc = "Party messages sent when you reach a spot (/sj posmsg), plus built-in waypoints like Py Stand Here.")
+        @ConfigOption(name = "Positional Messages", desc = "Party messages sent when you reach a spot (/sb posmsg), plus built-in waypoints like Py Stand Here.")
         public PositionalMessages positionalMessages = new PositionalMessages();
 
         @Expose
@@ -430,7 +430,7 @@ public final class FeatureConfigs {
         public boolean secretWaypoints = true;
 
         @Expose
-        @ConfigOption(name = "Show Routes", desc = "Show a secret route for the current room: yours if you recorded one, otherwise Stella's. Record with /sj route start and /sj route stop; share with /sj export; import a Stella (or SecretRoutes) export with /sj route import (clipboard) or /sj route import <file>.")
+        @ConfigOption(name = "Show Routes", desc = "Show a secret route for the current room: yours if you recorded one, otherwise Stella's. Record with /sb route start and /sb route stop; share with /sb export; import a Stella (or SecretRoutes) export with /sb route import (clipboard) or /sb route import <file>.")
         @ConfigEditorBoolean
         public boolean routes = true;
 
@@ -615,22 +615,22 @@ public final class FeatureConfigs {
         public boolean alert300 = true;
 
         @Expose
-        @ConfigOption(name = "Send 270 to Party", desc = "Also send \"[SJ] 270 Score Reached!\" to party chat.")
+        @ConfigOption(name = "Send 270 to Party", desc = "Also send \"[SB] 270 Score Reached!\" to party chat.")
         @ConfigEditorBoolean
         public boolean party270 = false;
 
         @Expose
-        @ConfigOption(name = "Send 300 to Party", desc = "Also send \"[SJ] 300 Score Reached!\" to party chat.")
+        @ConfigOption(name = "Send 300 to Party", desc = "Also send \"[SB] 300 Score Reached!\" to party chat.")
         @ConfigEditorBoolean
         public boolean party300 = false;
 
         @Expose
-        @ConfigOption(name = "270 Message", desc = "Text for the 270 title and party message. [score] is replaced with the score. Party messages start with [SJ].")
+        @ConfigOption(name = "270 Message", desc = "Text for the 270 title and party message. [score] is replaced with the score. Party messages start with [SB].")
         @ConfigEditorText
         public String message270 = "270 Score Reached!";
 
         @Expose
-        @ConfigOption(name = "300 Message", desc = "Text for the 300 title and party message. [score] is replaced with the score. Party messages start with [SJ].")
+        @ConfigOption(name = "300 Message", desc = "Text for the 300 title and party message. [score] is replaced with the score. Party messages start with [SB].")
         @ConfigEditorText
         public String message300 = "300 Score Reached!";
 
@@ -838,7 +838,7 @@ public final class FeatureConfigs {
 
     public static final class PositionalMessages {
         @Expose
-        @ConfigOption(name = "Enabled", desc = "Send your positional messages to party chat when you reach them. Add them with /sj posmsg add here <radius> <delay ticks> <message>.")
+        @ConfigOption(name = "Enabled", desc = "Send your positional messages to party chat when you reach them. Add them with /sb posmsg add here <radius> <delay ticks> <message>.")
         @ConfigEditorBoolean
         public boolean enabled = true;
 
@@ -868,7 +868,7 @@ public final class FeatureConfigs {
         public float messageSize = 1f;
 
         @Expose
-        @ConfigOption(name = "Built-in Waypoints", desc = "Show SkyJew's hard-coded waypoints on floor 7: Py Stand Here (95, 165.5, 94.4) in Storm when you are Mage, Mage Stop (34, 169, 65) in Storm when you are Mage, Arch Stand Here (102-104, 168, 49) in Storm when you are Archer, Tank Stand Here (109, 170, 93) in Storm when you are Tank, Healer Stand Here After Lighting (58, 169, 66) in Storm when you are Healer, and SS during Goldor (until Necron) when you are Healer: the block at 109, 120, 93 is highlighted and standing at 108, 120, 93 sends \"At SS\" to party chat once.")
+        @ConfigOption(name = "Built-in Waypoints", desc = "Show SkyBalls's hard-coded waypoints on floor 7: Py Stand Here (95, 165.5, 94.4) in Storm when you are Mage, Mage Stop (34, 169, 65) in Storm when you are Mage, Arch Stand Here (102-104, 168, 49) in Storm when you are Archer, Tank Stand Here (109, 170, 93) in Storm when you are Tank, Healer Stand Here After Lighting (58, 169, 66) in Storm when you are Healer, and SS during Goldor (until Necron) when you are Healer: the block at 109, 120, 93 is highlighted and standing at 108, 120, 93 sends \"At SS\" to party chat once.")
         @ConfigEditorBoolean
         public boolean builtInWaypoints = true;
 
@@ -927,11 +927,11 @@ public final class FeatureConfigs {
 
     public static final class ItemNotification {
         @Expose
-        @ConfigOption(name = "Enabled", desc = "Show items from your list on a HUD when you get them (in your sacks or your inventory), like the farming RNG HUD: amount, name and total price. Move it in /sj gui.")
+        @ConfigOption(name = "Enabled", desc = "Show items from your list on a HUD when you get them (in your sacks or your inventory), like the farming RNG HUD: amount, name and total price. Move it in /sb gui.")
         @ConfigEditorBoolean
         public boolean enabled = false;
 
-        @ConfigOption(name = "Items", desc = "Open the list of items to watch for: one per line, with item name suggestions as you type. Also /sj itemnotify.")
+        @ConfigOption(name = "Items", desc = "Open the list of items to watch for: one per line, with item name suggestions as you type. Also /sb itemnotify.")
         @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton(buttonText = "EDIT")
         public Runnable editItems = com.epic60869.skyjew.features.misc.ItemNotification::openEditor;
 
@@ -982,7 +982,7 @@ public final class FeatureConfigs {
         public boolean enabled = false;
 
         @Expose
-        @ConfigOption(name = "Players", desc = "Names to welcome, separated by commas. You can also use /sj welcome add <name> and /sj welcome remove <name>.")
+        @ConfigOption(name = "Players", desc = "Names to welcome, separated by commas. You can also use /sb welcome add <name> and /sb welcome remove <name>.")
         @ConfigEditorText
         public String names = "";
 

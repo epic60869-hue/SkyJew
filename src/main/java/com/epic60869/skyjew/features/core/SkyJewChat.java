@@ -41,7 +41,7 @@ public final class SkyJewChat {
             try {
                 listener.onMessage(component, overlay);
             } catch (Exception e) {
-                System.err.println("[SkyJew] Chat listener failed: " + e);
+                System.err.println("[SkyBalls] Chat listener failed: " + e);
             }
         }
         dispatch(overlay ? ACTION_BAR : CHAT, component);
@@ -54,7 +54,7 @@ public final class SkyJewChat {
             try {
                 listener.onMessage(message);
             } catch (Exception e) {
-                System.err.println("[SkyJew] Chat listener failed: " + e);
+                System.err.println("[SkyBalls] Chat listener failed: " + e);
             }
         }
     }

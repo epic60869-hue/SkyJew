@@ -96,7 +96,7 @@ public final class SkyJewCraftHelper {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load craft helper: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load craft helper: " + e.getMessage());
         }
     }
 
@@ -204,7 +204,7 @@ public final class SkyJewCraftHelper {
             }
             Files.writeString(file, root.toString(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to save craft helper: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save craft helper: " + e.getMessage());
         }
     }
 

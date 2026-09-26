@@ -63,18 +63,23 @@ public final class SkyJewStaff {
     public static synchronized void init() {
         if (scheduler != null) return;
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread thread = new Thread(r, "SkyJew rank sync");
+            Thread thread = new Thread(r, "SkyBalls rank sync");
             thread.setDaemon(true);
             return thread;
         });
         scheduler.scheduleWithFixedDelay(SkyJewStaff::refresh, 0, REFRESH_MINUTES, TimeUnit.MINUTES);
     }
 
+    /** Reloads the ranks right away (the relay sends "ranksUpdated" when they change on the website). */
+    public static void refreshNow() {
+        if (scheduler != null) scheduler.execute(SkyJewStaff::refresh);
+    }
+
     private static void refresh() {
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(RANKS_URL))
                 .timeout(Duration.ofSeconds(10))
-                .header("User-Agent", "SkyJew")
+                .header("User-Agent", "SkyBalls")
                 .GET().build();
             HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return; // keep what we have
@@ -91,7 +96,7 @@ public final class SkyJewStaff {
             }
             remote = Map.copyOf(parsed);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not load ranks from tastyfish.org: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not load ranks from tastyfish.org: " + e.getMessage());
         }
     }
 

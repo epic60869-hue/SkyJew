@@ -36,9 +36,9 @@ public class RepoDyeColors {
 			Dyes dyes = Dyes.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(RepoItems.neuRepoFile("constants/dyes.json"))).getOrThrow();
 			STATIC_DYES.putAll(dyes.staticDyes);
 			ANIMATED_DYES.putAll(dyes.animatedDyes);
-			LOGGER.info("[SkyJew] Successfully loaded {} static dyes and {} animated dyes from repo.", STATIC_DYES.size(), ANIMATED_DYES.size());
+			LOGGER.info("[SkyBalls] Successfully loaded {} static dyes and {} animated dyes from repo.", STATIC_DYES.size(), ANIMATED_DYES.size());
 		} catch (Exception ex) {
-			LOGGER.info("[SkyJew] Failed to load dyes from repo", ex);
+			LOGGER.info("[SkyBalls] Failed to load dyes from repo", ex);
 		}
 	}
 

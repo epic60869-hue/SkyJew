@@ -72,7 +72,7 @@ public final class SkyJewNickScreen extends Screen {
     private int leftX, midX, rightX, panelY, panelH, leftW, midW, rightW;
 
     public SkyJewNickScreen(Screen parent) {
-        super(Component.literal("SkyJew Nickname").withStyle(ChatFormatting.GRAY));
+        super(Component.literal("SkyBalls Nickname").withStyle(ChatFormatting.GRAY));
         this.parent = parent;
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
@@ -268,7 +268,7 @@ public final class SkyJewNickScreen extends Screen {
         if (config != null) {
             String name = nameBox.getValue().trim();
             if (SkyJewNickFilter.isBlocked(name, minecraft.getUser().getProfileId())) {
-                minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SJ] That nickname isn't allowed.").withStyle(ChatFormatting.RED));
+                minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SB] That nickname isn't allowed.").withStyle(ChatFormatting.RED));
                 return false;
             }
             config.misc.nickname.name = name;
@@ -287,7 +287,7 @@ public final class SkyJewNickScreen extends Screen {
     @Override
     public void onClose() {
         if (!save()) {
-            minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SJ] Your nickname wasn't changed.").withStyle(ChatFormatting.GRAY));
+            minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SB] Your nickname wasn't changed.").withStyle(ChatFormatting.GRAY));
         }
         close();
     }
@@ -302,7 +302,7 @@ public final class SkyJewNickScreen extends Screen {
         FontButton(int x, int y, int w) {
             super(x, y, w, 20, Component.literal("Font"));
             setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
-                "Click ◀ for the previous font and ▶ for the next one.\nLetter fonts (Script, Bubble, ...) are seen by every SkyJew user.")));
+                "Click ◀ for the previous font and ▶ for the next one.\nLetter fonts (Script, Bubble, ...) are seen by every SkyBalls user.")));
         }
 
         @Override
@@ -374,6 +374,9 @@ public final class SkyJewNickScreen extends Screen {
         public void onClick(MouseButtonEvent click, boolean doubled) {
             style = name;
             customHex = "";
+            // Show the preset in the colour picker and hex box too.
+            if (picker != null) picker.setARGBColor(colour);
+            if (hexInput != null) hexInput.setARGBColor(colour);
         }
 
         @Override

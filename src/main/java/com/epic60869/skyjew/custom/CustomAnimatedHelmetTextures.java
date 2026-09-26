@@ -50,7 +50,7 @@ public class CustomAnimatedHelmetTextures {
 				STATE_TRACKERS.clear();
 			});
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew Custom Animated Helmet Textures] Failed to load animated heads file.", e);
+			LOGGER.error("[SkyBalls Custom Animated Helmet Textures] Failed to load animated heads file.", e);
 		}
 	}
 

@@ -364,7 +364,7 @@ public final class DungeonFeatures {
                 if (loaded != null) personalBests = new HashMap<>(loaded);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read split PBs: " + e);
+            System.err.println("[SkyBalls] Could not read split PBs: " + e);
         }
     }
 
@@ -372,7 +372,7 @@ public final class DungeonFeatures {
         try {
             Files.writeString(pbFile, GSON.toJson(personalBests), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save split PBs: " + e);
+            System.err.println("[SkyBalls] Could not save split PBs: " + e);
         }
     }
 

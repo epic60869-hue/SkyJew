@@ -80,7 +80,7 @@ public final class SkyJewCurrentChat {
     private static Component display() {
         MutableComponent line = Component.literal("Chat: ").withStyle(ChatFormatting.GREEN);
         if (SkyJewGlobalChat.isInSkyJewChannel()) {
-            return line.append(Component.literal("SkyJew").withStyle(ChatFormatting.LIGHT_PURPLE));
+            return line.append(Component.literal("SkyBalls").withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         return switch (channel) {
             case "PARTY" -> line.append(Component.literal("Party").withStyle(ChatFormatting.BLUE));

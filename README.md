@@ -1,8 +1,8 @@
-# SkyJew Mod
+# SkyBalls Mod
 
 An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are not case-sensitive.
 
-- `/sj` opens the settings; `/sj gui` moves and resizes every HUD.
+- `/sb` opens the settings; `/sb gui` moves and resizes every HUD.
 - What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
@@ -17,9 +17,9 @@ An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are no
 
 ## Commands
 
-`/sj` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `waypoints` · `crystalwaypoints` · `log` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
+`/sb` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `waypoints` · `crystalwaypoints` · `log` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
 
-`/sjc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyjew` works the same as `/sj`.
+`/sbc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyjew` works the same as `/sb`.
 
 ## Credits
 

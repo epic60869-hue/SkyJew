@@ -57,14 +57,14 @@ import com.epic60869.skyjew.SkyJewCustom;
  */
 public final class Compat {
 	public static final String NAMESPACE = "skyjew";
-	public static final String[] COMMAND_ROOTS = {"sj", "skyjew"};
+	public static final String[] COMMAND_ROOTS = {"sb", "skyballs", "sj", "skyjew"};
 	public static final String UUID = "uuid";
 	public static final int PLACEHOLDER_ID = -1;
 	public static final NumberFormat DOUBLE_NUMBERS = net.minecraft.util.Util.make(NumberFormat.getInstance(Locale.US), nf -> nf.setMaximumFractionDigits(2));
 	public static final Function<ChatFormatting, Component> FORMATTING_FORMATTER = formatting -> Component.literal(StringUtils.capitalize(formatting.name().replaceAll("_", " ")));
 	public static final Supplier<MutableComponent> PREFIX = () -> Component.empty()
 			.append(Component.literal("[").withStyle(ChatFormatting.GRAY))
-			.append(Component.literal("SJ").withStyle(ChatFormatting.AQUA))
+			.append(Component.literal("SB").withStyle(ChatFormatting.AQUA))
 			.append(Component.literal("] ").withStyle(ChatFormatting.GRAY));
 
 	private static final HolderLookup.Provider LOOKUP = VanillaRegistries.createLookup();

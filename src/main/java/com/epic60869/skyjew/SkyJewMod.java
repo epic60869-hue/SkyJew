@@ -79,7 +79,7 @@ public final class SkyJewMod implements ClientModInitializer {
 
         registerCommands();
 
-        System.out.println("[SkyJew] Core mod loaded.");
+        System.out.println("[SkyBalls] Core mod loaded.");
     }
 
     private void registerCommands() {
@@ -97,13 +97,15 @@ public final class SkyJewMod implements ClientModInitializer {
             return true;
         });
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(commandTree("sj"));
-            dispatcher.register(commandTree("skyjew"));
-            // /sjc: shortcut for /sj chat.
-            dispatcher.register(ClientCommands.literal("sjc")
-                .executes(context -> enterSkyJewChat())
-                .then(ClientCommands.argument("message", StringArgumentType.greedyString())
-                    .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))));
+            // /sb and /skyballs; /sj and /skyjew from before the rename still work.
+            for (String root : com.epic60869.skyjew.custom.util.Compat.COMMAND_ROOTS) dispatcher.register(commandTree(root));
+            // /sbc (and the old /sjc): shortcut for /sb chat.
+            for (String chat : new String[]{"sbc", "sjc"}) {
+                dispatcher.register(ClientCommands.literal(chat)
+                    .executes(context -> enterSkyJewChat())
+                    .then(ClientCommands.argument("message", StringArgumentType.greedyString())
+                        .executes(context -> sendGlobalChat(StringArgumentType.getString(context, "message")))));
+            }
         });
     }
 
@@ -195,13 +197,13 @@ public final class SkyJewMod implements ClientModInitializer {
             String result = SkyJewCalculator.calculate(expression);
             if (mc.player != null) {
                 mc.gui.hud.getChat().addClientSystemMessage(
-                    net.minecraft.network.chat.Component.literal("§6[SJ] §f" + expression + " §7= §a" + result)
+                    net.minecraft.network.chat.Component.literal("§6[SB] §f" + expression + " §7= §a" + result)
                 );
             }
         } catch (IllegalArgumentException e) {
             if (mc.player != null) {
                 mc.gui.hud.getChat().addClientSystemMessage(
-                    net.minecraft.network.chat.Component.literal("§c[SJ] Calc error: §f" + e.getMessage())
+                    net.minecraft.network.chat.Component.literal("§c[SB] Calc error: §f" + e.getMessage())
                 );
             }
         }

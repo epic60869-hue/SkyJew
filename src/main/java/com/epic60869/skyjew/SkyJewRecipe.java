@@ -104,7 +104,7 @@ public final class SkyJewRecipe {
         HypixelItem item = find(itemInput);
         if (item == null) {
             mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
-                "§c[SJ] Unknown Hypixel item: §f" + itemInput
+                "§c[SB] Unknown Hypixel item: §f" + itemInput
                     + " §7— use autocomplete or wait for the item list to load."
             ));
             refreshAsync();
@@ -113,7 +113,7 @@ public final class SkyJewRecipe {
 
         mc.player.connection.sendCommand("viewrecipe " + item.id);
         mc.gui.hud.getChat().addClientSystemMessage(Component.literal(
-            "§d[SJ] §fRecipe: §a" + amount + "x §f" + item.name
+            "§d[SB] §fRecipe: §a" + amount + "x §f" + item.name
                 + " §7(" + item.id + ")"
         ));
         return 1;
@@ -144,7 +144,7 @@ public final class SkyJewRecipe {
                 HttpURLConnection connection = (HttpURLConnection) URI.create(ITEMS_URL).toURL().openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(10000);
-                connection.setRequestProperty("User-Agent", "SkyJew/1.0");
+                connection.setRequestProperty("User-Agent", "SkyBalls/1.0");
 
                 try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
@@ -170,14 +170,14 @@ public final class SkyJewRecipe {
                             .sorted(Comparator.comparing(item -> item.name.toLowerCase(Locale.ROOT)))
                             .forEach(item -> ITEMS.put(normalize(item.id), item));
                         loadedAt = System.currentTimeMillis();
-                        System.out.println("[SkyJew] Loaded " + ITEMS.size()
-                            + " Hypixel SkyBlock items for /sj recipe.");
+                        System.out.println("[SkyBalls] Loaded " + ITEMS.size()
+                            + " Hypixel SkyBlock items for /sb recipe.");
                     }
                 } finally {
                     connection.disconnect();
                 }
             } catch (Exception e) {
-                System.err.println("[SkyJew] Failed to load Hypixel item list: " + e.getMessage());
+                System.err.println("[SkyBalls] Failed to load Hypixel item list: " + e.getMessage());
             } finally {
                 loading = false;
             }

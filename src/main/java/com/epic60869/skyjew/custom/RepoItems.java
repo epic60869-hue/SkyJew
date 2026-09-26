@@ -59,7 +59,7 @@ public final class RepoItems {
 
 	public static void runAsync(Runnable runnable) {
 		CompletableFuture.runAsync(runnable).exceptionally(e -> {
-			LOGGER.error("[SkyJew] Repo task failed", e);
+			LOGGER.error("[SkyBalls] Repo task failed", e);
 			return null;
 		});
 	}
@@ -164,10 +164,10 @@ public final class RepoItems {
 				ITEMS.putAll(loaded);
 			}
 			itemsLoaded = true;
-			LOGGER.info("[SkyJew] Loaded {} SkyBlock items", loaded.size());
+			LOGGER.info("[SkyBalls] Loaded {} SkyBlock items", loaded.size());
 			runPendingCallbacks();
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew] Failed to load SkyBlock items", e);
+			LOGGER.error("[SkyBalls] Failed to load SkyBlock items", e);
 		}
 	}
 
@@ -188,7 +188,7 @@ public final class RepoItems {
 	private static String fetch(String url) throws IOException, InterruptedException {
 		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
 				.timeout(Duration.ofSeconds(15))
-				.header("User-Agent", "SkyJew/1.0")
+				.header("User-Agent", "SkyBalls/1.0")
 				.GET().build();
 		HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 		if (response.statusCode() != 200) throw new IOException("HTTP " + response.statusCode() + " for " + url);

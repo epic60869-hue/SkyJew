@@ -35,7 +35,7 @@ public final class SkyJewConfig extends Config {
     private static ManagedConfig<SkyJewConfig> managed;
 
     @Expose
-    @Category(name = "General", desc = "Core SkyJew settings and utilities.")
+    @Category(name = "General", desc = "Core SkyBalls settings and utilities.")
     public General general = new General();
 
     @Expose
@@ -171,11 +171,11 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Item Custom", desc = "Item and armor customization settings.")
         public ItemCustom itemCustom = new ItemCustom();
 
-        @ConfigOption(name = "Notes", desc = "Open your SkyJew notes.")
+        @ConfigOption(name = "Notes", desc = "Open your SkyBalls notes.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable notes = () -> openNotes();
 
-        @ConfigOption(name = "Command Keys", desc = "Configure SkyJew command shortcuts.")
+        @ConfigOption(name = "Command Keys", desc = "Configure SkyBalls command shortcuts.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable commandKeys = () -> openCommandKeys();
 
@@ -201,7 +201,7 @@ public final class SkyJewConfig extends Config {
     public static final class Chat {
         @Expose
         @Accordion
-        @ConfigOption(name = "Custom Chat", desc = "Control how SkyJew command output from other players appears in chat.")
+        @ConfigOption(name = "Custom Chat", desc = "Control how SkyBalls command output from other players appears in chat.")
         public CustomChat customChat = new CustomChat();
 
         @Expose
@@ -210,29 +210,34 @@ public final class SkyJewConfig extends Config {
         public boolean compactChat = true;
 
         @Expose
-        @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyJew emoji sprites and provide emoji autocomplete while typing chat.")
+        @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyBalls emoji sprites and provide emoji autocomplete while typing chat.")
         @ConfigEditorBoolean
         public boolean chatEmoji = true;
 
         @Expose
-        @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyJew chat) just above the chat box while it is open.")
+        @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyBalls chat) just above the chat box while it is open.")
         @ConfigEditorBoolean
         public boolean currentChatDisplay = true;
     }
 
     public static final class CustomChat {
         @Expose
-        @ConfigOption(name = "Show SJ Chat", desc = "Show SkyJew chat (/sjc) messages from other players. Off hides them; you can still send with /sjc.")
+        @ConfigOption(name = "Show SB Chat", desc = "Show SkyBalls chat (/sbc) messages from other players. Off hides them; you can still send with /sbc.")
         @ConfigEditorBoolean
         public boolean showSjChat = true;
 
         @Expose
-        @ConfigOption(name = "Ranks In All Chat", desc = "Show SkyJew ranks ([OWNER], [TESTER], ...) in front of those players' names in every chat, not only /sjc.")
+        @ConfigOption(name = "Show Ranks", desc = "Show SkyBalls ranks ([OWNER], [TESTER], ...) in front of names in /sbc. Turn off to hide them.")
         @ConfigEditorBoolean
-        public boolean ranksInAllChat = true;
+        public boolean showRanks = true;
 
         @Expose
-        @ConfigOption(name = "Hide Other Players' Commands", desc = "Hide SkyJew command result messages when they belong to another player. Your own command results remain visible.")
+        @ConfigOption(name = "SB Chat Ping", desc = "Play a little ping when someone sends a message in /sbc.")
+        @ConfigEditorBoolean
+        public boolean pingSound = false;
+
+        @Expose
+        @ConfigOption(name = "Hide Other Players' Commands", desc = "Hide SkyBalls command result messages when they belong to another player. Your own command results remain visible.")
         @ConfigEditorBoolean
         public boolean hideOtherCommands = true;
     }
@@ -316,7 +321,7 @@ public final class SkyJewConfig extends Config {
         @Expose
         public int y = 8;
 
-        @ConfigOption(name = "Edit Position", desc = "Open the SkyJew HUD editor and drag the Farming RNG HUD.")
+        @ConfigOption(name = "Edit Position", desc = "Open the SkyBalls HUD editor and drag the Farming RNG HUD.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable editPosition = () -> openRngEditor();
     }
@@ -478,7 +483,7 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
-        @ConfigOption(name = "Held Item Model", desc = "Move, rotate and scale the item in your hand and change your swing speed, like Skysoft. /sj helditem save stores the settings for the held item only.")
+        @ConfigOption(name = "Held Item Model", desc = "Move, rotate and scale the item in your hand and change your swing speed, like Skysoft. /sb helditem save stores the settings for the held item only.")
         public HeldItemModel heldItemModel = new HeldItemModel();
 
         @Expose
@@ -492,7 +497,7 @@ public final class SkyJewConfig extends Config {
         public MouseReset mouseReset = new MouseReset();
 
         @Expose
-        @ConfigOption(name = "Recipe HUD", desc = "While a /sj recipe is selected, show a movable HUD with the item and the base ingredients you still need (like SkyOcean's craft helper overlay). Move it in /sj gui.")
+        @ConfigOption(name = "Recipe HUD", desc = "While a /sb recipe is selected, show a movable HUD with the item and the base ingredients you still need (like SkyOcean's craft helper overlay). Move it in /sb gui.")
         @ConfigEditorBoolean
         public boolean recipeHud = true;
 
@@ -512,12 +517,12 @@ public final class SkyJewConfig extends Config {
         public boolean pricePaid = true;
 
         @Expose
-        @ConfigOption(name = "Update Notifications", desc = "Tell you in chat when a newer SkyJew version is out (\"New SkyJew Mod Version 1.2.3 --> 1.2.5\"), with a download link.")
+        @ConfigOption(name = "Update Notifications", desc = "Tell you in chat when a newer SkyBalls version is out (\"New SkyBalls Mod Version 1.2.3 --> 1.2.5\"), with a download link.")
         @ConfigEditorBoolean
         public boolean updateNotifications = true;
 
         @Expose
-        @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sj gui.")
+        @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sb gui.")
         @ConfigEditorBoolean
         public boolean collectionTracker = true;
 
@@ -555,7 +560,7 @@ public final class SkyJewConfig extends Config {
         public boolean toggleSprint = false;
 
         @Expose
-        @ConfigOption(name = "Toggle Sprint HUD", desc = "Show [Sprinting (Toggled)] while toggle sprint is on. Move it in /sj gui.")
+        @ConfigOption(name = "Toggle Sprint HUD", desc = "Show [Sprinting (Toggled)] while toggle sprint is on. Move it in /sb gui.")
         @ConfigEditorBoolean
         public boolean toggleSprintHud = true;
     }
@@ -642,16 +647,16 @@ public final class SkyJewConfig extends Config {
 
     public static final class Nickname {
         @Expose
-        @ConfigOption(name = "Nickname Enabled", desc = "Use your SkyJew nickname in SkyBlock TAB and chat.")
+        @ConfigOption(name = "Nickname Enabled", desc = "Use your SkyBalls nickname in SkyBlock TAB and chat.")
         @ConfigEditorBoolean
         public boolean enabled = false;
 
         @Expose
-        @ConfigOption(name = "See Other Nicks", desc = "Replace the real usernames of other SkyJew users with their synced nicknames in Hypixel chat, including normal, guild and private messages.")
+        @ConfigOption(name = "See Other Nicks", desc = "Replace the real usernames of other SkyBalls users with their synced nicknames in Hypixel chat, including normal, guild and private messages.")
         @ConfigEditorBoolean
         public boolean seeOtherNicks = true;
 
-        @ConfigOption(name = "Open Nickname Menu", desc = "Open the dedicated /sj nick editor.")
+        @ConfigOption(name = "Open Nickname Menu", desc = "Open the dedicated /sb nick editor.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable openMenu = () -> openNick();
 
@@ -669,7 +674,7 @@ public final class SkyJewConfig extends Config {
     }
 
     public static final class Discord {
-        @ConfigOption(name = "Open Discord", desc = "Open SkyJew's personal Discord linking screen.")
+        @ConfigOption(name = "Open Discord", desc = "Open SkyBalls's personal Discord linking screen.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable open = () -> openDiscord();
     }
@@ -715,7 +720,7 @@ public final class SkyJewConfig extends Config {
         // "SkyJew Mod v1.2.3": the installed version, from fabric.mod.json.
         String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("skyjew")
             .map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("");
-        return StructuredText.of("§dSkyJew Mod" + (version.isEmpty() ? "" : " §7v" + version));
+        return StructuredText.of("§dSkyBalls Mod" + (version.isEmpty() ? "" : " §7v" + version));
     }
 
     private static final Gson SNAPSHOT_GSON = new com.google.gson.GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
@@ -735,7 +740,7 @@ public final class SkyJewConfig extends Config {
             migrateLegacy(path);
             migrateConfigShape(path);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Legacy config migration failed: " + e.getMessage());
+            System.err.println("[SkyBalls] Legacy config migration failed: " + e.getMessage());
         }
 
         FileHolder holder = new FileHolder(path);
@@ -753,7 +758,7 @@ public final class SkyJewConfig extends Config {
             Files.createDirectories(path.getParent());
             managed.saveToFile();
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to persist config after load: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to persist config after load: " + e.getMessage());
         }
 
         // MoulConfig calls saveNow() when its GUI closes, which only runs these runnables.
@@ -771,7 +776,7 @@ public final class SkyJewConfig extends Config {
                 try {
                     managed.saveToFile();
                 } catch (Exception e) {
-                    System.err.println("[SkyJew] Failed to save config: " + e.getMessage());
+                    System.err.println("[SkyBalls] Failed to save config: " + e.getMessage());
                 }
             }
         });
@@ -809,7 +814,7 @@ public final class SkyJewConfig extends Config {
             Files.createDirectories(path.getParent());
             Files.writeString(path, LEGACY_GSON.toJson(this), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println("[SkyJew] Failed to save config: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save config: " + e.getMessage());
         }
     }
 

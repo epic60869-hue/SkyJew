@@ -40,7 +40,7 @@ public class SkyblockItemModels {
 			itemModels.getAsJsonObject("renamed").entrySet().forEach(e -> renamed.put(e.getKey(), e.getValue().getAsString()));
 			return new ItemModelsData(removed, renamed);
 		} catch (Exception e) {
-			LOGGER.error("[SkyJew Skyblock Item Models] Failed to load item model data", e);
+			LOGGER.error("[SkyBalls Skyblock Item Models] Failed to load item model data", e);
 			return null;
 		}
 	}
@@ -88,7 +88,7 @@ public class SkyblockItemModels {
 					}
 				}
 			} catch (Exception e) {
-				LOGGER.error("[SkyJew Skyblock Item Models] Failed to update item models", e);
+				LOGGER.error("[SkyBalls Skyblock Item Models] Failed to update item models", e);
 			}
 		});
 	}

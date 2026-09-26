@@ -33,7 +33,7 @@ public final class SkyJewWorldRender {
             try {
                 renderer.accept(COLLECTOR);
             } catch (Exception e) {
-                System.err.println("[SkyJew] World renderer failed: " + e);
+                System.err.println("[SkyBalls] World renderer failed: " + e);
             }
         }
     }

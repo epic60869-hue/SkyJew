@@ -197,7 +197,7 @@ public final class CrystalHollowsWaypoints {
             }
         }
         FeatureConfigs.MiningFeatures c = config();
-        if (c == null || !c.crystalWaypointsFromChat || !text.contains(":") || text.startsWith("[SJ]")) return;
+        if (c == null || !c.crystalWaypointsFromChat || !text.contains(":") || text.startsWith("[SB]")) return;
         String said = text.split(":", 2)[1];
         Matcher m = COORDS.matcher(said);
         if (!m.find()) return;
@@ -221,7 +221,7 @@ public final class CrystalHollowsWaypoints {
         String coords = pos.getX() + " " + pos.getY() + " " + pos.getZ();
         MutableComponent text = Component.literal("Crystal Hollows waypoint at " + coords + ": ").withStyle(ChatFormatting.AQUA);
         for (Place place : Place.values()) {
-            String command = "/sj crystalwaypoints add " + coords + " " + place.label;
+            String command = "/sb crystalwaypoints add " + coords + " " + place.label;
             text.append(Component.literal("[" + place.label + "] ").withStyle(style -> style.withColor(place.colour)
                 .withClickEvent(new ClickEvent.RunCommand(command))
                 .withHoverEvent(new HoverEvent.ShowText(Component.literal("Mark as " + place.label)))));

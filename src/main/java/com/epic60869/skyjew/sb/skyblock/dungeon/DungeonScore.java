@@ -118,7 +118,7 @@ public class DungeonScore {
 		score = calculateScore();
 		if (!sent270 && !sent300 && score >= 270 && score < 300) {
 			if (SCORE_CONFIG.get().enableDungeonScore270Message) {
-				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SJ] " + SCORE_CONFIG.get().dungeonScore270Message.replaceAll("\\[score]", "270"), true);
+				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SB] " + SCORE_CONFIG.get().dungeonScore270Message.replaceAll("\\[score]", "270"), true);
 			}
 			if (SCORE_CONFIG.get().enableDungeonScore270Title) {
 				client.gui.hud.resetTitleTimes();
@@ -143,7 +143,7 @@ public class DungeonScore {
 
 		if (!sent300 && score >= 300) {
 			if (SCORE_CONFIG.get().enableDungeonScore300Message) {
-				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SJ] " + SCORE_CONFIG.get().dungeonScore300Message.replaceAll("\\[score]", "300"), true);
+				MessageScheduler.INSTANCE.sendMessageAfterCooldown("/pc [SB] " + SCORE_CONFIG.get().dungeonScore300Message.replaceAll("\\[score]", "300"), true);
 			}
 			if (SCORE_CONFIG.get().enableDungeonScore300Title) {
 				client.gui.hud.resetTitleTimes();

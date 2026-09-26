@@ -197,7 +197,7 @@ public final class DungeonRoutes {
         try {
             HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
             HttpRequest request = HttpRequest.newBuilder(URI.create(STELLA_URL))
-                .timeout(Duration.ofSeconds(15)).header("User-Agent", "SkyJew/1.0").GET().build();
+                .timeout(Duration.ofSeconds(15)).header("User-Agent", "SkyBalls/1.0").GET().build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return;
             Map<String, List<Step>> parsed = parse(response.body());
@@ -208,9 +208,9 @@ public final class DungeonRoutes {
                 STELLA.clear();
                 STELLA.putAll(parsed);
             }
-            System.out.println("[SkyJew] Loaded Stella routes for " + parsed.size() + " rooms.");
+            System.out.println("[SkyBalls] Loaded Stella routes for " + parsed.size() + " rooms.");
         } catch (Exception e) {
-            System.err.println("[SkyJew] Stella route download failed: " + e.getMessage());
+            System.err.println("[SkyBalls] Stella route download failed: " + e.getMessage());
         }
     }
 
@@ -235,7 +235,7 @@ public final class DungeonRoutes {
                     """, StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not create the dungeon route folder: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not create the dungeon route folder: " + e.getMessage());
         }
     }
 
@@ -284,7 +284,7 @@ public final class DungeonRoutes {
         folderStamp = folderStamp();
         stepIndex = 0;
         if (announce) {
-            if (used.isEmpty()) say("No routes in config/skyjew/dungeon route, using Stella's routes.", ChatFormatting.YELLOW);
+            if (used.isEmpty()) say("No routes in config/skyballs/dungeon route, using Stella's routes.", ChatFormatting.YELLOW);
             else say("Loaded routes for " + loaded.size() + " rooms from " + String.join(", ", used) + ".", ChatFormatting.GREEN);
             if (!failed.isEmpty()) say("Could not read: " + String.join(", ", failed) + ".", ChatFormatting.RED);
         }
@@ -296,7 +296,7 @@ public final class DungeonRoutes {
             if (!Files.exists(file)) return;
             into.putAll(parse(Files.readString(file, StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to load routes from " + file.getFileName() + ": " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load routes from " + file.getFileName() + ": " + e.getMessage());
         }
     }
 
@@ -328,8 +328,8 @@ public final class DungeonRoutes {
 
     private static String serialize(Map<String, List<Step>> routes) {
         JsonObject root = new JsonObject();
-        root.addProperty("#name", "SkyJew secret routes");
-        root.addProperty("#origin", "recorded with SkyJew");
+        root.addProperty("#name", "SkyBalls secret routes");
+        root.addProperty("#origin", "recorded with SkyBalls");
         root.addProperty("Version", "1.0");
         for (var entry : routes.entrySet()) {
             JsonArray steps = new JsonArray();
@@ -367,7 +367,7 @@ public final class DungeonRoutes {
             Files.createDirectories(customFile.getParent());
             Files.writeString(customFile, serialize(CUSTOM), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Failed to save routes: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save routes: " + e.getMessage());
         }
     }
 
@@ -466,7 +466,7 @@ public final class DungeonRoutes {
         }
         if (recording == null || mc.player == null) return;
         if (room != recordRoom) {
-            say("You left the room, so the recording was stopped. Use /sj route stop to save it or /sj route cancel to discard it.", ChatFormatting.RED);
+            say("You left the room, so the recording was stopped. Use /sb route stop to save it or /sb route cancel to discard it.", ChatFormatting.RED);
             finishRecording(true);
             return;
         }
@@ -649,18 +649,18 @@ public final class DungeonRoutes {
 
     private static int start() {
         Room room = currentRoom();
-        if (room == null) return say("Stand in a dungeon room SkyJew has recognised first.", ChatFormatting.RED);
+        if (room == null) return say("Stand in a dungeon room SkyBalls has recognised first.", ChatFormatting.RED);
         if (frame(room) == null) return say("Couldn't find this room's corner marker yet. Walk around a little and try again.", ChatFormatting.RED);
         recordRoom = room;
         recording = new ArrayList<>();
         recording.add(new Step());
         lastLinePos = null;
         addWaypoint(Type.START, Minecraft.getInstance().player.getOnPos());
-        return say("Recording a route for " + room.getName() + ". Get the secrets in order (secrets, levers, etherwarps, superbooms, pearls and mined blocks are recorded automatically), then /sj route stop to save.", ChatFormatting.GREEN);
+        return say("Recording a route for " + room.getName() + ". Get the secrets in order (secrets, levers, etherwarps, superbooms, pearls and mined blocks are recorded automatically), then /sb route stop to save.", ChatFormatting.GREEN);
     }
 
     private static int finishRecording(boolean discardIfEmpty) {
-        if (recording == null || recordRoom == null) return say("Nothing is being recorded. Start with /sj route start.", ChatFormatting.RED);
+        if (recording == null || recordRoom == null) return say("Nothing is being recorded. Start with /sb route start.", ChatFormatting.RED);
         List<Step> steps = recording;
         String name = recordRoom.getName();
         recording = null;
@@ -723,15 +723,15 @@ public final class DungeonRoutes {
             if (file == null) {
                 json = Minecraft.getInstance().keyboardHandler.getClipboard();
                 source = "your clipboard";
-                if (json == null || json.isBlank()) return say("Your clipboard is empty. Copy a route export (Stella's export or /sj export) or use /sj route import <file>.", ChatFormatting.RED);
+                if (json == null || json.isBlank()) return say("Your clipboard is empty. Copy a route export (Stella's export or /sb export) or use /sb route import <file>.", ChatFormatting.RED);
             } else {
                 Path path = findRouteFile(file.trim().replace("\"", ""));
-                if (path == null) return say("Could not find " + file + ". Give a full path, or a file in config/skyjew or config/stella/routes.", ChatFormatting.RED);
+                if (path == null) return say("Could not find " + file + ". Give a full path, or a file in config/skyballs or config/stella/routes.", ChatFormatting.RED);
                 json = Files.readString(path, StandardCharsets.UTF_8);
                 source = path.getFileName().toString();
             }
             Map<String, List<Step>> imported = parseAny(json);
-            if (imported.isEmpty()) return say("No routes found in " + source + ". Supported: Stella / SkyJew route files and SecretRoutes files.", ChatFormatting.RED);
+            if (imported.isEmpty()) return say("No routes found in " + source + ". Supported: Stella / SkyBalls route files and SecretRoutes files.", ChatFormatting.RED);
             for (var entry : imported.entrySet()) {
                 String key = normalize(entry.getKey());
                 CUSTOM.keySet().removeIf(k -> normalize(k).equals(key));
@@ -739,7 +739,7 @@ public final class DungeonRoutes {
             }
             saveCustom();
             stepIndex = 0;
-            return say("Imported " + imported.size() + " room routes from " + source + ". They replace your routes for those rooms (/sj route clear in a room goes back to Stella's).", ChatFormatting.GREEN);
+            return say("Imported " + imported.size() + " room routes from " + source + ". They replace your routes for those rooms (/sb route clear in a room goes back to Stella's).", ChatFormatting.GREEN);
         } catch (Exception e) {
             return say("Import failed: " + e.getMessage(), ChatFormatting.RED);
         }

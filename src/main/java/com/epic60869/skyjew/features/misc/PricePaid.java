@@ -50,7 +50,7 @@ public final class PricePaid {
                 if (loaded != null) paid = new HashMap<>(loaded);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read price-paid.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not read price-paid.json: " + e.getMessage());
         }
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
             if (!enabled() || !Compat.isOnSkyblock()) return;
@@ -100,7 +100,7 @@ public final class PricePaid {
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(paid), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save price-paid.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not save price-paid.json: " + e.getMessage());
         }
     }
 }

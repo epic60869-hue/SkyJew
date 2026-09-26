@@ -259,7 +259,7 @@ public final class ScoreCalculator {
         boolean party = milestone == 300 ? config.party300 : config.party270;
         String message = (milestone == 300 ? config.message300 : config.message270).replace("[score]", String.valueOf(milestone));
         Minecraft mc = Minecraft.getInstance();
-        if (party && mc.getConnection() != null) mc.getConnection().sendCommand("pc [SJ] " + message);
+        if (party && mc.getConnection() != null) mc.getConnection().sendCommand("pc [SB] " + message);
         if (!alert) return;
         SkyJewAlerts.title(Component.literal((milestone == 300 ? "§c" : "§e") + message), Component.empty());
         String floor = SkyJewLocation.dungeonFloor();

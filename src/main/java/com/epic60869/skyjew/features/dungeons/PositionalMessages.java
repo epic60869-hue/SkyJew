@@ -212,7 +212,7 @@ public final class PositionalMessages {
             List<PosMessage> loaded = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), new TypeToken<List<PosMessage>>() {}.getType());
             if (loaded != null) messages = new ArrayList<>(loaded);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read positional messages: " + e);
+            System.err.println("[SkyBalls] Could not read positional messages: " + e);
         }
     }
 
@@ -220,7 +220,7 @@ public final class PositionalMessages {
         try {
             Files.writeString(file, GSON.toJson(messages), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save positional messages: " + e);
+            System.err.println("[SkyBalls] Could not save positional messages: " + e);
         }
     }
 
@@ -265,10 +265,10 @@ public final class PositionalMessages {
     }
 
     private static int help() {
-        say("/sj posmsg add here <radius> <delay ticks> <message>", ChatFormatting.YELLOW);
-        say("/sj posmsg add at <x> <y> <z> <radius> <delay ticks> <message>", ChatFormatting.YELLOW);
-        say("/sj posmsg add in <x> <y> <z> <x2> <y2> <z2> <delay ticks> <message>", ChatFormatting.YELLOW);
-        return say("/sj posmsg list | remove <number> | clear", ChatFormatting.YELLOW);
+        say("/sb posmsg add here <radius> <delay ticks> <message>", ChatFormatting.YELLOW);
+        say("/sb posmsg add at <x> <y> <z> <radius> <delay ticks> <message>", ChatFormatting.YELLOW);
+        say("/sb posmsg add in <x> <y> <z> <x2> <y2> <z2> <delay ticks> <message>", ChatFormatting.YELLOW);
+        return say("/sb posmsg list | remove <number> | clear", ChatFormatting.YELLOW);
     }
 
     private static int addHere(CommandContext<FabricClientCommandSource> c) {
@@ -311,7 +311,7 @@ public final class PositionalMessages {
     }
 
     private static int list() {
-        if (messages.isEmpty()) return say("No positional messages. Add one with /sj posmsg add here <radius> <delay> <message>.", ChatFormatting.YELLOW);
+        if (messages.isEmpty()) return say("No positional messages. Add one with /sb posmsg add here <radius> <delay> <message>.", ChatFormatting.YELLOW);
         for (int i = 0; i < messages.size(); i++) {
             PosMessage m = messages.get(i);
             String where = m.x2 != null

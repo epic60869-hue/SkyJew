@@ -25,7 +25,7 @@ public final class SkyJewNotesScreen extends Screen {
     private boolean dirty;
 
     public SkyJewNotesScreen(Path configDir) {
-        super(Component.literal("SkyJew Notes"));
+        super(Component.literal("SkyBalls Notes"));
         this.configDir = configDir;
     }
 
@@ -93,7 +93,7 @@ public final class SkyJewNotesScreen extends Screen {
         super.extractRenderState(g, mouseX, mouseY, delta);
         int width = Math.min(720, this.width - 40);
         int left = (this.width - width) / 2;
-        g.text(font, Component.literal("SkyJew Notes"), left, 24, 0xFFFFFFFF, true);
+        g.text(font, Component.literal("SkyBalls Notes"), left, 24, 0xFFFFFFFF, true);
         g.text(font, Component.literal(dirty ? "Unsaved changes" : "Saved"), left + 90, 24, dirty ? 0xFFFFD83D : 0xFF55FF55, false);
         g.text(font, Component.literal("Ctrl+S to save, ESC to close"), left, this.height - 24, 0xFFAAAAAA, false);
     }

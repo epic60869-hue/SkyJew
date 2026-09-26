@@ -555,7 +555,7 @@ public final class SkyJewNopoFeatures {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.sendSystemMessage(Component.literal("§6SkyJew §7| Took " + since
+            mc.player.sendSystemMessage(Component.literal("§6SkyBalls §7| Took " + since
                 + (since == 1 ? " boss" : " bosses") + " to drop " + item));
         }
     }
@@ -581,7 +581,7 @@ public final class SkyJewNopoFeatures {
             if (elapsed > 0) {
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
-                    mc.player.sendSystemMessage(Component.literal("§6SkyJew §7| Took "
+                    mc.player.sendSystemMessage(Component.literal("§6SkyBalls §7| Took "
                         + formatDuration(elapsed) + " to drop " + crop));
                 }
             }
@@ -612,7 +612,7 @@ public final class SkyJewNopoFeatures {
     private static void loadEmojis() {
         EMOJIS.clear();
         EMOJI_CANONICAL.clear();
-        try (InputStream in = SkyJewNopoFeatures.class.getResourceAsStream("/assets/skyjew/emojis.json")) {
+        try (InputStream in = SkyJewNopoFeatures.class.getResourceAsStream("/assets/skyballs/emojis.json")) {
             if (in == null) return;
             JsonObject root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
             for (var element : root.getAsJsonArray("emojis")) {

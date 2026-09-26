@@ -42,7 +42,7 @@ public final class SkyJewChangelog {
     private static List<Version> versions() {
         if (versions != null) return versions;
         List<Version> parsed = new ArrayList<>();
-        try (InputStream in = SkyJewChangelog.class.getResourceAsStream("/assets/skyjew/CHANGELOG.md")) {
+        try (InputStream in = SkyJewChangelog.class.getResourceAsStream("/assets/skyballs/CHANGELOG.md")) {
             if (in != null) {
                 Version version = null;
                 Section section = null;
@@ -62,7 +62,7 @@ public final class SkyJewChangelog {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read the changelog: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not read the changelog: " + e.getMessage());
         }
         versions = parsed;
         return parsed;
@@ -82,7 +82,7 @@ public final class SkyJewChangelog {
         int index = -1;
         for (int i = 0; i < all.size(); i++) if (all.get(i).name().equalsIgnoreCase(target)) index = i;
         if (index < 0 && wanted != null && !all.isEmpty()) {
-            return send(Component.literal("[SJ] No changelog for \"" + wanted + "\".").withStyle(ChatFormatting.RED));
+            return send(Component.literal("[SB] No changelog for \"" + wanted + "\".").withStyle(ChatFormatting.RED));
         }
         return Compat.queueOpenScreen(new SkyJewChangelogScreen(all, Math.max(0, index), installed));
     }

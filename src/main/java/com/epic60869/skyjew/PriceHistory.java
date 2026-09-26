@@ -38,7 +38,7 @@ public final class PriceHistory {
                 SEEN.put(e.getKey(), new Seen(o.get("price").getAsDouble(), o.get("at").getAsLong()));
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read price-history.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not read price-history.json: " + e.getMessage());
         }
     }
 
@@ -61,7 +61,7 @@ public final class PriceHistory {
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save price-history.json: " + e.getMessage());
+            System.err.println("[SkyBalls] Could not save price-history.json: " + e.getMessage());
         }
     }
 

@@ -100,7 +100,7 @@ public final class SkyJewPriceTooltip {
         Map<String, Double> result = new HashMap<>();
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SkyJew/1.0").GET().build();
+                .header("User-Agent", "SkyBalls/1.0").GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return result;
             JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
@@ -110,7 +110,7 @@ public final class SkyJewPriceTooltip {
                 } catch (Exception ignored) {}
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Price download failed for " + url + ": " + e.getMessage());
+            System.err.println("[SkyBalls] Price download failed for " + url + ": " + e.getMessage());
         }
         return result;
     }
@@ -119,7 +119,7 @@ public final class SkyJewPriceTooltip {
     private static void fetchBazaar() {
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(BAZAAR_URL)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SkyJew/1.0").GET().build();
+                .header("User-Agent", "SkyBalls/1.0").GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return;
             JsonObject products = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("products");
@@ -135,7 +135,7 @@ public final class SkyJewPriceTooltip {
                 bazaarSell = sell;
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Bazaar price download failed: " + e.getMessage());
+            System.err.println("[SkyBalls] Bazaar price download failed: " + e.getMessage());
         }
     }
 
@@ -144,7 +144,7 @@ public final class SkyJewPriceTooltip {
         Map<String, Double> result = new HashMap<>();
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(NPC_URL)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "SkyJew/1.0").GET().build();
+                .header("User-Agent", "SkyBalls/1.0").GET().build();
             HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return result;
             for (var element : JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonArray("items")) {
@@ -154,7 +154,7 @@ public final class SkyJewPriceTooltip {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] NPC price download failed: " + e.getMessage());
+            System.err.println("[SkyBalls] NPC price download failed: " + e.getMessage());
         }
         return result;
     }

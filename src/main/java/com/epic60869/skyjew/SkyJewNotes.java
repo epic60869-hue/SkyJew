@@ -17,7 +17,7 @@ public final class SkyJewNotes {
             if (!Files.exists(file)) return "";
             return Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println("[SkyJew] Failed to load notes: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to load notes: " + e.getMessage());
             return "";
         }
     }
@@ -28,7 +28,7 @@ public final class SkyJewNotes {
             Files.createDirectories(configDir);
             Files.writeString(file, text == null ? "" : text, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println("[SkyJew] Failed to save notes: " + e.getMessage());
+            System.err.println("[SkyBalls] Failed to save notes: " + e.getMessage());
         }
     }
 }

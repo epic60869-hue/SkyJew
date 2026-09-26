@@ -248,7 +248,7 @@ public final class ItemNotification {
 
     private static int list() {
         List<String> list = items();
-        if (list.isEmpty()) return say(Component.literal("Your Item Notification list is empty. Add one with /sj itemnotify add <item name>.").withStyle(ChatFormatting.YELLOW));
+        if (list.isEmpty()) return say(Component.literal("Your Item Notification list is empty. Add one with /sb itemnotify add <item name>.").withStyle(ChatFormatting.YELLOW));
         return say(Component.literal("Item Notification (" + list.size() + "): ").withStyle(ChatFormatting.GOLD)
             .append(Component.literal(String.join(", ", list)).withStyle(ChatFormatting.WHITE)));
     }
@@ -264,7 +264,7 @@ public final class ItemNotification {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             if (mc.player != null) mc.gui.hud.getChat().addClientSystemMessage(
-                Component.literal("[SJ] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
+                Component.literal("[SB] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
         });
         return 1;
     }

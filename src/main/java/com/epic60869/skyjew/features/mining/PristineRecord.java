@@ -86,7 +86,7 @@ public final class PristineRecord {
                 if (loaded != null) pbs = new HashMap<>(loaded);
             }
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not read pristine PBs: " + e);
+            System.err.println("[SkyBalls] Could not read pristine PBs: " + e);
         }
     }
 
@@ -94,7 +94,7 @@ public final class PristineRecord {
         try {
             Files.writeString(file, GSON.toJson(pbs), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            System.err.println("[SkyJew] Could not save pristine PBs: " + e);
+            System.err.println("[SkyBalls] Could not save pristine PBs: " + e);
         }
     }
 
