@@ -1,6 +1,7 @@
 package com.epic60869.skyjew.features.misc;
 
 import com.epic60869.skyjew.SkyJewConfig;
+import com.epic60869.skyjew.SkyJewPriceTooltip;
 import com.epic60869.skyjew.custom.RepoItems;
 import com.epic60869.skyjew.custom.util.Compat;
 import com.epic60869.skyjew.features.core.SkyJewChat;
@@ -56,6 +57,11 @@ import java.util.regex.Pattern;
  *
  * What you're gathering is the collection item you picked up most recently, from your inventory or from a
  * "[Sacks]" message. The total comes from Elite's copy of the Hypixel API, plus what you've gathered since.
+ *
+ * The HUD is a SkyHanni-style tracker: "Collection Tracker" with the collection you're gathering (and its Elite rank),
+ * one row per collection gathered (icon, amount, name, coin value), the total value, and, while an inventory is open,
+ * the Display Mode switch (Total / This Session), Reset session, and rows you can click to hide (Ctrl+Click removes).
+ * Totals are saved in config/skyjew/collection-tracker.json.
  *
  * Shown SkyHanni style: the item's icon and "Cobblestone collection: 12,345,678 +1,234" (the green gain shows for a
  * few seconds after each pickup), then the session gain, and the Elite rank like SkyHanni's farming weight display.
@@ -118,6 +124,19 @@ public final class CollectionTracker {
     private static final long RECENT_GAIN_MS = 3_000L;
     private static final Map<String, ItemStack> ICONS = new HashMap<>();
 
+    /** One tracked collection: how much was gathered, whether its row is hidden, and when it last went up. */
+    private static final class Row {
+        long amount;
+        boolean hidden;
+        transient long lastGain;
+    }
+
+    private static final Map<String, Row> TOTAL = new java.util.LinkedHashMap<>();
+    private static final Map<String, Row> SESSION = new java.util.LinkedHashMap<>();
+    private static boolean showSession;
+    private static Path trackerFile;
+    private static long lastSave;
+
     private CollectionTracker() {}
 
     private static SkyJewConfig.Misc config() {
@@ -132,7 +151,16 @@ public final class CollectionTracker {
 
     public static void init(Path configDir) {
         compactFile = configDir.resolve("skyjew").resolve("compacted-items.json");
+        trackerFile = configDir.resolve("skyjew").resolve("collection-tracker.json");
         loadCompactCache();
+        loadTracker();
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> saveTracker(true));
+        // While an inventory is open the tracker is drawn over it, with the clickable SkyHanni-style controls.
+        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (!(screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>)) return;
+            net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.afterExtract(screen).register((s, g, mouseX, mouseY, delta) -> renderInInventory(g, mouseX, mouseY));
+            net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> !clickInInventory(event.x(), event.y()));
+        });
         SkyJewHuds.registerCustom("collection_tracker", "Collection Tracker", CollectionTracker::enabled, new Hud(), 8, 150);
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
             for (String root : Compat.COMMAND_ROOTS) {
@@ -230,6 +258,12 @@ public final class CollectionTracker {
         sinceFetch.merge(id, amount, Long::sum);
         session.merge(id, amount, Long::sum);
         sessionStart.putIfAbsent(id, now);
+        for (Map<String, Row> rows : List.of(TOTAL, SESSION)) {
+            Row row = rows.computeIfAbsent(id, k -> new Row());
+            row.amount += amount;
+            row.lastGain = now;
+        }
+        if (now - lastSave > 30_000) saveTracker();
         checkGoal(id);
     }
 
@@ -722,63 +756,274 @@ public final class CollectionTracker {
         return lines(current, live, api != null || !profileLoading, gained, elapsed, recent);
     }
 
-    private static final List<Component> PREVIEW = List.of(
-        Component.literal("Cobblestone").withStyle(ChatFormatting.WHITE)
-            .append(Component.literal(" collection: ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("12,345,678").withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" +160").withStyle(ChatFormatting.GREEN)),
-        Component.literal("Session: ").withStyle(ChatFormatting.GRAY).append(Component.literal("+4,321").withStyle(ChatFormatting.GREEN))
-            .append(Component.literal(" (").withStyle(ChatFormatting.GRAY)).append(Component.literal("38,000/h").withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(")").withStyle(ChatFormatting.GRAY)),
-        Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD).append(Component.literal("#1,234").withStyle(ChatFormatting.YELLOW)),
-        Component.literal("1,500").withStyle(ChatFormatting.YELLOW).append(Component.literal(" until ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("#1,233").withStyle(ChatFormatting.AQUA)).append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("Player").withStyle(ChatFormatting.AQUA)).append(Component.literal(")").withStyle(ChatFormatting.GRAY)));
+    // ---------------------------------------------------------------- tracker data
 
-    /** Draws the icon next to the first line, and the other lines under it. */
-    private static final class Hud implements SkyJewHuds.CustomHud {
-        private static final int ICON = 18;
+    private static void loadTracker() {
+        try {
+            if (!Files.exists(trackerFile)) return;
+            JsonObject root = JsonParser.parseString(Files.readString(trackerFile, StandardCharsets.UTF_8)).getAsJsonObject();
+            showSession = root.has("showSession") && root.get("showSession").getAsBoolean();
+            if (root.has("total")) {
+                for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("total").entrySet()) {
+                    JsonObject o = e.getValue().getAsJsonObject();
+                    Row row = new Row();
+                    row.amount = o.get("amount").getAsLong();
+                    row.hidden = o.has("hidden") && o.get("hidden").getAsBoolean();
+                    TOTAL.put(e.getKey(), row);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[SkyJew] Could not read collection-tracker.json: " + e.getMessage());
+        }
+    }
 
-        private List<Component> shown(boolean preview) {
-            return showing() ? liveLines() : preview ? PREVIEW : List.of();
+    private static void saveTracker() {
+        saveTracker(false);
+    }
+
+    private static void saveTracker(boolean now) {
+        lastSave = System.currentTimeMillis();
+        JsonObject root = new JsonObject();
+        root.addProperty("showSession", showSession);
+        JsonObject total = new JsonObject();
+        TOTAL.forEach((id, row) -> {
+            JsonObject o = new JsonObject();
+            o.addProperty("amount", row.amount);
+            if (row.hidden) o.addProperty("hidden", true);
+            total.add(id, o);
+        });
+        root.add("total", total);
+        String json = GSON.toJson(root);
+        Runnable write = () -> {
+            try {
+                Files.createDirectories(trackerFile.getParent());
+                Files.writeString(trackerFile, json, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                System.err.println("[SkyJew] Could not save collection-tracker.json: " + e.getMessage());
+            }
+        };
+        if (now) write.run();
+        else CompletableFuture.runAsync(write);
+    }
+
+    private static Map<String, Row> shownRows() {
+        return showSession ? SESSION : TOTAL;
+    }
+
+    // ---------------------------------------------------------------- the SkyHanni-style panel
+
+    /** One line of the panel: optional icon, text, and what clicking it does (while an inventory is open). */
+    private record Line(ItemStack icon, Component text, Runnable onClick) {}
+
+    private static final int ROW = 11;
+    private static final float ICON_SCALE = 0.6875f; // 11px icons, like SkyHanni's tracker rows
+
+    private static String coins(double value) {
+        if (value >= 1_000_000_000) return String.format(Locale.US, "%.2fB", value / 1_000_000_000);
+        if (value >= 1_000_000) return String.format(Locale.US, "%.2fM", value / 1_000_000);
+        if (value >= 1_000) return String.format(Locale.US, "%.1fk", value / 1_000);
+        return String.format(Locale.US, "%,.0f", value);
+    }
+
+    private static String rowName(String id) {
+        Board board = BOARDS.get(id);
+        return board != null ? shortName(board) : id;
+    }
+
+    private static boolean panelVisible() {
+        if (!enabled()) return false;
+        return showing() || shownRows().values().stream().anyMatch(r -> !r.hidden && r.amount > 0);
+    }
+
+    private static List<Line> panel(boolean inventory) {
+        List<Line> out = new ArrayList<>();
+        out.add(new Line(null, Component.literal("Collection Tracker").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), null));
+
+        // The collection you're gathering now, with its Elite rank.
+        if (showing()) {
+            List<Component> head = liveLines();
+            out.add(new Line(icon(current), head.get(0), null));
+            for (int i = 2; i < head.size(); i++) out.add(new Line(null, head.get(i), null));
         }
 
-        private String shownId() {
-            return showing() ? current : "COBBLESTONE";
+        // One row per collection, most valuable first.
+        long now = System.currentTimeMillis();
+        record Entry(String id, Row row, double value) {}
+        List<Entry> entries = new ArrayList<>();
+        double totalValue = 0;
+        for (Map.Entry<String, Row> e : shownRows().entrySet()) {
+            Row row = e.getValue();
+            if (row.amount <= 0 || (row.hidden && !inventory)) continue;
+            double value = row.amount * SkyJewPriceTooltip.unitPrice(e.getKey());
+            entries.add(new Entry(e.getKey(), row, value));
+            if (!row.hidden) totalValue += value;
+        }
+        entries.sort((a, b) -> Double.compare(b.value(), a.value()));
+        for (Entry entry : entries) {
+            Row row = entry.row();
+            boolean recent = now - row.lastGain < 10_000;
+            MutableComponent text = Component.literal(fmt(row.amount) + "x ")
+                .withStyle(recent ? net.minecraft.network.chat.Style.EMPTY.withColor(ChatFormatting.GREEN).withBold(true) : net.minecraft.network.chat.Style.EMPTY.withColor(ChatFormatting.GRAY));
+            text.append(row.hidden
+                ? Component.literal(rowName(entry.id())).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH)
+                : Component.literal(rowName(entry.id())).withStyle(ChatFormatting.WHITE));
+            if (entry.value() > 0) {
+                text.append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(coins(entry.value())).withStyle(row.hidden ? ChatFormatting.DARK_GRAY : ChatFormatting.GOLD));
+            }
+            String id = entry.id();
+            out.add(new Line(icon(id), text, () -> {
+                if (Minecraft.getInstance().hasControlDown()) {
+                    TOTAL.remove(id);
+                    SESSION.remove(id);
+                    say(Component.literal("Removed " + rowName(id) + " from the Collection Tracker.").withStyle(ChatFormatting.YELLOW));
+                } else {
+                    for (Map<String, Row> rows : List.of(TOTAL, SESSION)) {
+                        Row r = rows.get(id);
+                        if (r != null) r.hidden = !r.hidden;
+                    }
+                }
+                saveTracker();
+            }));
+        }
+        if (entries.isEmpty()) out.add(new Line(null, Component.literal("Gather something to start tracking.").withStyle(ChatFormatting.GRAY), null));
+        else out.add(new Line(null, Component.literal("Total Profit: ").withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal(coins(totalValue) + " coins").withStyle(ChatFormatting.GOLD)), null));
+
+        if (inventory) {
+            MutableComponent mode = Component.literal("Display Mode: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("[Total]").withStyle(showSession ? ChatFormatting.DARK_GRAY : ChatFormatting.YELLOW))
+                .append(Component.literal(" "))
+                .append(Component.literal("[This Session]").withStyle(showSession ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY));
+            out.add(new Line(null, mode, () -> {
+                showSession = !showSession;
+                saveTracker();
+            }));
+            if (showSession) {
+                out.add(new Line(null, Component.literal("Reset session!").withStyle(ChatFormatting.RED), () -> {
+                    SESSION.clear();
+                    session.clear();
+                    sessionStart.clear();
+                    say(Component.literal("Reset this session of the Collection Tracker!").withStyle(ChatFormatting.YELLOW));
+                }));
+            }
+            if (!entries.isEmpty()) out.add(new Line(null, Component.literal("Click a row to hide it, Ctrl+Click to remove it.").withStyle(ChatFormatting.DARK_GRAY), null));
+        }
+        return out;
+    }
+
+    private static int panelWidth(List<Line> lines) {
+        var font = Minecraft.getInstance().font;
+        int w = 0;
+        for (Line line : lines) w = Math.max(w, font.width(line.text()) + (line.icon() != null ? ROW + 2 : 0));
+        return w + SkyJewHuds.PADDING * 2;
+    }
+
+    private static int panelHeight(List<Line> lines) {
+        return SkyJewHuds.PADDING * 2 + lines.size() * ROW - 1;
+    }
+
+    private static void drawPanel(GuiGraphicsExtractor g, List<Line> lines, boolean background) {
+        var font = Minecraft.getInstance().font;
+        if (background) g.fill(0, 0, panelWidth(lines), panelHeight(lines), 0x80000000);
+        int y = SkyJewHuds.PADDING;
+        for (Line line : lines) {
+            int x = SkyJewHuds.PADDING;
+            if (line.icon() != null) {
+                g.pose().pushMatrix();
+                g.pose().translate(x, y - 1);
+                g.pose().scale(ICON_SCALE, ICON_SCALE);
+                g.item(line.icon(), 0, 0);
+                g.pose().popMatrix();
+                x += ROW + 2;
+            }
+            g.text(font, line.text(), x, y + 1, 0xFFFFFFFF, true);
+            y += ROW;
+        }
+    }
+
+    private static final List<Line> PREVIEW = List.of(
+        new Line(null, Component.literal("Collection Tracker").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), null),
+        new Line(null, Component.literal("Cobblestone").withStyle(ChatFormatting.WHITE)
+            .append(Component.literal(" collection: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("12,345,678").withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" +160").withStyle(ChatFormatting.GREEN)), null),
+        new Line(null, Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD).append(Component.literal("#1,234").withStyle(ChatFormatting.YELLOW)), null),
+        new Line(null, Component.literal("4,321x ").withStyle(ChatFormatting.GRAY).append(Component.literal("Cobblestone").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(": ").withStyle(ChatFormatting.GRAY)).append(Component.literal("12.1k").withStyle(ChatFormatting.GOLD)), null),
+        new Line(null, Component.literal("Total Profit: ").withStyle(ChatFormatting.YELLOW).append(Component.literal("12.1k coins").withStyle(ChatFormatting.GOLD)), null));
+
+    /** The panel in the normal HUD (hidden while an inventory is open, where it is drawn over the inventory instead). */
+    private static final class Hud implements SkyJewHuds.CustomHud {
+        private List<Line> shown(boolean preview) {
+            if (panelVisible()) return panel(false);
+            return preview ? PREVIEW : List.of();
         }
 
         @Override
         public int width() {
-            var font = Minecraft.getInstance().font;
-            List<Component> lines = shown(true);
-            int w = 0;
-            for (int i = 0; i < lines.size(); i++) w = Math.max(w, font.width(lines.get(i)) + (i == 0 ? ICON : 0));
-            return w + SkyJewHuds.PADDING * 2;
+            return panelWidth(shown(true));
         }
 
         @Override
         public int height() {
-            int n = shown(true).size();
-            return SkyJewHuds.PADDING * 2 + ICON + Math.max(0, n - 1) * SkyJewHuds.LINE_HEIGHT;
+            return panelHeight(shown(true));
         }
 
         @Override
         public boolean visible() {
-            return showing();
+            return panelVisible() && !(Minecraft.getInstance().gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>);
         }
 
         @Override
         public void render(GuiGraphicsExtractor g, boolean preview) {
-            List<Component> lines = shown(preview);
+            if (!preview && !visible()) return;
+            List<Line> lines = shown(preview);
             if (lines.isEmpty()) return;
-            var font = Minecraft.getInstance().font;
-            if (SkyJewHuds.placement("collection_tracker").background) g.fill(0, 0, width(), height(), 0x80000000);
-            int pad = SkyJewHuds.PADDING;
-            g.item(icon(shownId()), pad, pad + 1);
-            g.text(font, lines.get(0), pad + ICON, pad + 5, 0xFFFFFFFF, true);
-            for (int i = 1; i < lines.size(); i++) {
-                g.text(font, lines.get(i), pad, pad + ICON + (i - 1) * SkyJewHuds.LINE_HEIGHT, 0xFFFFFFFF, true);
-            }
+            drawPanel(g, lines, SkyJewHuds.placement("collection_tracker").background);
         }
+    }
+
+    /** Top-left corner and scale of the panel on screen, matching where the HUD draws it. */
+    private static float[] panelPosition(List<Line> lines) {
+        SkyJewHuds.Placement p = SkyJewHuds.placement("collection_tracker");
+        int x = SkyJewHuds.mapX(p.x, Math.round(panelWidth(lines) * p.scale));
+        int y = SkyJewHuds.mapY(p.y, Math.round(panelHeight(lines) * p.scale));
+        return new float[]{x, y, p.scale};
+    }
+
+    private static void renderInInventory(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        if (!panelVisible()) return;
+        List<Line> lines = panel(true);
+        float[] pos = panelPosition(lines);
+        g.pose().pushMatrix();
+        g.pose().translate(pos[0], pos[1]);
+        g.pose().scale(pos[2], pos[2]);
+        // Highlight the clickable line under the mouse.
+        int hovered = lineAt(lines, pos, mouseX, mouseY);
+        if (hovered >= 0 && lines.get(hovered).onClick() != null) {
+            int top = SkyJewHuds.PADDING + hovered * ROW - 1;
+            g.fill(0, top, panelWidth(lines), top + ROW, 0x30FFFFFF);
+        }
+        drawPanel(g, lines, SkyJewHuds.placement("collection_tracker").background);
+        g.pose().popMatrix();
+    }
+
+    private static int lineAt(List<Line> lines, float[] pos, double mouseX, double mouseY) {
+        double lx = (mouseX - pos[0]) / pos[2];
+        double ly = (mouseY - pos[1]) / pos[2] - SkyJewHuds.PADDING + 1;
+        if (lx < 0 || lx > panelWidth(lines) || ly < 0) return -1;
+        int index = (int) (ly / ROW);
+        return index < lines.size() ? index : -1;
+    }
+
+    /** Runs the clicked line's action; true if the click was used. */
+    private static boolean clickInInventory(double mouseX, double mouseY) {
+        if (!panelVisible()) return false;
+        List<Line> lines = panel(true);
+        int index = lineAt(lines, panelPosition(lines), mouseX, mouseY);
+        if (index < 0 || lines.get(index).onClick() == null) return false;
+        lines.get(index).onClick().run();
+        return true;
     }
 }

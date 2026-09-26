@@ -59,6 +59,19 @@ public final class SkyJewPriceTooltip {
         });
     }
 
+    /** What one {@code id} is worth: bazaar insta-sell, else lowest BIN (or last seen), else NPC sell. 0 if unknown. */
+    public static double unitPrice(String id) {
+        refreshIfStale();
+        Double sell = bazaarSell.get(id);
+        if (sell != null && sell > 0) return sell;
+        Double bin = lowestBins.get(id);
+        if (bin != null) return bin;
+        PriceHistory.Seen seen = PriceHistory.get(id);
+        if (seen != null) return seen.price();
+        Double npc = npcPrices.get(id);
+        return npc == null ? 0 : npc;
+    }
+
     private static void refreshIfStale() {
         if (System.currentTimeMillis() - lastRefresh < REFRESH_MS || !REFRESHING.compareAndSet(false, true)) return;
         CompletableFuture.runAsync(() -> {
