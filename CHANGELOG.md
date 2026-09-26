@@ -10,6 +10,7 @@ All notable changes to SkyBalls are listed here, newest first.
 - Screenshot Sharing (Misc): after F2, the "Saved screenshot as ..." message has an [Upload] button. It uploads the picture to Litterbox (or Catbox) and gives you the link with [Send in /sbc] and [Copy Link]; the link previews when hovered.
 
 ### Changed
+- Positional messages: the built-in spots (Py Stand Here, Mage Stop, Arch/Healer/Tank Stand Here, SS) always show while Built-in Waypoints is on, instead of only for your class in the right boss phase.
 - Terminals and Devices: the Odin Terminal Solver switch is now a Terminal Solver dropdown, like SkyHanni's: Odin, NoammAddons or Skyblocker Highlights. NoammAddons shows its big centred panel with the terminal's name, a Scale setting, three slot styles (Rect, Bordered Rect, Button) and its colours; you click on the panel, and rubix picks the right mouse button for you.
 
 ### Fixed
