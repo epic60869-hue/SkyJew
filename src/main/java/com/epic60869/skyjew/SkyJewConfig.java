@@ -438,6 +438,11 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         @Accordion
+        @ConfigOption(name = "Auto Welcome", desc = "Welcome players on your list in guild chat or with /msg when they come online.")
+        public com.epic60869.skyjew.features.FeatureConfigs.AutoWelcome autoWelcome = new com.epic60869.skyjew.features.FeatureConfigs.AutoWelcome();
+
+        @Expose
+        @Accordion
         @ConfigOption(name = "Item Rarity", desc = "Rarity-coloured backgrounds behind SkyBlock items.")
         public ItemRarity itemRarity = new ItemRarity();
 

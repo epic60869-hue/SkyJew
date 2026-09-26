@@ -4,6 +4,9 @@ All notable changes to SkyJew are listed here, newest first.
 
 ## 1.2.4
 
+### Added
+- Auto Welcome (Misc > Auto Welcome): put players on your list and SkyJew welcomes them when they come online, in guild chat or with /msg, with your own message ({name} is their name). It can also welcome new guild members. Manage the list with `/sj welcome add|remove <name>` and `/sj welcome list`.
+
 ### Changed
 - Collection tracker looks like SkyHanni's: the item's icon, "Cobblestone collection: 12,345,678" with a green +gain after each pickup, session gain per hour, and the Elite rank like SkyHanni's farming weight display. `/sj trackcollection <item> [goal]` pins one collection with an optional goal (e.g. `/sj trackcollection wheat 10m`), like SkyHanni's /shtrackcollection; `/sj trackcollection` follows what you gather again and `/sj trackcollection stop` hides it.
 - Ranked players can use their own name as a nickname.

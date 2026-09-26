@@ -924,4 +924,56 @@ public final class FeatureConfigs {
         @Expose @ConfigOption(name = "!pt / !transfer", desc = "Transfers the party to the player who asked.") @ConfigEditorBoolean public boolean transfer = true;
         @Expose @ConfigOption(name = "!promote", desc = "Promotes the player who asked.") @ConfigEditorBoolean public boolean promote = false;
     }
+
+    public static final class AutoWelcome {
+        public enum Destination {
+            GUILD("Guild Chat"), MESSAGE("Private Message (/msg)");
+
+            private final String label;
+
+            Destination(String label) {
+                this.label = label;
+            }
+
+            @Override
+            public String toString() {
+                return label;
+            }
+        }
+
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Welcome the players on your list when they come online (from the \"Guild > Name joined.\" and \"Friend > Name joined.\" messages).")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "Players", desc = "Names to welcome, separated by commas. You can also use /sj welcome add <name> and /sj welcome remove <name>.")
+        @ConfigEditorText
+        public String names = "";
+
+        @Expose
+        @ConfigOption(name = "Welcome In", desc = "Send the welcome in guild chat (/gc) or as a private message to the player (/msg).")
+        @ConfigEditorDropdown
+        public Destination destination = Destination.GUILD;
+
+        @Expose
+        @ConfigOption(name = "Message", desc = "What to send. {name} is replaced with the player's name.")
+        @ConfigEditorText
+        public String message = "Welcome back {name}!";
+
+        @Expose
+        @ConfigOption(name = "Welcome New Guild Members", desc = "Also welcome anyone who joins the guild, in guild chat.")
+        @ConfigEditorBoolean
+        public boolean welcomeNewMembers = false;
+
+        @Expose
+        @ConfigOption(name = "New Member Message", desc = "What to send when someone joins the guild. {name} is replaced with their name.")
+        @ConfigEditorText
+        public String newMemberMessage = "Welcome to the guild {name}!";
+
+        @Expose
+        @ConfigOption(name = "Cooldown (minutes)", desc = "Don't welcome the same player again within this many minutes, so relogging doesn't spam chat.")
+        @ConfigEditorSlider(minValue = 0, maxValue = 120, minStep = 5)
+        public int cooldownMinutes = 30;
+    }
 }

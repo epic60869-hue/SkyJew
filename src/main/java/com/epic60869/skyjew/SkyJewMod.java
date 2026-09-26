@@ -58,6 +58,7 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.dungeons.SkyJewDungeons.init();
         com.epic60869.skyjew.features.dungeons.DungeonFeatures.init(configDir);
         com.epic60869.skyjew.features.misc.PartyCommands.init();
+        com.epic60869.skyjew.features.misc.AutoWelcome.init();
         com.epic60869.skyjew.features.misc.HeldItemModel.init(configDir);
         com.epic60869.skyjew.features.misc.ScrollableTooltips.init();
         com.epic60869.skyjew.features.misc.ToggleSprint.init();
