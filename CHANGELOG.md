@@ -13,6 +13,8 @@ All notable changes to SkyJew are listed here, newest first.
 - `/sb nick`: picking a preset colour now also updates the colour picker and hex box.
 
 ### Added
+- `/sb bugreport`, `/sb suggest` and `/sb feedback`: a window with a title and a description to send a bug report, suggestion or feedback to the SkyBalls team.
+- SB Chat Ping (Chat > Custom Chat): a little ping when someone sends a message in /sbc. Off by default.
 - Item Notification (Misc > Item Notification): SkyOcean's Sack Notification as a HUD. Put item names on a list and when you get one, in your sacks or your inventory, it shows like the farming RNG HUD: "5x Enchanted Diamond 8.5k", with the price for all of them. More of the same item adds up while it's showing. The list is edited in its own window (the EDIT button, or `/sj itemnotify`), like /sj notes: one item per line, with item name suggestions as you type (Tab to use one). `/sj itemnotify add|remove <item name>` and `/sj itemnotify list` work too.
 
 ### Changed

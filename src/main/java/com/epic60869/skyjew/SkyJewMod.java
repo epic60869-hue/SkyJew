@@ -68,6 +68,7 @@ public final class SkyJewMod implements ClientModInitializer {
         com.epic60869.skyjew.features.misc.CollectionTracker.init(configDir);
         SkyJewStaff.init();
         SkyJewUpdateChecker.init();
+        com.epic60869.skyjew.reports.Reports.init();
         SkyJewChangelog.init();
         SkyJewNopoFeatures.init(configDir);
         SkyJewNick.init(config);
