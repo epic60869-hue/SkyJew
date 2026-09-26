@@ -5,6 +5,7 @@ All notable changes to SkyJew are listed here, newest first.
 ## 1.2.5
 
 ### Changed
+- The Enchanting Runes nickname font is now made of letters (the Unicode enchanting table alphabet, ᔑʖᓵ↸ᒷ...) instead of a Minecraft font, so it shows in tab lists drawn by other mods (SkyHanni, SkyblockAddons, ...) and to every SkyJew player. Illager Runes and Uniform still need SkyJew to draw the text, so those mods' tab lists show them as normal letters.
 - The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing the cooldown from chat, so it's always right. Turn that widget on in Hypixel's tab list settings.
 - The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
 

@@ -10,9 +10,9 @@ import java.util.Locale;
 /**
  * Nickname fonts for /sj nick.
  *
- * Letter fonts (Small Caps, Script, Bubble, ...) swap the letters for their Unicode look-alikes, so they are part of
+ * Letter fonts (Small Caps, Script, Bubble, Enchanting Runes, ...) swap the letters for their Unicode look-alikes, so they are part of
  * the nickname text itself and every SkyJew user sees them. Style fonts (Bold, Italic, ...) and Minecraft's own
- * fonts (Enchanting runes, Illager runes, Uniform) are applied as text style and synced as the "font" field.
+ * fonts (Illager runes, Uniform) are applied as text style and synced as the "font" field.
  *
  * {@link #plain} turns look-alike letters back into normal ones, so the nickname filter can't be dodged with them.
  */
@@ -50,7 +50,14 @@ public final class SkyJewNickFonts {
     private static final String SMALL_CAPS = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ";
     // Minecraft's rune fonts only have letters (and the illager one digits), so SkyJew's copies fall back to the
     // normal font for everything else; otherwise a name like "2m3s" comes out with missing characters.
-    private static final FontDescription ALT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("skyjew", "enchanting"));
+    /**
+     * The enchanting table alphabet as the Unicode look-alikes people use for it (a few letters take more than one
+     * character). As letters rather than a font, it shows everywhere, including tab lists drawn by other mods.
+     */
+    private static final String[] GALACTIC = {
+        "\u1511", "\u0296", "\u14F5", "\u21B8", "\u14B7", "\u2393", "\u22A3", "\u2351", "\u254E", "\u22EE",
+        "\uA58C", "\uA58E", "\u14B2", "\u30EA", "\uD835\uDE79", "!\u00A1", "\u1451", "\u2237", "\u14ED", "\u2138 \u0323",
+        "\u268D", "\u234A", "\u2234", " \u0307/", "||", "\u2A05"};
     private static final FontDescription ILLAGER_ALT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("skyjew", "illager"));
     private static final FontDescription UNIFORM_FONT = new FontDescription.Resource(Identifier.withDefaultNamespace("uniform"));
 
@@ -69,7 +76,13 @@ public final class SkyJewNickFonts {
     public static String letters(String text, NickFont font) {
         if (text == null) return "";
         StringBuilder out = new StringBuilder();
-        text.codePoints().forEach(cp -> out.appendCodePoint(map(cp, font)));
+        text.codePoints().forEach(cp -> {
+            if (font == NickFont.ENCHANTING && ((cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z'))) {
+                out.append(GALACTIC[Character.toLowerCase(cp) - 'a']);
+            } else {
+                out.appendCodePoint(map(cp, font));
+            }
+        });
         return out.toString();
     }
 
@@ -80,7 +93,6 @@ public final class SkyJewNickFonts {
             case ITALIC -> style.withItalic(true);
             case BOLD_ITALIC -> style.withBold(true).withItalic(true);
             case UNDERLINED -> style.withUnderlined(true);
-            case ENCHANTING -> style.withFont(ALT);
             case ILLAGER -> style.withFont(ILLAGER_ALT);
             case UNIFORM -> style.withFont(UNIFORM_FONT);
             default -> style;
@@ -90,7 +102,7 @@ public final class SkyJewNickFonts {
     /** Whether the font changes the letters themselves (so it travels inside the nickname text). */
     public static boolean isLetterFont(NickFont font) {
         return switch (font) {
-            case SMALL_CAPS, FULL_WIDTH, BUBBLE, SCRIPT, FRAKTUR, DOUBLE_STRUCK, MONOSPACE, SANS_BOLD -> true;
+            case SMALL_CAPS, FULL_WIDTH, BUBBLE, SCRIPT, FRAKTUR, DOUBLE_STRUCK, MONOSPACE, SANS_BOLD, ENCHANTING -> true;
             default -> false;
         };
     }
@@ -98,6 +110,11 @@ public final class SkyJewNickFonts {
     /** Look-alike letters back to plain ones: "𝓯𝓲𝓼𝓱" and "ꜰɪꜱʜ" become "fish". Used by the nickname filter. */
     public static String plain(String text) {
         if (text == null) return "";
+        // Enchanting table letters first (longest first), before NFKC turns some of them into other letters.
+        java.util.List<String> glyphs = java.util.Arrays.asList(GALACTIC);
+        String[] order = GALACTIC.clone();
+        java.util.Arrays.sort(order, (a, b) -> b.length() - a.length());
+        for (String glyph : order) text = text.replace(glyph, String.valueOf((char) ('a' + glyphs.indexOf(glyph))));
         StringBuilder out = new StringBuilder();
         text.codePoints().forEach(cp -> {
             int small = SMALL_CAPS.indexOf(cp);
