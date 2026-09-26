@@ -2,6 +2,11 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## 1.2.5
+
+### Changed
+- The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
+
 ## 1.2.4 — 2026-09-26
 
 ### Added

@@ -58,9 +58,8 @@ import java.util.regex.Pattern;
  * What you're gathering is the collection item you picked up most recently, from your inventory or from a
  * "[Sacks]" message. The total comes from Elite's copy of the Hypixel API, plus what you've gathered since.
  *
- * The HUD copies SkyHanni's Crop Milestones display, for any collection: "Collection Milestones", the item's icon
- * with "Cobblestone 11➜12" (your collection tier, from Hypixel's collection tiers), the progress in that tier
- * ("12,345/20,000"), the time to the next tier, the items per hour and the percentage; then the Elite rank.
+ * The HUD shows two lines: "Collection: 12,345,678" (with the item's icon in front), and the next player above you
+ * on the Elite leaderboard with how far ahead of you they are ("Tado 1,500").
  *
  * Shown SkyHanni style: the item's icon and "Cobblestone collection: 12,345,678 +1,234" (the green gain shows for a
  * few seconds after each pickup), then the session gain, and the Elite rank like SkyHanni's farming weight display.
@@ -123,16 +122,6 @@ public final class CollectionTracker {
     private static final long RECENT_GAIN_MS = 3_000L;
     private static final Map<String, ItemStack> ICONS = new HashMap<>();
 
-    /** Collection tier thresholds per collection item, from Hypixel's collections resource. */
-    private static final Map<String, long[]> TIERS = new ConcurrentHashMap<>();
-    private static boolean tiersLoading;
-    private static long tiersRetryAt;
-
-    /** Recent gains (time, amount) for the per-hour speed, like SkyHanni's crops per hour. */
-    private record Gain(long at, long amount) {}
-    private static final java.util.ArrayDeque<Gain> RECENT = new java.util.ArrayDeque<>();
-    private static final long SPEED_WINDOW_MS = 60_000L;
-
     private CollectionTracker() {}
 
     private static SkyJewConfig.Misc config() {
@@ -174,7 +163,6 @@ public final class CollectionTracker {
             return;
         }
         loadBoards();
-        loadTiers();
         // Only count pickups while no menu is open, so moving items out of chests doesn't count.
         if (mc.gui.screen() != null) {
             lastInventory = null;
@@ -237,7 +225,6 @@ public final class CollectionTracker {
         String pinned = pinned();
         if (!id.equals(current) && !current.isEmpty() && pinned.isEmpty()) status = "";
         if (pinned.isEmpty() || pinned.equals(id)) {
-            if (!id.equals(current)) RECENT.clear();
             if (!id.equals(current) || now - recentGainAt > RECENT_GAIN_MS) recentGain = 0;
             current = id;
             lastGain = now;
@@ -247,7 +234,6 @@ public final class CollectionTracker {
         sinceFetch.merge(id, amount, Long::sum);
         session.merge(id, amount, Long::sum);
         sessionStart.putIfAbsent(id, now);
-        if (id.equals(current)) RECENT.addLast(new Gain(now, amount));
         checkGoal(id);
     }
 
@@ -505,32 +491,6 @@ public final class CollectionTracker {
 
     // ---------------------------------------------------------------- Elite API
 
-    /** Collection tiers from Hypixel's public collections resource (no API key needed). */
-    private static void loadTiers() {
-        if (!TIERS.isEmpty() || tiersLoading || System.currentTimeMillis() < tiersRetryAt) return;
-        tiersLoading = true;
-        HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.hypixel.net/v2/resources/skyblock/collections"))
-            .timeout(Duration.ofSeconds(15)).header("User-Agent", "SkyJew").GET().build();
-        HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
-            if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());
-            JsonObject collections = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("collections");
-            for (Map.Entry<String, JsonElement> category : collections.entrySet()) {
-                JsonObject items = category.getValue().getAsJsonObject().getAsJsonObject("items");
-                for (Map.Entry<String, JsonElement> item : items.entrySet()) {
-                    JsonArray tiers = item.getValue().getAsJsonObject().getAsJsonArray("tiers");
-                    long[] amounts = new long[tiers.size()];
-                    for (int i = 0; i < amounts.length; i++) amounts[i] = tiers.get(i).getAsJsonObject().get("amountRequired").getAsLong();
-                    java.util.Arrays.sort(amounts);
-                    TIERS.put(item.getKey(), amounts);
-                }
-            }
-        }).exceptionally(e -> {
-            tiersRetryAt = System.currentTimeMillis() + 60_000;
-            tiersLoading = false;
-            return null;
-        });
-    }
-
     private static void loadBoards() {
         if (!BOARDS.isEmpty() || boardsLoading || System.currentTimeMillis() < boardsRetryAt) return;
         boardsLoading = true;
@@ -683,122 +643,39 @@ public final class CollectionTracker {
         return stack;
     }
 
-    private static String duration(long seconds) {
-        long d = seconds / 86_400, h = seconds / 3_600 % 24, m = seconds / 60 % 60, sec = seconds % 60;
-        if (d > 0) return d + "d " + h + "h " + m + "m";
-        if (h > 0) return h + "h " + m + "m";
-        if (m > 0) return m + "m " + sec + "s";
-        return sec + "s";
-    }
-
-    /** Items per hour over the last minute of gathering, like SkyHanni's Crops/Hour. */
-    private static long perHour() {
-        long now = System.currentTimeMillis();
-        while (!RECENT.isEmpty() && now - RECENT.peekFirst().at() > SPEED_WINDOW_MS) RECENT.pollFirst();
-        if (RECENT.isEmpty() || now - lastGain > 10_000) return 0;
-        long sum = 0;
-        for (Gain g : RECENT) sum += g.amount();
-        long span = Math.max(10_000, now - RECENT.peekFirst().at());
-        return sum * 3_600_000L / span;
-    }
-
     /**
-     * SkyHanni's Crop Milestones layout for a collection:
-     * "Collection Milestones", "Cobblestone 11➜12" (after the icon), "12,345/20,000", "In 2h 5m",
-     * "Items/Hour: 38,000", "Percentage: 61.7%", then the Elite rank.
+     * "Collection: 12,345,678", then the next player above you on the Elite leaderboard and how far ahead they are
+     * ("Tado 1,500"), counting the players you've passed since the rank was fetched.
      */
     private static List<Component> lines(String id, long live, boolean known) {
-        Board board = BOARDS.get(id);
-        String name = board != null ? shortName(board) : id;
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal("Collection Milestones").withStyle(ChatFormatting.GOLD));
-
-        long[] tiers = TIERS.get(id);
-        int tier = 0;
-        if (tiers != null) while (tier < tiers.length && live >= tiers[tier]) tier++;
-        boolean maxed = tiers != null && tier >= tiers.length;
-        MutableComponent tierLine = Component.literal(name + " ").withStyle(ChatFormatting.GRAY);
-        if (tiers == null || !known) tierLine.append(Component.literal("...").withStyle(ChatFormatting.DARK_GRAY));
-        else if (maxed) tierLine.append(Component.literal("MAXED").withStyle(ChatFormatting.YELLOW));
-        else tierLine.append(Component.literal(tier + "\u279C").withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal(String.valueOf(tier + 1)).withStyle(ChatFormatting.DARK_AQUA));
-        lines.add(tierLine);
-
-        long speed = perHour();
-        if (!known) {
-            lines.add(Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY));
-        } else if (maxed || tiers == null) {
-            lines.add(Component.literal("Counter: ").withStyle(ChatFormatting.GRAY).append(Component.literal(fmt(live)).withStyle(ChatFormatting.YELLOW)));
-        } else {
-            long start = tier == 0 ? 0 : tiers[tier - 1];
-            long have = live - start, need = tiers[tier] - start;
-            lines.add(Component.literal(fmt(have)).withStyle(ChatFormatting.YELLOW)
-                .append(Component.literal("/").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal(fmt(need)).withStyle(ChatFormatting.YELLOW)));
-            if (speed > 0) {
-                long seconds = (need - have) * 3_600L / speed;
-                lines.add(Component.literal("In ").withStyle(ChatFormatting.GRAY).append(Component.literal(duration(seconds)).withStyle(ChatFormatting.AQUA)));
-            }
-        }
-        lines.add(Component.literal("Items/Hour").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal(fmt(speed)).withStyle(ChatFormatting.YELLOW)));
-        if (known && tiers != null && !maxed) {
-            long start = tier == 0 ? 0 : tiers[tier - 1];
-            double pct = (live - start) * 100.0 / Math.max(1, tiers[tier] - start);
-            lines.add(Component.literal("Percentage: ").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(String.format(Locale.US, "%.2f%%", pct)).withStyle(ChatFormatting.YELLOW)));
-        }
-
-        // Goal from /sj trackcollection <item> <goal>.
-        long goalAmount = id.equals(pinned()) ? goal() : 0;
-        if (goalAmount > 0 && known) {
-            lines.add(Component.literal("Goal: ").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(fmt(live)).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal("/").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal(fmt(goalAmount)).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(String.format(Locale.US, " (%.1f%%)", Math.min(100.0, live * 100.0 / goalAmount))).withStyle(ChatFormatting.GREEN)));
-        }
+        lines.add(Component.literal("Collection: ").withStyle(ChatFormatting.GRAY)
+            .append(known ? Component.literal(fmt(live)).withStyle(ChatFormatting.YELLOW)
+                : Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY)));
 
         SkyJewConfig.Misc c = config();
-        if (c != null && c.collectionTrackerRank) lines.addAll(rankLines(id, live));
+        if (c != null && c.collectionTrackerRank && known) {
+            Rank rank = ranks.get(id);
+            if (rank == null) {
+                lines.add(Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY));
+            } else if (rank.rank() != -2) {
+                Upcoming next = null;
+                for (Upcoming u : rank.upcoming()) {
+                    if (u.amount() >= live) {
+                        next = u;
+                        break;
+                    }
+                }
+                if (next != null) {
+                    lines.add(Component.literal(next.name() + " ").withStyle(ChatFormatting.AQUA)
+                        .append(Component.literal(fmt(next.amount() - live)).withStyle(ChatFormatting.YELLOW)));
+                } else if (rank.rank() > 0 && rank.rank() - rank.upcoming().size() <= 1) {
+                    // Passed everyone above you (or already first).
+                    lines.add(Component.literal("You're #1!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+                }
+            }
+        }
         if (!status.isEmpty()) lines.add(Component.literal(status).withStyle(ChatFormatting.RED));
-        return lines;
-    }
-
-    /** Like SkyHanni's farming weight display: "Elite Rank: #1,234" and "1,500 until #1,233 (Name)". */
-    private static List<Component> rankLines(String id, long live) {
-        Rank rank = ranks.get(id);
-        MutableComponent head = Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD);
-        if (rank == null) return List.of(head.append(Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY)));
-        if (rank.rank() == -2) return List.of(head.append(Component.literal("unavailable").withStyle(ChatFormatting.DARK_GRAY)));
-        // Count the players above you that you've passed since the rank was fetched.
-        int passed = 0;
-        Upcoming next = null;
-        for (Upcoming u : rank.upcoming()) {
-            if (u.amount() < live) passed++;
-            else if (next == null) next = u;
-        }
-        boolean ranked = rank.rank() > 0 || passed > 0;
-        if (!ranked && live < rank.minAmount()) {
-            return List.of(head.append(Component.literal("Unranked").withStyle(ChatFormatting.GRAY)),
-                Component.literal(fmt(rank.minAmount() - live)).withStyle(ChatFormatting.YELLOW)
-                    .append(Component.literal(" until ranked").withStyle(ChatFormatting.GRAY)));
-        }
-        int base = rank.rank() > 0 ? rank.rank() : rank.upcomingRank() + 1;
-        int liveRank = Math.max(1, base - passed);
-        List<Component> lines = new ArrayList<>();
-        lines.add(head.append(Component.literal("#" + fmt(liveRank)).withStyle(ChatFormatting.YELLOW)));
-        if (liveRank == 1) {
-            lines.add(Component.literal("You're #1!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-        } else if (next != null) {
-            lines.add(Component.literal(fmt(next.amount() - live + 1)).withStyle(ChatFormatting.YELLOW)
-                .append(Component.literal(" until ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("#" + fmt(liveRank - 1)).withStyle(ChatFormatting.AQUA))
-                .append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(next.name()).withStyle(ChatFormatting.AQUA))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY)));
-        }
         return lines;
     }
 
@@ -810,18 +687,10 @@ public final class CollectionTracker {
     }
 
     private static final List<Component> PREVIEW = List.of(
-        Component.literal("Collection Milestones").withStyle(ChatFormatting.GOLD),
-        Component.literal("Cobblestone ").withStyle(ChatFormatting.GRAY).append(Component.literal("11\u279C").withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal("12").withStyle(ChatFormatting.DARK_AQUA)),
-        Component.literal("12,345").withStyle(ChatFormatting.YELLOW).append(Component.literal("/").withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal("20,000").withStyle(ChatFormatting.YELLOW)),
-        Component.literal("In ").withStyle(ChatFormatting.GRAY).append(Component.literal("12m 5s").withStyle(ChatFormatting.AQUA)),
-        Component.literal("Items/Hour").withStyle(ChatFormatting.GRAY).append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal("38,000").withStyle(ChatFormatting.YELLOW)),
-        Component.literal("Percentage: ").withStyle(ChatFormatting.GRAY).append(Component.literal("61.73%").withStyle(ChatFormatting.YELLOW)),
-        Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD).append(Component.literal("#1,234").withStyle(ChatFormatting.YELLOW)));
+        Component.literal("Collection: ").withStyle(ChatFormatting.GRAY).append(Component.literal("12,345,678").withStyle(ChatFormatting.YELLOW)),
+        Component.literal("Player ").withStyle(ChatFormatting.AQUA).append(Component.literal("1,500").withStyle(ChatFormatting.YELLOW)));
 
-    /** The display: text lines, with the item's icon in front of the "Cobblestone 11➜12" line like SkyHanni. */
+    /** The two lines, with the item's icon in front of them. */
     private static final class Hud implements SkyJewHuds.CustomHud {
         private static final int ICON = 16;
 
@@ -837,17 +706,15 @@ public final class CollectionTracker {
         @Override
         public int width() {
             var font = Minecraft.getInstance().font;
-            List<Component> lines = shown(true);
             int w = 0;
-            for (int i = 0; i < lines.size(); i++) w = Math.max(w, font.width(lines.get(i)) + (i == 1 ? ICON + 2 : 0));
-            return w + SkyJewHuds.PADDING * 2;
+            for (Component line : shown(true)) w = Math.max(w, font.width(line));
+            return w + ICON + 3 + SkyJewHuds.PADDING * 2;
         }
 
         @Override
         public int height() {
             int n = shown(true).size();
-            // The icon line is taller than the others.
-            return SkyJewHuds.PADDING * 2 + n * SkyJewHuds.LINE_HEIGHT + (n > 1 ? ICON - SkyJewHuds.LINE_HEIGHT : 0) - 2;
+            return SkyJewHuds.PADDING * 2 + Math.max(ICON, n * SkyJewHuds.LINE_HEIGHT - 2);
         }
 
         @Override
@@ -861,17 +728,13 @@ public final class CollectionTracker {
             if (lines.isEmpty()) return;
             var font = Minecraft.getInstance().font;
             if (SkyJewHuds.placement("collection_tracker").background) g.fill(0, 0, width(), height(), 0x80000000);
-            int x = SkyJewHuds.PADDING;
-            int y = SkyJewHuds.PADDING;
-            for (int i = 0; i < lines.size(); i++) {
-                if (i == 1) {
-                    g.item(icon(shownId()), x, y - 3);
-                    g.text(font, lines.get(i), x + ICON + 2, y + 1, 0xFFFFFFFF, true);
-                    y += ICON;
-                } else {
-                    g.text(font, lines.get(i), x, y, 0xFFFFFFFF, true);
-                    y += SkyJewHuds.LINE_HEIGHT;
-                }
+            int pad = SkyJewHuds.PADDING;
+            int textH = lines.size() * SkyJewHuds.LINE_HEIGHT - 2;
+            g.item(icon(shownId()), pad, pad + Math.max(0, (textH - ICON) / 2));
+            int y = pad + Math.max(0, (ICON - textH) / 2);
+            for (Component line : lines) {
+                g.text(font, line, pad + ICON + 3, y, 0xFFFFFFFF, true);
+                y += SkyJewHuds.LINE_HEIGHT;
             }
         }
     }
