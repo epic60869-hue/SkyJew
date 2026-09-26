@@ -68,6 +68,60 @@ public final class SkyJewGlobalChat {
         connect();
     }
 
+    private static volatile long whoAskedAt;
+
+    /**
+     * /sb who: asks the chat server who is online with the mod. The server answers
+     * {"type":"online","players":[{"username":"...","nickname":"..."}]}.
+     */
+    public static void requestWho() {
+        WebSocket ws = socket;
+        if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
+            connect();
+            mcMessage(Component.literal("[SB] Connecting to SkyBalls chat, try again in a moment.").withStyle(Style.EMPTY.withColor(0xFFFF55)));
+            return;
+        }
+        JsonObject packet = new JsonObject();
+        packet.addProperty("type", "who");
+        ws.sendText(GSON.toJson(packet), true);
+        long asked = System.currentTimeMillis();
+        whoAskedAt = asked;
+        java.util.concurrent.CompletableFuture.delayedExecutor(5, java.util.concurrent.TimeUnit.SECONDS).execute(() -> {
+            if (whoAskedAt == asked) {
+                whoAskedAt = 0;
+                mcMessage(Component.literal("[SB] The SkyBalls chat server didn't answer; it may not support /sb who yet.").withStyle(Style.EMPTY.withColor(0xAAAAAA)));
+            }
+        });
+    }
+
+    private static void showWho(JsonObject packet) {
+        whoAskedAt = 0;
+        com.google.gson.JsonArray players = packet.has("players") && packet.get("players").isJsonArray() ? packet.getAsJsonArray("players") : new com.google.gson.JsonArray();
+        MutableComponent message = Component.literal("[SB] ").withStyle(net.minecraft.ChatFormatting.DARK_GREEN)
+            .append(Component.literal(players.size() + " online with SkyBalls: ").withStyle(net.minecraft.ChatFormatting.YELLOW));
+        boolean first = true;
+        for (var element : players) {
+            String username;
+            String nickname = "";
+            if (element.isJsonObject()) {
+                JsonObject o = element.getAsJsonObject();
+                username = o.has("username") ? o.get("username").getAsString() : "?";
+                if (o.has("nickname") && !o.get("nickname").isJsonNull()) nickname = o.get("nickname").getAsString();
+            } else {
+                username = element.getAsString();
+            }
+            username = username.replaceAll("[^A-Za-z0-9_]", "");
+            if (!first) message.append(Component.literal(", ").withStyle(net.minecraft.ChatFormatting.GRAY));
+            first = false;
+            MutableComponent name = Component.literal(username).withStyle(net.minecraft.ChatFormatting.WHITE);
+            if (!nickname.isBlank() && !nickname.equalsIgnoreCase(username) && !SkyJewNickFilter.isBlocked(nickname)) {
+                name.append(Component.literal(" (" + nickname + ")").withStyle(net.minecraft.ChatFormatting.GRAY));
+            }
+            message.append(name);
+        }
+        mcMessage(message);
+    }
+
     public static void sendBotCommand(String command) {
         String clean = String.valueOf(command == null ? "" : command).trim();
         if (clean.isEmpty() || !clean.startsWith("!")) return;
@@ -393,6 +447,11 @@ public final class SkyJewGlobalChat {
                 // The website changed someone's rank: reload them now instead of waiting for the next check.
                 if ("ranksUpdated".equals(type) || "ranks".equals(type)) {
                     SkyJewStaff.refreshNow();
+                    return;
+                }
+
+                if ("online".equals(type) || "whoResult".equals(type)) {
+                    showWho(packet);
                     return;
                 }
 

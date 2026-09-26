@@ -49,6 +49,10 @@ public final class SkyJewToggleCommands {
                                 SkyJewNick.toggleFor(StringArgumentType.getString(c, "player"));
                                 return 1;
                             })))
+                    .then(ClientCommands.literal("who").executes(c -> {
+                        SkyJewGlobalChat.requestWho();
+                        return 1;
+                    }))
                     .then(ClientCommands.literal("disableall")
                         .executes(c -> askDisableAll())
                         .then(ClientCommands.literal("confirm").executes(c -> disableAll()))));
