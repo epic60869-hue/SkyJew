@@ -1,8 +1,7 @@
 name: Build and Release
 
+# Only runs when started by hand (Actions > Build and Release > Run workflow), not on every push.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
     inputs:
       version:
