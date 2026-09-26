@@ -587,7 +587,7 @@ public final class SkyJewNick {
     private static void message(String text, int color) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.sendSystemMessage(Component.literal("[SkyJew] " + text)
+            mc.player.sendSystemMessage(Component.literal("[SJ] " + text)
                 .setStyle(Style.EMPTY.withColor(color)));
         }
     }

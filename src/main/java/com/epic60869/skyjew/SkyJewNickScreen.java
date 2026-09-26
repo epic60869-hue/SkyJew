@@ -268,7 +268,7 @@ public final class SkyJewNickScreen extends Screen {
         if (config != null) {
             String name = nameBox.getValue().trim();
             if (SkyJewNickFilter.isBlocked(name, minecraft.getUser().getProfileId())) {
-                minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SkyJew] That nickname isn't allowed.").withStyle(ChatFormatting.RED));
+                minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SJ] That nickname isn't allowed.").withStyle(ChatFormatting.RED));
                 return false;
             }
             config.misc.nickname.name = name;
@@ -287,7 +287,7 @@ public final class SkyJewNickScreen extends Screen {
     @Override
     public void onClose() {
         if (!save()) {
-            minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SkyJew] Your nickname wasn't changed.").withStyle(ChatFormatting.GRAY));
+            minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SJ] Your nickname wasn't changed.").withStyle(ChatFormatting.GRAY));
         }
         close();
     }

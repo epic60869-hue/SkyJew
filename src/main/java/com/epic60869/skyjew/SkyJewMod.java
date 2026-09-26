@@ -76,7 +76,6 @@ public final class SkyJewMod implements ClientModInitializer {
         SkyJewPriceTooltip.init();
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 
-        SkyJewVersionChecker.check(minecraft);
         registerCommands();
 
         System.out.println("[SkyJew] Core mod loaded.");
@@ -195,13 +194,13 @@ public final class SkyJewMod implements ClientModInitializer {
             String result = SkyJewCalculator.calculate(expression);
             if (mc.player != null) {
                 mc.gui.hud.getChat().addClientSystemMessage(
-                    net.minecraft.network.chat.Component.literal("§6[SkyJew] §f" + expression + " §7= §a" + result)
+                    net.minecraft.network.chat.Component.literal("§6[SJ] §f" + expression + " §7= §a" + result)
                 );
             }
         } catch (IllegalArgumentException e) {
             if (mc.player != null) {
                 mc.gui.hud.getChat().addClientSystemMessage(
-                    net.minecraft.network.chat.Component.literal("§c[SkyJew] Calc error: §f" + e.getMessage())
+                    net.minecraft.network.chat.Component.literal("§c[SJ] Calc error: §f" + e.getMessage())
                 );
             }
         }

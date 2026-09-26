@@ -364,7 +364,7 @@ public final class CollectionTracker {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             if (mc.player != null) mc.gui.hud.getChat().addClientSystemMessage(
-                Component.literal("[SkyJew] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
+                Component.literal("[SJ] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
         });
         return 1;
     }

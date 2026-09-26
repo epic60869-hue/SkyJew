@@ -75,7 +75,7 @@ public final class SkyJewGlobalChat {
         WebSocket ws = socket;
         if (ws == null || ws.isInputClosed() || ws.isOutputClosed()) {
             connect();
-            mcMessage(Component.literal("[SkyJew] Bot command is still connecting...")
+            mcMessage(Component.literal("[SJ] Bot command is still connecting...")
                 .withStyle(Style.EMPTY.withColor(0xFFFF55)));
             return;
         }

@@ -197,7 +197,7 @@ public final class CrystalHollowsWaypoints {
             }
         }
         FeatureConfigs.MiningFeatures c = config();
-        if (c == null || !c.crystalWaypointsFromChat || !text.contains(":") || text.startsWith("[SkyJew]")) return;
+        if (c == null || !c.crystalWaypointsFromChat || !text.contains(":") || text.startsWith("[SJ]")) return;
         String said = text.split(":", 2)[1];
         Matcher m = COORDS.matcher(said);
         if (!m.find()) return;

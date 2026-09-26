@@ -9,6 +9,7 @@ All notable changes to SkyJew are listed here, newest first.
 - Auto Welcome (Misc > Auto Welcome): put players on your list and SkyJew welcomes them when they come online, in guild chat or with /msg, with your own message ({name} is their name). It can also welcome new guild members. Manage the list with `/sj welcome add|remove <name>` and `/sj welcome list`.
 
 ### Changed
+- SkyJew's chat messages start with [SJ] instead of [SkyJew].
 - SkyJew ranks ([OWNER], [TESTER] and the ones set on tastyfish.org) now show in front of those players' names in every chat, not only /sjc (Chat > Custom Chat > Ranks In All Chat).
 - The Collection Tracker HUD copies SkyHanni's Crop Milestones display, for any collection: "Collection Milestones", the item's icon with your collection tier ("Cobblestone 11➜12"), your progress in that tier ("12,345/20,000"), the time to the next tier, Items/Hour and the percentage, then your Elite rank and how much you need to pass the next player. `/sj trackcollection <item> [goal]` pins one collection with an optional goal (e.g. `/sj trackcollection wheat 10m`), like SkyHanni's /shtrackcollection; `/sj trackcollection` follows what you gather again and `/sj trackcollection stop` hides it.
 - Ranked players can use their own name as a nickname.
