@@ -2,6 +2,12 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## Unreleased
+
+### Changed
+- `/sj log` opens a changelog window instead of printing in chat: arrows (or the left and right keys) switch versions, and the list scrolls.
+- Launchers show the mod as "SkyJew by 2m3s", with 2m3s's head as its icon.
+
 ## 1.2.3 — 2026-09-26
 
 ### Changed
