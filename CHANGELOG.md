@@ -2,7 +2,7 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
-## 1.2.5
+## 1.2.5 — 2026-09-26
 
 ### Changed
 - SkyJew is now **SkyBalls**: `/sb` and `/skyballs` (the old `/sj` and `/skyjew` still work), `/sbc` for SkyBalls chat (`/sjc` still works), and [SB] in chat. The [SB] in SkyBalls chat is dark green, like Hypixel's "Guild >". Your settings carry over.
