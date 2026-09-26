@@ -19,7 +19,7 @@ An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are no
 
 `/sb` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `waypoints` · `crystalwaypoints` · `log` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
 
-`/sbc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyjew` works the same as `/sb`.
+`/sbc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyballs` works the same as `/sb`.
 
 ## Credits
 

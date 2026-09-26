@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to SkyJew are listed here, newest first.
+All notable changes to SkyBalls are listed here, newest first.
 
 ## 1.2.5 — 2026-09-26
 

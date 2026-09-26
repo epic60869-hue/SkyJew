@@ -11,7 +11,7 @@ base {
 }
 
 loom {
-    accessWidenerPath = file('src/main/resources/skyjew.classtweaker')
+    accessWidenerPath = file('src/main/resources/skyballs.classtweaker')
 }
 
 repositories {
@@ -69,13 +69,13 @@ tasks.register('downloadNopoEmojiAssets') {
             if (path == prefix + 'emojis.json') {
                 copy {
                     from details.file
-                    into new File(nopoEmojiGeneratedDir, 'assets/skyjew')
+                    into new File(nopoEmojiGeneratedDir, 'assets/skyballs')
                     rename { 'emojis.json' }
                 }
             } else if (path.startsWith(spritesPrefix) && path.endsWith('.png')) {
                 copy {
                     from details.file
-                    into new File(nopoEmojiGeneratedDir, 'assets/skyjew/textures/gui/sprites')
+                    into new File(nopoEmojiGeneratedDir, 'assets/skyballs/textures/gui/sprites')
                 }
             }
         }
@@ -94,7 +94,7 @@ processResources {
     }
     // /sj log reads the changelog from the jar.
     from(rootProject.file('CHANGELOG.md')) {
-        into 'assets/skyjew'
+        into 'assets/skyballs'
     }
 }
 

@@ -1,23 +1,26 @@
 {
   "schemaVersion": 1,
-  "id": "skyjew",
+  "id": "skyballs",
   "version": "${version}",
   "name": "SkyBalls",
   "description": "SkyBalls utilities and Hypixel SkyBlock features.",
   "authors": [
     "2m3s"
   ],
-  "icon": "assets/skyjew/icon.png",
+  "icon": "assets/skyballs/icon.png",
   "environment": "client",
   "entrypoints": {
+    "preLaunch": [
+      "com.epic60869.skyballs.SkyBallsMigration"
+    ],
     "client": [
-      "com.epic60869.skyjew.SkyJewMod"
+      "com.epic60869.skyballs.SkyBallsMod"
     ]
   },
   "mixins": [
-    "skyjew.mixins.json",
-    "skyjew.commandkeys.mixins.json",
-    "skyjew.sb.mixins.json"
+    "skyballs.mixins.json",
+    "skyballs.commandkeys.mixins.json",
+    "skyballs.sb.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.3",
@@ -25,5 +28,5 @@
     "minecraft": "26.2",
     "java": ">=25"
   },
-  "accessWidener": "skyjew.classtweaker"
+  "accessWidener": "skyballs.classtweaker"
 }
