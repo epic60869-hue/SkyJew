@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * server, at most every few hours, and each new version is only announced once per game session.
  */
 public final class SkyBallsUpdateChecker {
-    private static final String LATEST_URL = "https://api.github.com/repos/2m3s/SkyJew/releases/latest";
+    private static final String LATEST_URL = "https://api.github.com/repos/2m3s/SkyBalls/releases/latest";
     private static final long CHECK_EVERY_MS = 3 * 60 * 60_000L;
 
     private static long lastCheck;
@@ -56,11 +56,11 @@ public final class SkyBallsUpdateChecker {
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "SkyBalls/" + installed())
             .GET().build();
-        HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
+        HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build().sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
             if (response.statusCode() != 200) return;
             JsonObject release = JsonParser.parseString(response.body()).getAsJsonObject();
             String latest = release.get("tag_name").getAsString().replaceFirst("^[vV]", "").trim();
-            String url = release.has("html_url") ? release.get("html_url").getAsString() : "https://github.com/2m3s/SkyJew/releases/latest";
+            String url = release.has("html_url") ? release.get("html_url").getAsString() : "https://github.com/2m3s/SkyBalls/releases/latest";
             String current = installed();
             if (current.isEmpty() || compare(latest, current) <= 0 || latest.equals(announced)) return;
             announced = latest;
