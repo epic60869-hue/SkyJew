@@ -233,6 +233,26 @@ public final class FeatureConfigs {
 
     public static final class Dungeons {
         @Expose
+        @ConfigOption(name = "Case Opening", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling): the items spin past and stop on the best one. Esc skips it.")
+        @ConfigEditorBoolean
+        public boolean caseOpening = false;
+
+        @Expose
+        @ConfigOption(name = "Case Opening: All Chests", desc = "Spin every reward chest, not only Obsidian and Bedrock.")
+        @ConfigEditorBoolean
+        public boolean caseOpeningAllChests = false;
+
+        @Expose
+        @ConfigOption(name = "Case Opening: Seconds", desc = "How long the spin takes.")
+        @ConfigEditorSlider(minValue = 2, maxValue = 12, minStep = 1)
+        public int caseOpeningSeconds = 6;
+
+        @Expose
+        @ConfigOption(name = "Case Opening: Gold Sound", desc = "Play the gold sound when the item is Legendary (gold) or better. Put your own .ogg at assets/skyjew/sounds/gold.ogg in a resource pack to use it; otherwise a fanfare plays.")
+        @ConfigEditorBoolean
+        public boolean caseOpeningGoldSound = true;
+
+        @Expose
         @Accordion
         @ConfigOption(name = "Platform Highlight (3x3)", desc = "One big box over the floor 7 3x3 platform (53-55, 63, 113-115), from when Goldor starts, like NoFrills.")
         public PlatformHighlight platformHighlight = new PlatformHighlight();
