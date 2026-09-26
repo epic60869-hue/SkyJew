@@ -250,7 +250,12 @@ public final class Portfolio {
             if (avg != null) return avg;
         }
         Double bin = lowestBins.get(id);
-        return bin == null ? 0 : bin;
+        if (bin != null) return bin;
+        // Nobody is selling one right now (common for runes): the 3 day average, else the last price seen.
+        Double avg = averages.get(id);
+        if (avg != null) return avg;
+        com.epic60869.skyjew.PriceHistory.Seen seen = com.epic60869.skyjew.PriceHistory.get(id);
+        return seen == null ? 0 : seen.price();
     }
 
     /** What you'd pay right now: the lowest BIN, or the bazaar buy price. 0 when unknown. */
@@ -258,7 +263,9 @@ public final class Portfolio {
         Double bin = lowestBins.get(id);
         if (bin != null && bin > 0) return bin;
         Double buy = bazaarBuy.get(id);
-        return buy == null ? 0 : buy;
+        if (buy != null) return buy;
+        com.epic60869.skyjew.PriceHistory.Seen seen = com.epic60869.skyjew.PriceHistory.get(id);
+        return seen == null ? 0 : seen.price();
     }
 
     public static void refreshPrices(boolean force) {
@@ -279,10 +286,13 @@ public final class Portfolio {
                     bazaarBuy = buy;
                 }
                 Map<String, Double> bins = numbers(fetch(LOWEST_BINS_URL));
-                if (!bins.isEmpty()) lowestBins = bins;
-                loadRuneNames();
+                if (!bins.isEmpty()) {
+                    lowestBins = bins;
+                    com.epic60869.skyjew.PriceHistory.record(bins);
+                }
                 Map<String, Double> avg = numbers(fetch(AVERAGE_URL));
                 if (!avg.isEmpty()) averages = avg;
+                loadRuneNames();
                 if (names.isEmpty()) {
                     JsonObject items = fetch(ITEMS_URL);
                     if (items != null && items.has("items")) {
@@ -308,6 +318,14 @@ public final class Portfolio {
      * Hypixel's item list only has one "Rune" item, so rune names and textures come from the NEU repo, once, for
      * every rune on the auction house (cached in config/skyjew/portfolio/runes.json).
      */
+    /** Every rune with a known price: listed now, in the 3 day average, or seen before. */
+    private static java.util.Set<String> runeKeys() {
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        for (String key : lowestBins.keySet()) if (RUNE_KEY.matcher(key).matches()) keys.add(key);
+        for (String key : averages.keySet()) if (RUNE_KEY.matcher(key).matches()) keys.add(key);
+        return keys;
+    }
+
     private static void loadRuneNames() {
         if (!runeNames.isEmpty() || !RUNES_LOADING.compareAndSet(false, true)) return;
         Path cache = dir.resolve("runes.json");
@@ -318,13 +336,14 @@ public final class Portfolio {
                 for (var e : root.getAsJsonObject("names").entrySet()) n.put(e.getKey(), e.getValue().getAsString());
                 for (var e : root.getAsJsonObject("textures").entrySet()) t.put(e.getKey(), e.getValue().getAsString());
                 boolean complete = true;
-                for (String key : lowestBins.keySet()) if (RUNE_KEY.matcher(key).matches() && !n.containsKey(key)) complete = false;
+                for (String key : runeKeys()) if (!n.containsKey(key)) complete = false;
                 runeNames = n;
                 runeTextures = t;
                 if (complete) return;
             }
             Map<String, CompletableFuture<HttpResponse<String>>> requests = new HashMap<>();
-            for (String key : lowestBins.keySet()) {
+            for (String key : runeKeys()) {
+                if (runeNames.containsKey(key)) continue;
                 Matcher m = RUNE_KEY.matcher(key);
                 if (!m.matches()) continue;
                 String file = m.group(1) + "_RUNE%3B" + m.group(2) + ".json";

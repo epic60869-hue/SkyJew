@@ -64,7 +64,10 @@ public final class SkyJewPriceTooltip {
         CompletableFuture.runAsync(() -> {
             try {
                 Map<String, Double> bins = fetch(LOWEST_BINS_URL);
-                if (!bins.isEmpty()) lowestBins = bins;
+                if (!bins.isEmpty()) {
+                    lowestBins = bins;
+                    PriceHistory.record(bins);
+                }
                 Map<String, Double> average = fetch(AVERAGE_URL);
                 if (!average.isEmpty()) threeDayAverage = average;
                 fetchBazaar();
@@ -156,7 +159,7 @@ public final class SkyJewPriceTooltip {
             Double price = npcPrices.get(id);
             if (price != null) lines.add(line("NPC Sell Price: ", ChatFormatting.YELLOW, price, count));
         }
-        boolean onAuctionHouse = lowestBins.containsKey(apiId) || threeDayAverage.containsKey(apiId);
+        boolean onAuctionHouse = lowestBins.containsKey(apiId) || threeDayAverage.containsKey(apiId) || PriceHistory.get(apiId) != null;
         if (!onAuctionHouse && bazaarBuy.containsKey(apiId)) {
             if (!config.bazaar && !config.lowestBin && !config.threeDayAverage) return;
             // For a sack in the Sacks menu, price everything stored in it.
@@ -175,7 +178,16 @@ public final class SkyJewPriceTooltip {
         }
         if (config.lowestBin) {
             Double price = lowestBins.get(apiId);
-            if (price != null) lines.add(line("Lowest BIN Price: ", ChatFormatting.GOLD, price, count));
+            PriceHistory.Seen seen = price == null ? PriceHistory.get(apiId) : null;
+            if (price != null) {
+                lines.add(line("Lowest BIN Price: ", ChatFormatting.GOLD, price, count));
+            } else if (seen != null) {
+                // Nobody is selling one right now (common for runes): show the last price seen.
+                lines.add(line("Lowest BIN Price: ", ChatFormatting.GOLD, seen.price(), count)
+                    .append(Component.literal(" (last seen " + PriceHistory.ago(seen.at()) + ")").withStyle(ChatFormatting.DARK_GRAY)));
+            } else if (id.equals("RUNE") || id.equals("UNIQUE_RUNE")) {
+                lines.add(noData("Lowest BIN Price: "));
+            }
         }
         if (config.threeDayAverage) {
             Double price = threeDayAverage.get(apiId);
@@ -188,7 +200,7 @@ public final class SkyJewPriceTooltip {
     }
 
     /** Skyblocker's coin format: the total, plus the price each when there is more than one. */
-    private static Component line(String label, ChatFormatting labelColour, double price, int count) {
+    private static net.minecraft.network.chat.MutableComponent line(String label, ChatFormatting labelColour, double price, int count) {
         String each = String.format(Locale.ENGLISH, "%,.1f", price);
         MutableComponent line = Component.literal(label).withStyle(labelColour);
         if (count == 1) return line.append(Component.literal(each + " Coins").withStyle(ChatFormatting.DARK_AQUA));
