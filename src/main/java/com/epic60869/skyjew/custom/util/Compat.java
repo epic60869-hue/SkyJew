@@ -64,7 +64,7 @@ public final class Compat {
 	public static final Function<ChatFormatting, Component> FORMATTING_FORMATTER = formatting -> Component.literal(StringUtils.capitalize(formatting.name().replaceAll("_", " ")));
 	public static final Supplier<MutableComponent> PREFIX = () -> Component.empty()
 			.append(Component.literal("[").withStyle(ChatFormatting.GRAY))
-			.append(Component.literal("SkyJew").withStyle(ChatFormatting.AQUA))
+			.append(Component.literal("SJ").withStyle(ChatFormatting.AQUA))
 			.append(Component.literal("] ").withStyle(ChatFormatting.GRAY));
 
 	private static final HolderLookup.Provider LOOKUP = VanillaRegistries.createLookup();
