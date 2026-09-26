@@ -93,6 +93,12 @@ public final class HeldItemModel {
         if (t.scale != 1f) pose.scale(t.scale, t.scale, t.scale);
     }
 
+    /** Misc > Held Item Model > Swing X / Y / Z: multipliers for how far the item moves while swinging. */
+    public static float[] swingScale() {
+        SkyBallsConfig.HeldItemModel config = config();
+        return config == null ? new float[]{1f, 1f, 1f} : new float[]{config.swingX, config.swingY, config.swingZ};
+    }
+
     /** Misc > Held Item Model > No Swing Animation. */
     public static boolean noSwing() {
         SkyBallsConfig.HeldItemModel config = config();

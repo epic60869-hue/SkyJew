@@ -691,6 +691,9 @@ public final class SkyBallsConfig extends Config {
         @Expose @ConfigOption(name = "Rotation Z", desc = "Roll in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationZ = 0f;
         @Expose @ConfigOption(name = "Swing Speed", desc = "Arm swing speed (1 = vanilla, 2 = twice as fast, 0.5 = half speed).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float swingSpeed = 1f;
         @Expose @ConfigOption(name = "No Swing Animation", desc = "Your hand and held item don't swing when you click, like NoFrills. Works even with Held Item Model off. Off by default.") @ConfigEditorBoolean public boolean noSwing = false;
+        @Expose @ConfigOption(name = "Swing X", desc = "How far the item moves sideways when you swing (1 = vanilla, 0 = none). With X, Y and Z at 0 the item still rotates but stays in place, like NoammAddons and NoFrills.") @ConfigEditorSlider(minValue = 0f, maxValue = 2f, minStep = 0.05f) public float swingX = 1f;
+        @Expose @ConfigOption(name = "Swing Y", desc = "How far the item moves up and down when you swing (1 = vanilla, 0 = none).") @ConfigEditorSlider(minValue = 0f, maxValue = 2f, minStep = 0.05f) public float swingY = 1f;
+        @Expose @ConfigOption(name = "Swing Z", desc = "How far the item moves forward when you swing (1 = vanilla, 0 = none).") @ConfigEditorSlider(minValue = 0f, maxValue = 2f, minStep = 0.05f) public float swingZ = 1f;
 
         @Expose
         @ConfigOption(name = "Ignore Mining Effects", desc = "Swing at the normal speed even with Haste or Mining Fatigue.")

@@ -5,6 +5,7 @@ All notable changes to SkyBalls are listed here, newest first.
 ## 1.2.6
 
 ### Added
+- Held Item Model: Swing X, Swing Y and Swing Z. Set them to 0 and the item still rotates when you swing but doesn't move across the screen, like NoammAddons.
 - Screenshot Sharing (Misc): after F2, the "Saved screenshot as ..." message has an [Upload] button. It uploads the picture to Litterbox (or Catbox) and gives you the link with [Send in /sbc] and [Copy Link]; the link previews when hovered.
 
 ### Changed
