@@ -63,9 +63,14 @@ public final class SkyJewMouseReset {
         if (!storageGuiOpen) {
             // First selected storage GUI after coming from outside storage:
             // perform the actual Mouse Reset.
-            double x = mc.getWindow().getGuiScaledWidth() / 2.0;
-            double y = mc.getWindow().getGuiScaledHeight() / 2.0;
-            GLFW.glfwSetCursorPos(window, x, y);
+            // GLFW works in window coordinates, not GUI-scaled ones (using those put the cursor near the
+            // top-left corner at GUI scales above 1), so centre on the real window size.
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                java.nio.IntBuffer w = stack.mallocInt(1);
+                java.nio.IntBuffer h = stack.mallocInt(1);
+                GLFW.glfwGetWindowSize(window, w, h);
+                GLFW.glfwSetCursorPos(window, w.get(0) / 2.0, h.get(0) / 2.0);
+            }
         } else if (screen != lastStorageScreen && haveCursorPosition) {
             // Hypixel opened another storage screen. Do NOT reset to the
             // centre and do NOT accept the position restored by the new
