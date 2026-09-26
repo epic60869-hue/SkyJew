@@ -181,7 +181,8 @@ public class DungeonPlayerManager {
 		}
 
 		@Override
-		@GenToString
-		public native String toString();
+		public String toString() {
+			return "DungeonPlayer[uuid=" + uuid + ", name=" + name + ", dungeonClass=" + dungeonClass + ", alive=" + alive + ", lastGhostTime=" + lastGhostTime + "]";
+		}
 	}
 }

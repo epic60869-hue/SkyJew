@@ -202,14 +202,22 @@ public class WaypointGroup {
 	}
 
 	@Override
-	@GenEquals
-	public native boolean equals(Object o);
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof WaypointGroup other)) return false;
+		return ordered == other.ordered && renderThroughWalls == other.renderThroughWalls
+			&& java.util.Objects.equals(name, other.name) && java.util.Objects.equals(island, other.island)
+			&& java.util.Objects.equals(waypoints, other.waypoints) && waypointType == other.waypointType;
+	}
 
 	@Override
-	@GenHashCode
-	public native int hashCode();
+	public int hashCode() {
+		return java.util.Objects.hash(name, island, waypoints, ordered, renderThroughWalls, waypointType);
+	}
 
 	@Override
-	@GenToString
-	public native String toString();
+	public String toString() {
+		return "WaypointGroup[name=" + name + ", island=" + island + ", waypoints=" + waypoints + ", ordered=" + ordered
+			+ ", renderThroughWalls=" + renderThroughWalls + ", waypointType=" + waypointType + "]";
+	}
 }
