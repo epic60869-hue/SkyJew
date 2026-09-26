@@ -248,7 +248,7 @@ public final class FeatureConfigs {
         public int caseOpeningSeconds = 6;
 
         @Expose
-        @ConfigOption(name = "Case Opening: Gold Sound", desc = "Play the gold sound when the item is Legendary (gold) or better. Put your own .ogg at assets/skyjew/sounds/gold.ogg in a resource pack to use it; otherwise a fanfare plays.")
+        @ConfigOption(name = "Case Opening: Gold Sound", desc = "Play the \"GOLD GOLD GOLD\" sound when the item is Legendary (gold) or better.")
         @ConfigEditorBoolean
         public boolean caseOpeningGoldSound = true;
 

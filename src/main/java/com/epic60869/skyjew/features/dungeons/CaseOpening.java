@@ -35,8 +35,8 @@ import java.util.regex.Pattern;
  * CS2-style case opening for dungeon reward chests, ported from SkyOcean's Dungeon Gambling: opening an Obsidian or
  * Bedrock chest (or any chest, if turned on) spins a strip of item cards past a red marker, slowing down and stopping
  * on the chest's most valuable item, whose name then grows onto the screen. The menu can't be clicked while it
- * spins; Esc skips it. When the winner is Legendary (gold) or better, the "gold" sound plays: put an .ogg at
- * assets/skyjew/sounds/gold.ogg (or in a resource pack) to use your own, otherwise a vanilla fanfare plays.
+ * spins; Esc skips it. When the winner is Legendary (gold) or better, the "GOLD GOLD GOLD" sound plays
+ * (assets/skyjew/sounds/gold.ogg; a resource pack can replace it).
  */
 public final class CaseOpening {
     private static final Pattern CHEST = Pattern.compile("^(?<type>Wood|Gold|Diamond|Emerald|Obsidian|Bedrock)(?: Chest)?$");
