@@ -15,8 +15,6 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
  * set in /sj gui and stored in skyballs-huds.json.
  */
 public final class FeatureConfigs {
-    private FeatureConfigs() {}
-
     public static final class Combat {
         @Expose
         @Accordion
@@ -43,6 +41,70 @@ public final class FeatureConfigs {
         @ConfigEditorBoolean
         public boolean legionDisplay = false;
     }
+
+    public static final class Dungeons {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Case Opening", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling).")
+        public CaseOpening caseOpeningMenu = new CaseOpening();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Platform Highlight (3x3)", desc = "One big box over the floor 7 3x3 platform (53-55, 63, 113-115), from when Goldor starts, like NoFrills.")
+        public PlatformHighlight platformHighlight = new PlatformHighlight();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Dungeon Map", desc = "Dungeon map HUD.")
+        public DungeonMap map = new DungeonMap();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Puzzle Solvers", desc = "Solutions for dungeon puzzles.")
+        public Puzzles puzzles = new Puzzles();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Secrets and Routes", desc = "Secret waypoints and your recorded routes.")
+        public Secrets secrets = new Secrets();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Terminals and Devices", desc = "Floor 7 terminal and device solvers.")
+        public Terminals terminals = new Terminals();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mobs", desc = "Dungeon mob highlighting.")
+        public DungeonMobs mobs = new DungeonMobs();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Timers and Alerts", desc = "Splits, tick timers, mask timers and debuff alerts.")
+        public Timers timers = new Timers();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Score", desc = "270/300 score alerts and the score display.")
+        public Score score = new Score();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Leap Menu", desc = "Odin-style Spirit Leap menu with a box per teammate, coloured by class.")
+        public LeapMenu leapMenu = new LeapMenu();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Positional Messages", desc = "Party messages sent when you reach a spot (/sb posmsg), plus built-in waypoints like Py Stand Here.")
+        public PositionalMessages positionalMessages = new PositionalMessages();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Blood Camp", desc = "Watcher move prediction and blood mob kill timers.")
+        public BloodCamp bloodCamp = new BloodCamp();
+    }
+
+    private FeatureConfigs() {}
 
     public static final class CocoonAlert {
         @Expose
@@ -251,68 +313,6 @@ public final class FeatureConfigs {
         @ConfigOption(name = "Gold Sound", desc = "Play the \"GOLD GOLD GOLD\" sound when the item is Legendary (gold) or better.")
         @ConfigEditorBoolean
         public boolean goldSound = true;
-    }
-
-    public static final class Dungeons {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Case Opening", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling).")
-        public CaseOpening caseOpeningMenu = new CaseOpening();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Platform Highlight (3x3)", desc = "One big box over the floor 7 3x3 platform (53-55, 63, 113-115), from when Goldor starts, like NoFrills.")
-        public PlatformHighlight platformHighlight = new PlatformHighlight();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Dungeon Map", desc = "Dungeon map HUD.")
-        public DungeonMap map = new DungeonMap();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Puzzle Solvers", desc = "Solutions for dungeon puzzles.")
-        public Puzzles puzzles = new Puzzles();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Secrets and Routes", desc = "Secret waypoints and your recorded routes.")
-        public Secrets secrets = new Secrets();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Terminals and Devices", desc = "Floor 7 terminal and device solvers.")
-        public Terminals terminals = new Terminals();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mobs", desc = "Dungeon mob highlighting.")
-        public DungeonMobs mobs = new DungeonMobs();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Timers and Alerts", desc = "Splits, tick timers, mask timers and debuff alerts.")
-        public Timers timers = new Timers();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Score", desc = "270/300 score alerts and the score display.")
-        public Score score = new Score();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Leap Menu", desc = "Odin-style Spirit Leap menu with a box per teammate, coloured by class.")
-        public LeapMenu leapMenu = new LeapMenu();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Positional Messages", desc = "Party messages sent when you reach a spot (/sb posmsg), plus built-in waypoints like Py Stand Here.")
-        public PositionalMessages positionalMessages = new PositionalMessages();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Blood Camp", desc = "Watcher move prediction and blood mob kill timers.")
-        public BloodCamp bloodCamp = new BloodCamp();
     }
 
     public static final class DungeonMap {

@@ -30,6 +30,249 @@ import java.nio.file.Path;
  * configuration engine used by SkyHanni/NotEnoughUpdates.
  */
 public final class SkyBallsConfig extends Config {
+    public static final class General {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Item Custom", desc = "Item and armor customization settings.")
+        public ItemCustom itemCustom = new ItemCustom();
+
+        @ConfigOption(name = "Notes", desc = "Open your SkyBalls notes.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable notes = () -> openNotes();
+
+        @ConfigOption(name = "Command Keys", desc = "Configure SkyBalls command shortcuts.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable commandKeys = () -> openCommandKeys();
+
+        @ConfigOption(name = "Gui Editor", desc = "Open the transparent HUD/GUI editor.")
+        @ConfigEditorButton(buttonText = "OPEN")
+        public Runnable guiEditor = () -> openHudEditor();
+
+        @Expose
+        public boolean firstBootAcknowledged = false;
+    }
+
+    public static final class Chat {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Custom Chat", desc = "Control how SkyBalls command output from other players appears in chat.")
+        public CustomChat customChat = new CustomChat();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Copy Chat", desc = "Right-click chat messages to copy them, like NoFrills' Chat Tweaks.")
+        public CopyChat copyChat = new CopyChat();
+
+        @Expose
+        @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
+        @ConfigEditorBoolean
+        public boolean compactChat = true;
+
+        @Expose
+        @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyBalls emoji sprites and provide emoji autocomplete while typing chat.")
+        @ConfigEditorBoolean
+        public boolean chatEmoji = true;
+
+        @Expose
+        @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyBalls chat) just above the chat box while it is open.")
+        @ConfigEditorBoolean
+        public boolean currentChatDisplay = true;
+    }
+
+    public static final class Farming {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Farming RNG HUD", desc = "Click to expand the farming RNG HUD options.")
+        public FarmingRng rng = new FarmingRng();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mouse Lock", desc = "Fully lock the camera while holding a farming tool.")
+        public MouseLock mouseLock = new MouseLock();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Garden", desc = "Yaw/pitch, pest cooldown, blocks per second and special drop animations.")
+        public com.epic60869.skyballs.features.FeatureConfigs.Garden garden = new com.epic60869.skyballs.features.FeatureConfigs.Garden();
+
+    }
+
+    public static final class Mining {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mining Commissions", desc = "Show and configure the Mining Commission HUD.")
+        public MiningCommissions commissions = new MiningCommissions();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mining Features", desc = "Crystal Hollows map, Divan tools alert and mineshaft timer.")
+        public com.epic60869.skyballs.features.FeatureConfigs.MiningFeatures features = new com.epic60869.skyballs.features.FeatureConfigs.MiningFeatures();
+    }
+
+    public static final class Slayers {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker and boss phase HUDs.")
+        public com.epic60869.skyballs.features.FeatureConfigs.Slayer huds = new com.epic60869.skyballs.features.FeatureConfigs.Slayer();
+
+        @Expose
+        @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
+        @ConfigEditorBoolean
+        public boolean killsSinceDrop = true;
+    }
+
+    public static final class Pets {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Pets Display", desc = "Pet display, overflow XP and positioning.")
+        public PetDisplay display = new PetDisplay();
+    }
+
+    public static final class Misc {
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Party Commands", desc = "Let party members use !warp, !allinvite and !pt when you are leader.")
+        public com.epic60869.skyballs.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyballs.features.FeatureConfigs.PartyCommands();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Slot Locking & Binding", desc = "Lock inventory slots (L) and bind hotbar slots to inventory slots (B).")
+        public SlotLocking slotLocking = new SlotLocking();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Item Notification", desc = "Show items from your list on a HUD when they go into your sacks or inventory (SkyOcean's Sack Notification as a HUD).")
+        public com.epic60869.skyballs.features.FeatureConfigs.ItemNotification itemNotification = new com.epic60869.skyballs.features.FeatureConfigs.ItemNotification();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Auto Welcome", desc = "Welcome players on your list in guild chat or with /msg when they come online.")
+        public com.epic60869.skyballs.features.FeatureConfigs.AutoWelcome autoWelcome = new com.epic60869.skyballs.features.FeatureConfigs.AutoWelcome();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Item Rarity", desc = "Rarity-coloured backgrounds behind SkyBlock items.")
+        public ItemRarity itemRarity = new ItemRarity();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Experimental Table", desc = "Experimentation table solvers: Chronomatron, Superpairs and Ultrasequencer.")
+        public com.epic60869.skyballs.features.FeatureConfigs.Enchanting experimentalTable = new com.epic60869.skyballs.features.FeatureConfigs.Enchanting();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Item Price Tooltip", desc = "Add prices to SkyBlock item tooltips, like Skyblocker.")
+        public PriceTooltip priceTooltip = new PriceTooltip();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Random", desc = "Low fire overlay, hidden explosions and other small visual tweaks.")
+        public Random random = new Random();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Player Size", desc = "Make yourself, other players, or both bigger or smaller (client side only), like Odin.")
+        public PlayerSize playerSize = new PlayerSize();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Held Item Model", desc = "Move, rotate and scale the item in your hand and change your swing speed, like Skysoft. /sb helditem save stores the settings for the held item only.")
+        public HeldItemModel heldItemModel = new HeldItemModel();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
+        public Nickname nickname = new Nickname();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Mouse Reset", desc = "Reset the mouse cursor when selected SkyBlock menus open.")
+        public MouseReset mouseReset = new MouseReset();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Tooltip Scroll", desc = "Move tooltips with the mouse wheel and keys so long tooltips can be read (Skysoft's Tooltip Scroll). Off automatically when Skysoft is installed.")
+        public TooltipScroll tooltipScroll = new TooltipScroll();
+
+        @Expose
+        @ConfigOption(name = "Screenshot Sharing", desc = "After F2, the screenshot message gets an [Upload] button that gives you a link to post in /sbc, like Skysoft. Uploads are public to anyone with the link.")
+        @ConfigEditorBoolean
+        public boolean screenshotSharing = true;
+
+        @Expose
+        @ConfigOption(name = "Screenshot Upload Host", desc = "Where screenshots are uploaded. Litterbox deletes them after the chosen time; Catbox keeps them.")
+        @ConfigEditorDropdown
+        public com.epic60869.skyballs.features.misc.ScreenshotShare.Host screenshotHost = com.epic60869.skyballs.features.misc.ScreenshotShare.Host.LITTERBOX_72H;
+
+        @Expose
+        @ConfigOption(name = "Storage Overlay", desc = "Show every Ender Chest page and backpack at once in /storage and in any page, like Firmament. Click a page's name to open it; the open page and your inventory can be clicked as normal.")
+        @ConfigEditorBoolean
+        public boolean storageOverlay = true;
+
+        @Expose
+        @ConfigOption(name = "Recipe HUD", desc = "While a /sb recipe is selected, show a movable HUD with the item and the base ingredients you still need (like SkyOcean's craft helper overlay). Move it in /sb gui.")
+        @ConfigEditorBoolean
+        public boolean recipeHud = true;
+
+        @Expose
+        @ConfigOption(name = "Recipe HUD Hide Completed", desc = "Hide ingredients you already have enough of in the Recipe HUD.")
+        @ConfigEditorBoolean
+        public boolean recipeHudHideCompleted = false;
+
+        @Expose
+        @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
+        @ConfigEditorBoolean
+        public boolean calendarTimeToRealTime = true;
+
+        @Expose
+        @ConfigOption(name = "Price Paid", desc = "Remember what you paid for items you buy on the auction house and show it in their tooltip, like NoFrills.")
+        @ConfigEditorBoolean
+        public boolean pricePaid = true;
+
+        @Expose
+        @ConfigOption(name = "Update Notifications", desc = "Tell you in chat when a newer SkyBalls version is out (\"New SkyBalls Mod Version 1.2.3 --> 1.2.5\"), with a download link.")
+        @ConfigEditorBoolean
+        public boolean updateNotifications = true;
+
+        @Expose
+        @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sb gui.")
+        @ConfigEditorBoolean
+        public boolean collectionTracker = true;
+
+        @Expose
+        @ConfigOption(name = "Collection Tracker Elite Rank", desc = "Also show your rank on the Elite (elitebot.dev) collection leaderboard and how much you need to pass the next player.")
+        @ConfigEditorBoolean
+        public boolean collectionTrackerRank = true;
+
+        /** Collection pinned with /sj trackcollection (a Hypixel item id), or "" to follow what you gather. */
+        @Expose
+        public String collectionTrackerItem = "";
+
+        /** Goal set with /sj trackcollection &lt;item&gt; &lt;goal&gt;, or 0. */
+        @Expose
+        public long collectionTrackerGoal = 0;
+
+        @Expose
+        @ConfigOption(name = "Warp Shortcuts", desc = "Type /dhub instead of /warp dhub (and the same for every name in the list below). Applies next time you join a server.")
+        @ConfigEditorBoolean
+        public boolean warpShortcuts = true;
+
+        @Expose
+        @ConfigOption(name = "Warp Shortcut List", desc = "Warps that get their own command, separated by commas.")
+        @ConfigEditorText
+        public String warpShortcutList = "dhub, dungeon_hub, garden, barn, desert, trapper, park, howl, jungle, gold, deep, mines, forge, crystals, nucleus, base, camp, tunnels, end, drag, void, spider, nest, arachne, crimson, isle, kuudra, smold, museum, da, castle, wiz, jerry, rift, galatea, murkwater";
+
+        @Expose
+        @ConfigOption(name = "Toggle Sprint", desc = "Always sprint, like Odin's Auto Sprint. Set a \"Toggle Sprint\" key in Controls to switch it on and off.")
+        @ConfigEditorBoolean
+        public boolean toggleSprint = false;
+
+        @Expose
+        @ConfigOption(name = "Toggle Sprint HUD", desc = "Show [Sprinting (Toggled)] while toggle sprint is on. Move it in /sb gui.")
+        @ConfigEditorBoolean
+        public boolean toggleSprintHud = true;
+    }
+
     private static final Gson LEGACY_GSON = new Gson();
 
     private static ManagedConfig<SkyBallsConfig> managed;
@@ -81,7 +324,6 @@ public final class SkyBallsConfig extends Config {
     @Expose
     @Category(name = "Misc", desc = "Nickname and small quality-of-life options.")
     public Misc misc = new Misc();
-
 
     public static final class TooltipScroll {
         @Expose
@@ -165,28 +407,6 @@ public final class SkyBallsConfig extends Config {
         public int scrollSmoothness = 25;
     }
 
-    public static final class General {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Item Custom", desc = "Item and armor customization settings.")
-        public ItemCustom itemCustom = new ItemCustom();
-
-        @ConfigOption(name = "Notes", desc = "Open your SkyBalls notes.")
-        @ConfigEditorButton(buttonText = "OPEN")
-        public Runnable notes = () -> openNotes();
-
-        @ConfigOption(name = "Command Keys", desc = "Configure SkyBalls command shortcuts.")
-        @ConfigEditorButton(buttonText = "OPEN")
-        public Runnable commandKeys = () -> openCommandKeys();
-
-        @ConfigOption(name = "Gui Editor", desc = "Open the transparent HUD/GUI editor.")
-        @ConfigEditorButton(buttonText = "OPEN")
-        public Runnable guiEditor = () -> openHudEditor();
-
-        @Expose
-        public boolean firstBootAcknowledged = false;
-    }
-
     public static final class ItemCustom {
         @ConfigOption(name = "Open Item Editor", desc = "Open the item and armor customization screen.")
         @ConfigEditorButton(buttonText = "OPEN")
@@ -196,33 +416,6 @@ public final class SkyBallsConfig extends Config {
         @ConfigOption(name = "Show Customize Button", desc = "Show a button in the inventory that opens the item and armor customization screen.")
         @ConfigEditorBoolean
         public boolean showCustomizeButton = true;
-    }
-
-    public static final class Chat {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Custom Chat", desc = "Control how SkyBalls command output from other players appears in chat.")
-        public CustomChat customChat = new CustomChat();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Copy Chat", desc = "Right-click chat messages to copy them, like NoFrills' Chat Tweaks.")
-        public CopyChat copyChat = new CopyChat();
-
-        @Expose
-        @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
-        @ConfigEditorBoolean
-        public boolean compactChat = true;
-
-        @Expose
-        @ConfigOption(name = "Chat Emoji", desc = "Replace :emoji: shortcodes with SkyBalls emoji sprites and provide emoji autocomplete while typing chat.")
-        @ConfigEditorBoolean
-        public boolean chatEmoji = true;
-
-        @Expose
-        @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyBalls chat) just above the chat box while it is open.")
-        @ConfigEditorBoolean
-        public boolean currentChatDisplay = true;
     }
 
     public static final class SlotLocking {
@@ -314,36 +507,6 @@ public final class SkyBallsConfig extends Config {
         public boolean hideOtherCommands = true;
     }
 
-    public static final class Farming {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Farming RNG HUD", desc = "Click to expand the farming RNG HUD options.")
-        public FarmingRng rng = new FarmingRng();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mouse Lock", desc = "Fully lock the camera while holding a farming tool.")
-        public MouseLock mouseLock = new MouseLock();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Garden", desc = "Yaw/pitch, pest cooldown, blocks per second and special drop animations.")
-        public com.epic60869.skyballs.features.FeatureConfigs.Garden garden = new com.epic60869.skyballs.features.FeatureConfigs.Garden();
-
-    }
-
-    public static final class Mining {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mining Commissions", desc = "Show and configure the Mining Commission HUD.")
-        public MiningCommissions commissions = new MiningCommissions();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mining Features", desc = "Crystal Hollows map, Divan tools alert and mineshaft timer.")
-        public com.epic60869.skyballs.features.FeatureConfigs.MiningFeatures features = new com.epic60869.skyballs.features.FeatureConfigs.MiningFeatures();
-    }
-
     public static final class MiningCommissions {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Show the commission HUD when commission data is present in the tab list.")
@@ -396,25 +559,6 @@ public final class SkyBallsConfig extends Config {
         @ConfigOption(name = "Edit Position", desc = "Open the SkyBalls HUD editor and drag the Farming RNG HUD.")
         @ConfigEditorButton(buttonText = "OPEN")
         public Runnable editPosition = () -> openRngEditor();
-    }
-
-    public static final class Slayers {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Slayer HUDs", desc = "Slayer tracker and boss phase HUDs.")
-        public com.epic60869.skyballs.features.FeatureConfigs.Slayer huds = new com.epic60869.skyballs.features.FeatureConfigs.Slayer();
-
-        @Expose
-        @ConfigOption(name = "Kills Since Rare Drop", desc = "Show the kills-since-drop counter.")
-        @ConfigEditorBoolean
-        public boolean killsSinceDrop = true;
-    }
-
-    public static final class Pets {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Pets Display", desc = "Pet display, overflow XP and positioning.")
-        public PetDisplay display = new PetDisplay();
     }
 
     public static final class PetDisplay {
@@ -510,151 +654,6 @@ public final class SkyBallsConfig extends Config {
         @ConfigOption(name = "Opacity", desc = "How opaque the item rarity background is.")
         @ConfigEditorSlider(minValue = 0f, maxValue = 1f, minStep = 0.05f)
         public float opacity = 0.5f;
-    }
-
-    public static final class Misc {
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Party Commands", desc = "Let party members use !warp, !allinvite and !pt when you are leader.")
-        public com.epic60869.skyballs.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyballs.features.FeatureConfigs.PartyCommands();
-
-        @Expose
-        @ConfigOption(name = "Screenshot Sharing", desc = "After F2, the screenshot message gets an [Upload] button that gives you a link to post in /sbc, like Skysoft. Uploads are public to anyone with the link.")
-        @ConfigEditorBoolean
-        public boolean screenshotSharing = true;
-
-        @Expose
-        @ConfigOption(name = "Screenshot Upload Host", desc = "Where screenshots are uploaded. Litterbox deletes them after the chosen time; Catbox keeps them.")
-        @ConfigEditorDropdown
-        public com.epic60869.skyballs.features.misc.ScreenshotShare.Host screenshotHost = com.epic60869.skyballs.features.misc.ScreenshotShare.Host.LITTERBOX_72H;
-
-        @Expose
-        @ConfigOption(name = "Storage Overlay", desc = "Show every Ender Chest page and backpack at once in /storage and in any page, like Firmament. Click a page's name to open it; the open page and your inventory can be clicked as normal.")
-        @ConfigEditorBoolean
-        public boolean storageOverlay = true;
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Slot Locking & Binding", desc = "Lock inventory slots (L) and bind hotbar slots to inventory slots (B).")
-        public SlotLocking slotLocking = new SlotLocking();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Item Notification", desc = "Show items from your list on a HUD when they go into your sacks or inventory (SkyOcean's Sack Notification as a HUD).")
-        public com.epic60869.skyballs.features.FeatureConfigs.ItemNotification itemNotification = new com.epic60869.skyballs.features.FeatureConfigs.ItemNotification();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Auto Welcome", desc = "Welcome players on your list in guild chat or with /msg when they come online.")
-        public com.epic60869.skyballs.features.FeatureConfigs.AutoWelcome autoWelcome = new com.epic60869.skyballs.features.FeatureConfigs.AutoWelcome();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Item Rarity", desc = "Rarity-coloured backgrounds behind SkyBlock items.")
-        public ItemRarity itemRarity = new ItemRarity();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Experimental Table", desc = "Experimentation table solvers: Chronomatron, Superpairs and Ultrasequencer.")
-        public com.epic60869.skyballs.features.FeatureConfigs.Enchanting experimentalTable = new com.epic60869.skyballs.features.FeatureConfigs.Enchanting();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Item Price Tooltip", desc = "Add prices to SkyBlock item tooltips, like Skyblocker.")
-        public PriceTooltip priceTooltip = new PriceTooltip();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Random", desc = "Low fire overlay, hidden explosions and other small visual tweaks.")
-        public Random random = new Random();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Player Size", desc = "Make yourself, other players, or both bigger or smaller (client side only), like Odin.")
-        public PlayerSize playerSize = new PlayerSize();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Held Item Model", desc = "Move, rotate and scale the item in your hand and change your swing speed, like Skysoft. /sb helditem save stores the settings for the held item only.")
-        public HeldItemModel heldItemModel = new HeldItemModel();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Nickname", desc = "Click to expand nickname settings.")
-        public Nickname nickname = new Nickname();
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Mouse Reset", desc = "Reset the mouse cursor when selected SkyBlock menus open.")
-        public MouseReset mouseReset = new MouseReset();
-
-        @Expose
-        @ConfigOption(name = "Recipe HUD", desc = "While a /sb recipe is selected, show a movable HUD with the item and the base ingredients you still need (like SkyOcean's craft helper overlay). Move it in /sb gui.")
-        @ConfigEditorBoolean
-        public boolean recipeHud = true;
-
-        @Expose
-        @ConfigOption(name = "Recipe HUD Hide Completed", desc = "Hide ingredients you already have enough of in the Recipe HUD.")
-        @ConfigEditorBoolean
-        public boolean recipeHudHideCompleted = false;
-
-        @Expose
-        @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
-        @ConfigEditorBoolean
-        public boolean calendarTimeToRealTime = true;
-
-        @Expose
-        @ConfigOption(name = "Price Paid", desc = "Remember what you paid for items you buy on the auction house and show it in their tooltip, like NoFrills.")
-        @ConfigEditorBoolean
-        public boolean pricePaid = true;
-
-        @Expose
-        @ConfigOption(name = "Update Notifications", desc = "Tell you in chat when a newer SkyBalls version is out (\"New SkyBalls Mod Version 1.2.3 --> 1.2.5\"), with a download link.")
-        @ConfigEditorBoolean
-        public boolean updateNotifications = true;
-
-        @Expose
-        @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sb gui.")
-        @ConfigEditorBoolean
-        public boolean collectionTracker = true;
-
-        @Expose
-        @ConfigOption(name = "Collection Tracker Elite Rank", desc = "Also show your rank on the Elite (elitebot.dev) collection leaderboard and how much you need to pass the next player.")
-        @ConfigEditorBoolean
-        public boolean collectionTrackerRank = true;
-
-        /** Collection pinned with /sj trackcollection (a Hypixel item id), or "" to follow what you gather. */
-        @Expose
-        public String collectionTrackerItem = "";
-
-        /** Goal set with /sj trackcollection &lt;item&gt; &lt;goal&gt;, or 0. */
-        @Expose
-        public long collectionTrackerGoal = 0;
-
-        @Expose
-        @ConfigOption(name = "Warp Shortcuts", desc = "Type /dhub instead of /warp dhub (and the same for every name in the list below). Applies next time you join a server.")
-        @ConfigEditorBoolean
-        public boolean warpShortcuts = true;
-
-        @Expose
-        @ConfigOption(name = "Warp Shortcut List", desc = "Warps that get their own command, separated by commas.")
-        @ConfigEditorText
-        public String warpShortcutList = "dhub, dungeon_hub, garden, barn, desert, trapper, park, howl, jungle, gold, deep, mines, forge, crystals, nucleus, base, camp, tunnels, end, drag, void, spider, nest, arachne, crimson, isle, kuudra, smold, museum, da, castle, wiz, jerry, rift, galatea, murkwater";
-
-        @Expose
-        @Accordion
-        @ConfigOption(name = "Tooltip Scroll", desc = "Move tooltips with the mouse wheel and keys so long tooltips can be read (Skysoft's Tooltip Scroll). Off automatically when Skysoft is installed.")
-        public TooltipScroll tooltipScroll = new TooltipScroll();
-
-        @Expose
-        @ConfigOption(name = "Toggle Sprint", desc = "Always sprint, like Odin's Auto Sprint. Set a \"Toggle Sprint\" key in Controls to switch it on and off.")
-        @ConfigEditorBoolean
-        public boolean toggleSprint = false;
-
-        @Expose
-        @ConfigOption(name = "Toggle Sprint HUD", desc = "Show [Sprinting (Toggled)] while toggle sprint is on. Move it in /sb gui.")
-        @ConfigEditorBoolean
-        public boolean toggleSprintHud = true;
     }
 
     public static final class PlayerSize {
