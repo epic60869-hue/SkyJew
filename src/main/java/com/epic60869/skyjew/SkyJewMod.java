@@ -162,9 +162,7 @@ public final class SkyJewMod implements ClientModInitializer {
     }
 
     private int openNick() {
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.gui.setScreen(new SkyJewNickScreen(mc.gui.screen())));
-        return 1;
+        return com.epic60869.skyjew.custom.util.Compat.queueOpenScreen(new SkyJewNickScreen(null));
     }
 
     private int setNick(String value) {

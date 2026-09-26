@@ -506,6 +506,14 @@ public final class SkyJewConfig extends Config {
         @ConfigEditorBoolean
         public boolean collectionTrackerRank = true;
 
+        /** Collection pinned with /sj trackcollection (a Hypixel item id), or "" to follow what you gather. */
+        @Expose
+        public String collectionTrackerItem = "";
+
+        /** Goal set with /sj trackcollection &lt;item&gt; &lt;goal&gt;, or 0. */
+        @Expose
+        public long collectionTrackerGoal = 0;
+
         @Expose
         @ConfigOption(name = "Warp Shortcuts", desc = "Type /dhub instead of /warp dhub (and the same for every name in the list below). Applies next time you join a server.")
         @ConfigEditorBoolean

@@ -36,11 +36,16 @@ public final class SkyJewNickFilter {
      * tester (or any rank from tastyfish.org), or a ranked account's name (also with look-alike characters, e.g. "2M3S" or "Sv1nkus").
      */
     public static boolean impersonatesStaff(String name) {
+        return impersonatesStaff(name, null);
+    }
+
+    /** As above, but a ranked account may use its own name and its own rank word ({@code owner} is that account). */
+    public static boolean impersonatesStaff(String name, java.util.UUID owner) {
         if (name.indexOf('[') >= 0 || name.indexOf(']') >= 0) return true;
         String joined = normalise(name).replaceAll("[^a-z0-9]+", "");
         String letters = joined.replaceAll("[^a-z]+", "");
-        for (String word : SkyJewStaff.roleWords()) if (letters.contains(word)) return true;
-        for (String staff : SkyJewStaff.names()) {
+        for (String word : SkyJewStaff.roleWords(owner)) if (letters.contains(word)) return true;
+        for (String staff : SkyJewStaff.names(owner)) {
             String target = normalise(staff).replaceAll("[^a-z0-9]+", "");
             if (joined.contains(target) || REPEATS.matcher(joined).replaceAll("$1").contains(REPEATS.matcher(target).replaceAll("$1"))) return true;
         }
@@ -49,8 +54,13 @@ public final class SkyJewNickFilter {
 
     /** Whether the nickname contains a blocked word or pretends to be SJ staff. */
     public static boolean isBlocked(String name) {
+        return isBlocked(name, null);
+    }
+
+    /** Whether {@code owner}'s nickname is blocked; ranked players may use their own name. */
+    public static boolean isBlocked(String name, java.util.UUID owner) {
         if (name == null || name.isBlank()) return false;
-        if (impersonatesStaff(name)) return true;
+        if (impersonatesStaff(name, owner)) return true;
         String lower = normalise(name);
 
         // Words separated by anything that is not a letter; collapsed version for "fuuuck" and "f.u.c.k".

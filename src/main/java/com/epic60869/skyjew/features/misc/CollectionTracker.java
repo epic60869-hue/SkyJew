@@ -12,10 +12,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
@@ -51,6 +56,11 @@ import java.util.regex.Pattern;
  *
  * What you're gathering is the collection item you picked up most recently, from your inventory or from a
  * "[Sacks]" message. The total comes from Elite's copy of the Hypixel API, plus what you've gathered since.
+ *
+ * Shown SkyHanni style: the item's icon and "Cobblestone collection: 12,345,678 +1,234" (the green gain shows for a
+ * few seconds after each pickup), then the session gain, and the Elite rank like SkyHanni's farming weight display.
+ * /sj trackcollection &lt;item&gt; [goal] pins one collection (with an optional goal), like SkyHanni's /shtrackcollection;
+ * /sj trackcollection on its own goes back to following what you gather, and /sj trackcollection stop hides it.
  *
  * Compacted items count too: an Enchanted Cobblestone is 160 Cobblestone, an Enchanted Hay Bale 25,600 Wheat. Each
  * enchanted item is resolved once from its NEU repo recipe (recursively) and cached in
@@ -102,6 +112,11 @@ public final class CollectionTracker {
     private static String current = "";
     private static long lastGain;
     private static String status = "";
+    /** Gain shown as the green "+N" after the total, reset a few seconds after the last pickup. */
+    private static long recentGain;
+    private static long recentGainAt;
+    private static final long RECENT_GAIN_MS = 3_000L;
+    private static final Map<String, ItemStack> ICONS = new HashMap<>();
 
     private CollectionTracker() {}
 
@@ -118,16 +133,16 @@ public final class CollectionTracker {
     public static void init(Path configDir) {
         compactFile = configDir.resolve("skyjew").resolve("compacted-items.json");
         loadCompactCache();
-        SkyJewHuds.register("collection_tracker", "Collection Tracker",
-            () -> enabled() && !current.isEmpty() && System.currentTimeMillis() - lastGain < IDLE_HIDE_MS,
-            CollectionTracker::lines,
-            List.of(
-                Component.literal("Cobblestone Collection").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
-                Component.literal("Collection: ").withStyle(ChatFormatting.GRAY).append(Component.literal("12,345,678").withStyle(ChatFormatting.YELLOW)),
-                Component.literal("Session: ").withStyle(ChatFormatting.GRAY).append(Component.literal("+4,321 (38,000/h)").withStyle(ChatFormatting.GREEN)),
-                Component.literal("Elite Rank: ").withStyle(ChatFormatting.GRAY).append(Component.literal("#1,234").withStyle(ChatFormatting.AQUA)),
-                Component.literal("1,500 until #1,233 ").withStyle(ChatFormatting.GRAY).append(Component.literal("(Player)").withStyle(ChatFormatting.DARK_GRAY))),
-            8, 150);
+        SkyJewHuds.registerCustom("collection_tracker", "Collection Tracker", CollectionTracker::enabled, new Hud(), 8, 150);
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
+            for (String root : Compat.COMMAND_ROOTS) {
+                dispatcher.register(ClientCommands.literal(root).then(ClientCommands.literal("trackcollection")
+                    .executes(c -> track(""))
+                    .then(ClientCommands.argument("item", StringArgumentType.greedyString())
+                        .suggests((c, b) -> SharedSuggestionProvider.suggest(suggestions(), b))
+                        .executes(c -> track(StringArgumentType.getString(c, "item"))))));
+            }
+        });
         ClientTickEvents.END_CLIENT_TICK.register(mc -> tick());
         SkyJewChat.onGameMessage((component, overlay) -> {
             if (!overlay) onSacksMessage(component);
@@ -172,6 +187,7 @@ public final class CollectionTracker {
             }
         }
         lastInventory = BOARDS.isEmpty() ? null : now;
+        if (!pinned().isEmpty()) current = pinned();
         if (!current.isEmpty()) refresh(current);
     }
 
@@ -202,12 +218,137 @@ public final class CollectionTracker {
 
     private static void gain(String id, long amount) {
         long now = System.currentTimeMillis();
-        if (!id.equals(current) && !current.isEmpty()) status = "";
-        current = id;
-        lastGain = now;
+        String pinned = pinned();
+        if (!id.equals(current) && !current.isEmpty() && pinned.isEmpty()) status = "";
+        if (pinned.isEmpty() || pinned.equals(id)) {
+            if (!id.equals(current) || now - recentGainAt > RECENT_GAIN_MS) recentGain = 0;
+            current = id;
+            lastGain = now;
+            recentGain += amount;
+            recentGainAt = now;
+        }
         sinceFetch.merge(id, amount, Long::sum);
         session.merge(id, amount, Long::sum);
         sessionStart.putIfAbsent(id, now);
+        checkGoal(id);
+    }
+
+    // ---------------------------------------------------------------- /sj trackcollection
+
+    private static String pinned() {
+        SkyJewConfig.Misc c = config();
+        return c == null || c.collectionTrackerItem == null ? "" : c.collectionTrackerItem;
+    }
+
+    private static long goal() {
+        SkyJewConfig.Misc c = config();
+        return c == null ? 0 : c.collectionTrackerGoal;
+    }
+
+    private static List<String> suggestions() {
+        List<String> out = new ArrayList<>(List.of("stop"));
+        for (Board board : BOARDS.values()) out.add(shortName(board).replace(' ', '_'));
+        return out;
+    }
+
+    private static String shortName(Board board) {
+        return board.title().endsWith(" Collection") ? board.title().substring(0, board.title().length() - " Collection".length()) : board.title();
+    }
+
+    private static int track(String input) {
+        SkyJewConfig c = SkyJewConfig.current();
+        if (c == null) return 0;
+        String text = input.trim();
+        if (text.equalsIgnoreCase("stop")) {
+            c.misc.collectionTrackerItem = "";
+            c.misc.collectionTrackerGoal = 0;
+            current = "";
+            SkyJewConfig.saveCurrent(c);
+            return say(Component.literal("Stopped the collection tracker.").withStyle(ChatFormatting.YELLOW));
+        }
+        if (text.isEmpty()) {
+            c.misc.collectionTrackerItem = "";
+            c.misc.collectionTrackerGoal = 0;
+            SkyJewConfig.saveCurrent(c);
+            return say(Component.literal("The collection tracker follows whatever you gather again.").withStyle(ChatFormatting.YELLOW));
+        }
+        long goalAmount = 0;
+        String[] words = text.split("\\s+");
+        String last = words[words.length - 1].replace(",", "").toLowerCase(Locale.ROOT);
+        if (words.length > 1 && last.matches("\\d+(\\.\\d+)?[km]?")) {
+            double n = Double.parseDouble(last.replaceAll("[km]", ""));
+            goalAmount = (long) (n * (last.endsWith("m") ? 1_000_000 : last.endsWith("k") ? 1_000 : 1));
+            text = text.substring(0, text.length() - words[words.length - 1].length()).trim();
+        }
+        if (BOARDS.isEmpty()) return say(Component.literal("Collections are still loading, try again in a moment.").withStyle(ChatFormatting.RED));
+        Board board = findBoard(text);
+        if (board == null) return say(Component.literal("No collection called \"" + text + "\".").withStyle(ChatFormatting.RED));
+        c.misc.collectionTrackerItem = board.itemId();
+        c.misc.collectionTrackerGoal = goalAmount;
+        SkyJewConfig.saveCurrent(c);
+        current = board.itemId();
+        lastGain = System.currentTimeMillis();
+        MutableComponent msg = Component.literal("Tracking your ").withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal(shortName(board)).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" collection").withStyle(ChatFormatting.YELLOW));
+        if (goalAmount > 0) msg.append(Component.literal(" (goal " + fmt(goalAmount) + ")").withStyle(ChatFormatting.AQUA));
+        return say(msg.append(Component.literal(".").withStyle(ChatFormatting.YELLOW)));
+    }
+
+    /** Matches "cobblestone", "Sugar_Cane", "wart", "lapis", ... to a collection, like SkyHanni's typo fixes. */
+    private static Board findBoard(String input) {
+        String name = input.toLowerCase(Locale.ROOT).replace('_', ' ').trim();
+        name = switch (name) {
+            case "carrots" -> "carrot";
+            case "melons" -> "melon";
+            case "seed" -> "seeds";
+            case "iron" -> "iron ingot";
+            case "gold" -> "gold ingot";
+            case "sugar", "cane" -> "sugar cane";
+            case "cocoa", "cocoa beans" -> "cocoa bean";
+            case "lapis" -> "lapis lazuli";
+            case "cacti" -> "cactus";
+            case "pumpkins" -> "pumpkin";
+            case "potatoes" -> "potato";
+            case "wart", "warts", "nether warts" -> "nether wart";
+            case "stone", "cobble" -> "cobblestone";
+            case "mushrooms", "red mushroom", "brown mushroom" -> "mushroom";
+            case "gemstones", "gems" -> "gemstone";
+            case "quartz" -> "nether quartz";
+            case "glowstone dust" -> "glowstone";
+            case "endstone" -> "end stone";
+            case "hardstone" -> "hard stone";
+            default -> name;
+        };
+        for (Board board : BOARDS.values()) if (shortName(board).equalsIgnoreCase(name)) return board;
+        for (Board board : BOARDS.values()) if (shortName(board).toLowerCase(Locale.ROOT).startsWith(name)) return board;
+        String id = NAMES.get(name);
+        return id == null ? null : BOARDS.get(id);
+    }
+
+    private static void checkGoal(String id) {
+        long goalAmount = goal();
+        if (goalAmount <= 0 || !id.equals(pinned())) return;
+        Long api = apiAmounts.get(id);
+        if (api == null) return;
+        long live = api + sinceFetch.getOrDefault(id, 0L);
+        if (live < goalAmount) return;
+        SkyJewConfig c = SkyJewConfig.current();
+        c.misc.collectionTrackerGoal = 0;
+        SkyJewConfig.saveCurrent(c);
+        Board board = BOARDS.get(id);
+        say(Component.literal("Collection goal of ").withStyle(ChatFormatting.GREEN)
+            .append(Component.literal(fmt(goalAmount)).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" " + (board == null ? id : shortName(board)) + " reached!").withStyle(ChatFormatting.GREEN)));
+    }
+
+    private static int say(Component message) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            if (mc.player != null) mc.gui.hud.getChat().addClientSystemMessage(
+                Component.literal("[SkyJew] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(message));
+        });
+        return 1;
     }
 
     // ---------------------------------------------------------------- compacted items
@@ -479,34 +620,68 @@ public final class CollectionTracker {
         return String.format(Locale.US, "%,d", n);
     }
 
-    private static List<Component> lines() {
-        Board board = BOARDS.get(current);
-        String title = board != null ? board.title() : current + " Collection";
+    private static boolean showing() {
+        if (!enabled() || current.isEmpty()) return false;
+        return !pinned().isEmpty() || System.currentTimeMillis() - lastGain < IDLE_HIDE_MS;
+    }
+
+    /** The collection item's icon (mushrooms and gemstones use a red mushroom and a rough ruby). */
+    private static ItemStack icon(String id) {
+        ItemStack cached = ICONS.get(id);
+        if (cached != null) return cached;
+        String neuId = switch (id) {
+            case "MUSHROOM_COLLECTION" -> "RED_MUSHROOM";
+            case "GEMSTONE_COLLECTION" -> "ROUGH_RUBY_GEM";
+            default -> id.replace(':', '-');
+        };
+        ItemStack stack = RepoItems.itemStack(neuId);
+        if (RepoItems.itemsLoaded()) ICONS.put(id, stack);
+        return stack;
+    }
+
+    /** SkyHanni-style lines: the collection line (drawn after the icon), then session and Elite rank. */
+    private static List<Component> lines(String id, long live, boolean known, long gained, long elapsed, long recent) {
+        Board board = BOARDS.get(id);
+        String name = board != null ? shortName(board) : id;
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(title).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
-        Long api = apiAmounts.get(current);
-        long live = (api == null ? 0 : api) + sinceFetch.getOrDefault(current, 0L);
-        lines.add(label("Collection: ").append(api == null && profileLoading
-            ? Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY)
-            : Component.literal(fmt(live)).withStyle(ChatFormatting.YELLOW)));
+        MutableComponent first = Component.literal(name).withStyle(ChatFormatting.WHITE)
+            .append(Component.literal(" collection: ").withStyle(ChatFormatting.GRAY));
+        first.append(known ? Component.literal(fmt(live)).withStyle(ChatFormatting.YELLOW)
+            : Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY));
+        long goalAmount = id.equals(pinned()) ? goal() : 0;
+        if (goalAmount > 0 && known) {
+            double pct = Math.min(100.0, live * 100.0 / goalAmount);
+            first.append(Component.literal(" / ").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(fmt(goalAmount)).withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(" (").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(String.format(Locale.US, "%.1f%%", pct)).withStyle(ChatFormatting.GREEN))
+                .append(Component.literal(")").withStyle(ChatFormatting.WHITE));
+        }
+        if (recent > 0) first.append(Component.literal(" +" + fmt(recent)).withStyle(ChatFormatting.GREEN));
+        lines.add(first);
 
-        long gained = session.getOrDefault(current, 0L);
-        long elapsed = System.currentTimeMillis() - sessionStart.getOrDefault(current, System.currentTimeMillis());
-        MutableComponent sessionText = Component.literal("+" + fmt(gained)).withStyle(ChatFormatting.GREEN);
-        if (elapsed > 30_000) sessionText.append(Component.literal(" (" + fmt(gained * 3_600_000L / elapsed) + "/h)").withStyle(ChatFormatting.DARK_GREEN));
-        lines.add(label("Session: ").append(sessionText));
+        MutableComponent sessionLine = Component.literal("Session: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("+" + fmt(gained)).withStyle(ChatFormatting.GREEN));
+        if (elapsed > 30_000 && gained > 0) {
+            sessionLine.append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(fmt(gained * 3_600_000L / elapsed) + "/h").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+        }
+        lines.add(sessionLine);
 
         SkyJewConfig.Misc c = config();
-        if (c != null && c.collectionTrackerRank) lines.addAll(rankLines(live));
+        if (c != null && c.collectionTrackerRank) lines.addAll(rankLines(id, live));
         if (!status.isEmpty()) lines.add(Component.literal(status).withStyle(ChatFormatting.RED));
         return lines;
     }
 
-    private static List<Component> rankLines(long live) {
-        Rank rank = ranks.get(current);
-        if (rank == null) return List.of(label("Elite Rank: ").append(Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY)));
-        if (rank.rank() == -2) return List.of(label("Elite Rank: ").append(Component.literal("unavailable").withStyle(ChatFormatting.DARK_GRAY)));
+    /** Like SkyHanni's farming weight display: "Elite Rank: #1,234" and "1,500 until #1,233 (Name)". */
+    private static List<Component> rankLines(String id, long live) {
+        Rank rank = ranks.get(id);
+        MutableComponent head = Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD);
+        if (rank == null) return List.of(head.append(Component.literal("loading...").withStyle(ChatFormatting.DARK_GRAY)));
+        if (rank.rank() == -2) return List.of(head.append(Component.literal("unavailable").withStyle(ChatFormatting.DARK_GRAY)));
         // Count the players above you that you've passed since the rank was fetched.
         int passed = 0;
         Upcoming next = null;
@@ -514,26 +689,96 @@ public final class CollectionTracker {
             if (u.amount() < live) passed++;
             else if (next == null) next = u;
         }
-        List<Component> lines = new ArrayList<>();
         boolean ranked = rank.rank() > 0 || passed > 0;
         if (!ranked && live < rank.minAmount()) {
-            lines.add(label("Elite Rank: ").append(Component.literal("Unranked").withStyle(ChatFormatting.DARK_GRAY)));
-            lines.add(Component.literal(fmt(rank.minAmount() - live) + " until ranked").withStyle(ChatFormatting.GRAY));
-            return lines;
+            return List.of(head.append(Component.literal("Unranked").withStyle(ChatFormatting.GRAY)),
+                Component.literal(fmt(rank.minAmount() - live)).withStyle(ChatFormatting.YELLOW)
+                    .append(Component.literal(" until ranked").withStyle(ChatFormatting.GRAY)));
         }
         int base = rank.rank() > 0 ? rank.rank() : rank.upcomingRank() + 1;
         int liveRank = Math.max(1, base - passed);
-        lines.add(label("Elite Rank: ").append(Component.literal("#" + fmt(liveRank)).withStyle(ChatFormatting.AQUA)));
+        List<Component> lines = new ArrayList<>();
+        lines.add(head.append(Component.literal("#" + fmt(liveRank)).withStyle(ChatFormatting.YELLOW)));
         if (liveRank == 1) {
-            lines.add(Component.literal("You're #1!").withStyle(ChatFormatting.GOLD));
+            lines.add(Component.literal("You're #1!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         } else if (next != null) {
-            lines.add(Component.literal(fmt(next.amount() - live + 1) + " until #" + fmt(liveRank - 1) + " ").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal("(" + next.name() + ")").withStyle(ChatFormatting.DARK_GRAY)));
+            lines.add(Component.literal(fmt(next.amount() - live + 1)).withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" until ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("#" + fmt(liveRank - 1)).withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(next.name()).withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY)));
         }
         return lines;
     }
 
-    private static MutableComponent label(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.GRAY);
+    private static List<Component> liveLines() {
+        long now = System.currentTimeMillis();
+        Long api = apiAmounts.get(current);
+        long live = (api == null ? 0 : api) + sinceFetch.getOrDefault(current, 0L);
+        long gained = session.getOrDefault(current, 0L);
+        long elapsed = now - sessionStart.getOrDefault(current, now);
+        long recent = now - recentGainAt <= RECENT_GAIN_MS ? recentGain : 0;
+        return lines(current, live, api != null || !profileLoading, gained, elapsed, recent);
+    }
+
+    private static final List<Component> PREVIEW = List.of(
+        Component.literal("Cobblestone").withStyle(ChatFormatting.WHITE)
+            .append(Component.literal(" collection: ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("12,345,678").withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" +160").withStyle(ChatFormatting.GREEN)),
+        Component.literal("Session: ").withStyle(ChatFormatting.GRAY).append(Component.literal("+4,321").withStyle(ChatFormatting.GREEN))
+            .append(Component.literal(" (").withStyle(ChatFormatting.GRAY)).append(Component.literal("38,000/h").withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(")").withStyle(ChatFormatting.GRAY)),
+        Component.literal("Elite Rank: ").withStyle(ChatFormatting.GOLD).append(Component.literal("#1,234").withStyle(ChatFormatting.YELLOW)),
+        Component.literal("1,500").withStyle(ChatFormatting.YELLOW).append(Component.literal(" until ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("#1,233").withStyle(ChatFormatting.AQUA)).append(Component.literal(" (").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("Player").withStyle(ChatFormatting.AQUA)).append(Component.literal(")").withStyle(ChatFormatting.GRAY)));
+
+    /** Draws the icon next to the first line, and the other lines under it. */
+    private static final class Hud implements SkyJewHuds.CustomHud {
+        private static final int ICON = 18;
+
+        private List<Component> shown(boolean preview) {
+            return showing() ? liveLines() : preview ? PREVIEW : List.of();
+        }
+
+        private String shownId() {
+            return showing() ? current : "COBBLESTONE";
+        }
+
+        @Override
+        public int width() {
+            var font = Minecraft.getInstance().font;
+            List<Component> lines = shown(true);
+            int w = 0;
+            for (int i = 0; i < lines.size(); i++) w = Math.max(w, font.width(lines.get(i)) + (i == 0 ? ICON : 0));
+            return w + SkyJewHuds.PADDING * 2;
+        }
+
+        @Override
+        public int height() {
+            int n = shown(true).size();
+            return SkyJewHuds.PADDING * 2 + ICON + Math.max(0, n - 1) * SkyJewHuds.LINE_HEIGHT;
+        }
+
+        @Override
+        public boolean visible() {
+            return showing();
+        }
+
+        @Override
+        public void render(GuiGraphicsExtractor g, boolean preview) {
+            List<Component> lines = shown(preview);
+            if (lines.isEmpty()) return;
+            var font = Minecraft.getInstance().font;
+            if (SkyJewHuds.placement("collection_tracker").background) g.fill(0, 0, width(), height(), 0x80000000);
+            int pad = SkyJewHuds.PADDING;
+            g.item(icon(shownId()), pad, pad + 1);
+            g.text(font, lines.get(0), pad + ICON, pad + 5, 0xFFFFFFFF, true);
+            for (int i = 1; i < lines.size(); i++) {
+                g.text(font, lines.get(i), pad, pad + ICON + (i - 1) * SkyJewHuds.LINE_HEIGHT, 0xFFFFFFFF, true);
+            }
+        }
     }
 }

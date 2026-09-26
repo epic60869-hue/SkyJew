@@ -81,7 +81,7 @@ public final class SkyJewNick {
         }
 
         name = clean(name);
-        if (SkyJewNickFilter.isBlocked(name)) {
+        if (SkyJewNickFilter.isBlocked(name, Minecraft.getInstance().getUser().getProfileId())) {
             message("That nickname isn't allowed.", 0xFF5555);
             return;
         }
@@ -119,7 +119,7 @@ public final class SkyJewNick {
 
     public static void applyGuiName(String name) {
         String value = clean(name);
-        if (SkyJewNickFilter.isBlocked(value)) {
+        if (SkyJewNickFilter.isBlocked(value, Minecraft.getInstance().getUser().getProfileId())) {
             message("That nickname isn't allowed.", 0xFF5555);
             return;
         }
@@ -431,7 +431,7 @@ public final class SkyJewNick {
     public static void updateRemote(UUID uuid, String username, boolean enabled, String name, String mode, String customHex, String font) {
         if (uuid == null) return;
         // Nicknames with blocked words are not shown; the player's real name is used instead.
-        if (!enabled || name == null || name.isBlank() || SkyJewNickFilter.isBlocked(name)) {
+        if (!enabled || name == null || name.isBlank() || SkyJewNickFilter.isBlocked(name, uuid)) {
             REMOTE_NICKS.remove(uuid);
             return;
         }

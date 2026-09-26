@@ -4,6 +4,13 @@ All notable changes to SkyJew are listed here, newest first.
 
 ## 1.2.4
 
+### Changed
+- Collection tracker looks like SkyHanni's: the item's icon, "Cobblestone collection: 12,345,678" with a green +gain after each pickup, session gain per hour, and the Elite rank like SkyHanni's farming weight display. `/sj trackcollection <item> [goal]` pins one collection with an optional goal (e.g. `/sj trackcollection wheat 10m`), like SkyHanni's /shtrackcollection; `/sj trackcollection` follows what you gather again and `/sj trackcollection stop` hides it.
+- Ranked players can use their own name as a nickname.
+
+### Fixed
+- The `/sj nick` menu couldn't be closed: Esc and Done sent you back to the chat box, or did nothing when the name wasn't allowed. Esc now always closes (a name that isn't allowed just isn't saved) and Done closes once the name is allowed.
+
 ## 1.2.3 — 2026-09-26
 
 ### Changed

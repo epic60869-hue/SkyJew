@@ -472,7 +472,7 @@ public final class SkyJewGlobalChat {
                 String source = packet.has("source") ? packet.get("source").getAsString() : "mod";
                 String prefix = "discord".equalsIgnoreCase(source) ? "[Discord]" : "[SJ]";
 
-                if (SkyJewNickFilter.isBlocked(displayName)) displayName = name;
+                if (SkyJewNickFilter.isBlocked(displayName, messageUuid)) displayName = name;
                 Component shownName;
                 try {
                     shownName = SkyJewNick.displayName(messageUuid, displayName);

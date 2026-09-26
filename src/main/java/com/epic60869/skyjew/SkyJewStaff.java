@@ -116,18 +116,24 @@ public final class SkyJewStaff {
     }
 
     /** Names of ranked accounts, which nobody else can use as a nickname. */
-    static List<String> names() {
+    static List<String> names(UUID except) {
         List<String> names = new ArrayList<>();
-        for (Entry entry : all().values()) if (entry.name() != null && entry.name().length() >= 3) names.add(entry.name());
+        for (Map.Entry<UUID, Entry> e : all().entrySet()) {
+            String name = e.getValue().name();
+            if (!e.getKey().equals(except) && name != null && name.length() >= 3) names.add(name);
+        }
         return names;
     }
 
     /** Rank words (e.g. "owner", "tester"), which can't appear in a nickname. */
-    static List<String> roleWords() {
-        List<String> words = new ArrayList<>(List.of("owner", "tester"));
+    static List<String> roleWords(UUID except) {
+        Rank own = rank(except);
+        String ownWord = own == null ? "" : own.label().toLowerCase(Locale.ROOT).replaceAll("[^a-z]+", "");
+        List<String> words = new ArrayList<>();
+        for (String word : List.of("owner", "tester")) if (!word.equals(ownWord)) words.add(word);
         for (Entry entry : all().values()) {
             String word = entry.rank().label().toLowerCase(Locale.ROOT).replaceAll("[^a-z]+", "");
-            if (word.length() >= 3 && !words.contains(word)) words.add(word);
+            if (word.length() >= 3 && !words.contains(word) && !word.equals(ownWord)) words.add(word);
         }
         return words;
     }

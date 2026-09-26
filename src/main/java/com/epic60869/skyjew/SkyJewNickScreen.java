@@ -92,7 +92,7 @@ public final class SkyJewNickScreen extends Screen {
         addRenderableWidget(tabBar);
 
         footer = LinearLayout.horizontal().spacing(5);
-        footer.addChild(Button.builder(Component.translatable("gui.cancel"), b -> minecraft.gui.setScreen(parent)).build());
+        footer.addChild(Button.builder(Component.translatable("gui.cancel"), b -> close()).build());
         footer.addChild(Button.builder(Component.translatable("gui.done"), b -> saveAndClose()).build());
         footer.visitWidgets(this::addRenderableWidget);
         footer.arrangeElements();
@@ -252,13 +252,24 @@ public final class SkyJewNickScreen extends Screen {
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
+    /** Done: saves and closes, or stays open if the name isn't allowed. */
     private void saveAndClose() {
+        if (save()) close();
+    }
+
+    private void close() {
+        // Opened from chat, the menu goes back to the game rather than to the chat box.
+        minecraft.gui.setScreen(parent instanceof net.minecraft.client.gui.screens.ChatScreen ? null : parent);
+    }
+
+    /** Saves the settings; false (with a message) if the name isn't allowed. */
+    private boolean save() {
         SkyJewConfig config = SkyJewConfig.current();
         if (config != null) {
             String name = nameBox.getValue().trim();
-            if (SkyJewNickFilter.isBlocked(name)) {
+            if (SkyJewNickFilter.isBlocked(name, minecraft.getUser().getProfileId())) {
                 minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SkyJew] That nickname isn't allowed.").withStyle(ChatFormatting.RED));
-                return;
+                return false;
             }
             config.misc.nickname.name = name;
             config.misc.nickname.enabled = enabled && !name.isBlank();
@@ -269,12 +280,16 @@ public final class SkyJewNickScreen extends Screen {
             SkyJewConfig.saveCurrent(config);
             SkyJewGlobalChat.sendNicknameUpdate();
         }
-        minecraft.gui.setScreen(parent);
+        return true;
     }
 
+    /** Esc: saves if it can, and always closes. */
     @Override
     public void onClose() {
-        saveAndClose();
+        if (!save()) {
+            minecraft.gui.hud.getChat().addClientSystemMessage(Component.literal("[SkyJew] Your nickname wasn't changed.").withStyle(ChatFormatting.GRAY));
+        }
+        close();
     }
 
     @Override
