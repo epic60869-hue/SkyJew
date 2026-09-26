@@ -57,6 +57,25 @@ public final class SkyJewDateCalculator {
         return null;
     }
 
+    /**
+     * Adds the real-world date to a container item's tooltip. Called from Fabric's tooltip event and again from
+     * SkyJewContainerTooltipMixin (the menu's own tooltip), so it still works when another mod's tooltip listener
+     * fails before ours runs; the date is only added once.
+     */
+    public static List<Component> addDates(ItemStack stack, List<Component> lines) {
+        Screen screen = Minecraft.getInstance().gui.screen();
+        if (screen == null) return lines;
+        for (Component line : lines) {
+            if (line.getStyle().isItalic() && DATE_LINE.matcher(line.getString()).matches()) return lines;
+        }
+        List<Component> out = new java.util.ArrayList<>(lines);
+        currentTimer = timerFor(screen);
+        addToTooltip(stack, out);
+        return out;
+    }
+
+    private static final Pattern DATE_LINE = Pattern.compile("^[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{1,2} \\d{4} \\d{2}:\\d{2}$");
+
     private static void addToTooltip(ItemStack stack, List<Component> lines) {
         SkyJewConfig config = SkyJewConfig.current();
         if (config == null || !config.misc.calendarTimeToRealTime || !Compat.isOnSkyblock()) return;
