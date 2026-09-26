@@ -60,9 +60,9 @@ public final class CaseOpening {
 
     private CaseOpening() {}
 
-    private static FeatureConfigs.Dungeons config() {
+    private static FeatureConfigs.CaseOpening config() {
         SkyBallsConfig c = SkyBallsConfig.current();
-        return c == null ? null : c.dungeons;
+        return c == null ? null : c.dungeons.caseOpeningMenu;
     }
 
     public static void init() {
@@ -97,14 +97,14 @@ public final class CaseOpening {
 
     /** Starts once per chest, as soon as its items have arrived. */
     private static void maybeStart(AbstractContainerScreen<?> screen) {
-        FeatureConfigs.Dungeons c = config();
-        if (c == null || !c.caseOpening || !Compat.isOnSkyblock()) return;
+        FeatureConfigs.CaseOpening c = config();
+        if (c == null || !c.enabled || !Compat.isOnSkyblock()) return;
         int id = screen.getMenu().containerId;
         if (id == menuId) return;
         var m = CHEST.matcher(ChatFormatting.stripFormatting(screen.getTitle().getString()).trim());
         if (!m.matches()) return;
         String type = m.group("type");
-        if (!c.caseOpeningAllChests && !type.equals("Obsidian") && !type.equals("Bedrock")) return;
+        if (!c.allChests && !type.equals("Obsidian") && !type.equals("Bedrock")) return;
 
         List<ItemStack> loot = new ArrayList<>();
         for (Slot slot : screen.getMenu().slots) {
@@ -144,8 +144,8 @@ public final class CaseOpening {
     }
 
     private static void render(GuiGraphicsExtractor g) {
-        FeatureConfigs.Dungeons c = config();
-        float seconds = c == null ? 6 : c.caseOpeningSeconds;
+        FeatureConfigs.CaseOpening c = config();
+        float seconds = c == null ? 6 : c.seconds;
         int w = g.guiWidth();
         int h = g.guiHeight();
         // Cover the chest while it spins.
@@ -193,7 +193,7 @@ public final class CaseOpening {
             g.pose().popMatrix();
             if (!goldPlayed) {
                 goldPlayed = true;
-                if (isGold(winner) && (c == null || c.caseOpeningGoldSound)) playGold();
+                if (isGold(winner) && (c == null || c.goldSound)) playGold();
             }
         }
     }

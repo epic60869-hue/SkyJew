@@ -231,26 +231,33 @@ public final class FeatureConfigs {
         public String runes = "Music, Enchant, Grand Searing, Rainbow, Spellbound, Grand Freezing, Primal Fear, Golden Carpet";
     }
 
+    public static final class CaseOpening {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling): the items spin past and stop on the best one. Esc skips it.")
+        @ConfigEditorBoolean
+        public boolean enabled = false;
+
+        @Expose
+        @ConfigOption(name = "All Chests", desc = "Spin every reward chest, not only Obsidian and Bedrock.")
+        @ConfigEditorBoolean
+        public boolean allChests = false;
+
+        @Expose
+        @ConfigOption(name = "Seconds", desc = "How long the spin takes.")
+        @ConfigEditorSlider(minValue = 2, maxValue = 12, minStep = 1)
+        public int seconds = 6;
+
+        @Expose
+        @ConfigOption(name = "Gold Sound", desc = "Play the \"GOLD GOLD GOLD\" sound when the item is Legendary (gold) or better.")
+        @ConfigEditorBoolean
+        public boolean goldSound = true;
+    }
+
     public static final class Dungeons {
         @Expose
-        @ConfigOption(name = "Case Opening", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling): the items spin past and stop on the best one. Esc skips it.")
-        @ConfigEditorBoolean
-        public boolean caseOpening = false;
-
-        @Expose
-        @ConfigOption(name = "Case Opening: All Chests", desc = "Spin every reward chest, not only Obsidian and Bedrock.")
-        @ConfigEditorBoolean
-        public boolean caseOpeningAllChests = false;
-
-        @Expose
-        @ConfigOption(name = "Case Opening: Seconds", desc = "How long the spin takes.")
-        @ConfigEditorSlider(minValue = 2, maxValue = 12, minStep = 1)
-        public int caseOpeningSeconds = 6;
-
-        @Expose
-        @ConfigOption(name = "Case Opening: Gold Sound", desc = "Play the \"GOLD GOLD GOLD\" sound when the item is Legendary (gold) or better.")
-        @ConfigEditorBoolean
-        public boolean caseOpeningGoldSound = true;
+        @Accordion
+        @ConfigOption(name = "Case Opening", desc = "Open Obsidian and Bedrock reward chests like a CS2 case (SkyOcean's Dungeon Gambling).")
+        public CaseOpening caseOpeningMenu = new CaseOpening();
 
         @Expose
         @Accordion
