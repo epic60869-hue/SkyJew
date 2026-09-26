@@ -7,6 +7,7 @@
   "authors": [
     "epic60869"
   ],
+  "icon": "assets/skyjew/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
