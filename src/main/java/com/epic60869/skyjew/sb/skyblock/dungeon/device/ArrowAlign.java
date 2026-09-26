@@ -40,7 +40,7 @@ public class ArrowAlign {
 	public static void init() {
 		ClientPlayConnectionEvents.JOIN.register((_, _, _) -> reset());
 		LevelRenderExtractionCallback.EVENT.register(ArrowAlign::extractRendering);
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("device").then(literal("arrow-align")
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("device").then(literal("arrow-align")
 				.then(literal("solve").executes(_ -> {
 					findSolution();
 					return Command.SINGLE_SUCCESS;

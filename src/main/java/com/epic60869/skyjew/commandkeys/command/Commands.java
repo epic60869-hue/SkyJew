@@ -46,7 +46,7 @@ public class Commands {
     public static <S> void register(CommandDispatcher<S> dispatcher, CommandBuildContext buildCtx) {
         Minecraft mc = Minecraft.getInstance();
         // SkyJew: registered as /sj keys and /skyjew keys instead of /commandkeys.
-        for (String root : new String[] {"sj", "skyjew"}) dispatcher.register((LiteralArgumentBuilder<S>) literal(root).then(literal("keys")
+        for (String root : new String[] {"sb", "skyballs"}) dispatcher.register((LiteralArgumentBuilder<S>) literal(root).then(literal("keys")
                 .executes((ctx) -> {
                     mc.schedule(() -> mc.gui.setScreen(CommandKeys.getConfigScreen(null)));
                     return Command.SINGLE_SUCCESS;

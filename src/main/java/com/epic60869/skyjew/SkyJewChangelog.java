@@ -40,32 +40,63 @@ public final class SkyJewChangelog {
     }
 
     private static List<Version> versions() {
-        if (versions != null) return versions;
+        if (versions != null && !versions.isEmpty()) return versions;
         List<Version> parsed = new ArrayList<>();
-        try (InputStream in = SkyJewChangelog.class.getResourceAsStream("/assets/skyballs/CHANGELOG.md")) {
-            if (in != null) {
-                Version version = null;
-                Section section = null;
-                for (String raw : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\r?\n")) {
-                    String line = raw.strip();
-                    if (line.startsWith("## ")) {
-                        String[] parts = line.substring(3).split("\\s+[—-]\\s+", 2);
-                        version = new Version(parts[0].trim(), parts.length > 1 ? parts[1].trim() : "", new ArrayList<>());
-                        parsed.add(version);
-                        section = null;
-                    } else if (line.startsWith("### ") && version != null) {
-                        section = new Section(line.substring(4).trim(), new ArrayList<>());
-                        version.sections().add(section);
-                    } else if (line.startsWith("- ") && section != null) {
-                        section.entries().add(line.substring(2).replace("`", ""));
-                    }
+        String text = readChangelog();
+        if (text != null) {
+            Version version = null;
+            Section section = null;
+            for (String raw : text.split("\\r?\\n")) {
+                String line = raw.strip();
+                if (line.startsWith("## ")) {
+                    String[] parts = line.substring(3).split("\\s+[\u2014-]\\s+", 2);
+                    version = new Version(parts[0].trim(), parts.length > 1 ? parts[1].trim() : "", new ArrayList<>());
+                    parsed.add(version);
+                    section = null;
+                } else if (line.startsWith("### ") && version != null) {
+                    section = new Section(line.substring(4).trim(), new ArrayList<>());
+                    version.sections().add(section);
+                } else if (line.startsWith("- ") && section != null) {
+                    section.entries().add(line.substring(2).replace("`", "").replace("**", ""));
+                }
+            }
+        }
+        // Only remember a successful read, so a failed one can be retried.
+        if (!parsed.isEmpty()) versions = parsed;
+        return parsed;
+    }
+
+    /**
+     * The CHANGELOG.md bundled in the jar. Read through Fabric's view of the mod's files (class resource lookups
+     * don't find non-class files in a real game), then Minecraft's resource manager, then the class path.
+     */
+    private static String readChangelog() {
+        try {
+            var mod = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("skyjew");
+            if (mod.isPresent()) {
+                var path = mod.get().findPath("assets/skyjew/CHANGELOG.md");
+                if (path.isPresent()) return java.nio.file.Files.readString(path.get(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            System.err.println("[SkyBalls] Could not read the changelog from the mod jar: " + e.getMessage());
+        }
+        try {
+            var resource = Minecraft.getInstance().getResourceManager()
+                .getResource(net.minecraft.resources.Identifier.fromNamespaceAndPath("skyjew", "CHANGELOG.md"));
+            if (resource.isPresent()) {
+                try (InputStream in = resource.get().open()) {
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
                 }
             }
         } catch (Exception e) {
+            System.err.println("[SkyBalls] Could not read the changelog resource: " + e.getMessage());
+        }
+        try (InputStream in = SkyJewChangelog.class.getResourceAsStream("/assets/skyjew/CHANGELOG.md")) {
+            if (in != null) return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
             System.err.println("[SkyBalls] Could not read the changelog: " + e.getMessage());
         }
-        versions = parsed;
-        return parsed;
+        return null;
     }
 
     /** The installed SkyJew version, e.g. "1.2.3". */

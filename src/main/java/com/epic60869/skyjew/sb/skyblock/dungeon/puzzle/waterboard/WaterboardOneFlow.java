@@ -153,7 +153,7 @@ public class WaterboardOneFlow extends DungeonPuzzle {
 		ClientLifecycleEvents.CLIENT_STARTED.register(WaterboardOneFlow::loadSolutions);
 		UseBlockCallback.EVENT.register(INSTANCE::onUseBlock);
 
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
 				.then(literal("reset").executes(_ -> {
 					INSTANCE.softReset();
 					return Command.SINGLE_SUCCESS;
@@ -162,7 +162,7 @@ public class WaterboardOneFlow extends DungeonPuzzle {
 		ServerTickCallback.EVENT.register(INSTANCE::onServerTick);
 
 		if (Debug.debugEnabled()) {
-			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
+			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
 					.then(literal("setDoors").then(argument("combination", StringArgumentType.string()).executes(context -> {
 						String doorCombination = StringArgumentType.getString(context, "combination");
 						if (SOLUTIONS.get("1").getAsJsonObject().keySet().contains(doorCombination)) {

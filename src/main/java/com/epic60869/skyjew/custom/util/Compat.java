@@ -57,7 +57,7 @@ import com.epic60869.skyjew.SkyJewCustom;
  */
 public final class Compat {
 	public static final String NAMESPACE = "skyjew";
-	public static final String[] COMMAND_ROOTS = {"sb", "skyballs", "sj", "skyjew"};
+	public static final String[] COMMAND_ROOTS = {"sb", "skyballs"};
 	public static final String UUID = "uuid";
 	public static final int PLACEHOLDER_ID = -1;
 	public static final NumberFormat DOUBLE_NUMBERS = net.minecraft.util.Util.make(NumberFormat.getInstance(Locale.US), nf -> nf.setMaximumFractionDigits(2));

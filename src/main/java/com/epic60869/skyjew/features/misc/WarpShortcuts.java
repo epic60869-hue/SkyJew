@@ -15,7 +15,7 @@ import java.util.Set;
  */
 public final class WarpShortcuts {
     /** Names that are already commands (vanilla or SkyJew), which would clash. */
-    private static final Set<String> RESERVED = Set.of("sb", "skyballs", "sbc", "sj", "skyjew", "sjc", "warp", "msg", "tell", "w", "me", "help", "trigger",
+    private static final Set<String> RESERVED = Set.of("sb", "skyballs", "sbc", "warp", "msg", "tell", "w", "me", "help", "trigger",
         "teammsg", "tm", "say", "list", "seed", "home", "is", "hub", "lobby", "l", "party", "p", "pc", "ac", "gc", "oc", "cc");
 
     private WarpShortcuts() {}

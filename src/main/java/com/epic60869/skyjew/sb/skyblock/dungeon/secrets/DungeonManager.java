@@ -295,7 +295,7 @@ public class DungeonManager {
 		LevelRenderExtractionCallback.EVENT.register(DungeonManager::extractRendering);
 		com.epic60869.skyjew.features.core.SkyJewChat.onGameMessage(DungeonManager::onChatMessage);
 		UseBlockCallback.EVENT.register((_, world, _, hitResult) -> onUseBlock(world, hitResult));
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("secrets")
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("secrets")
 				.then(literal("markAsFound").then(markSecretsCommand(true)))
 				.then(literal("markAsMissing").then(markSecretsCommand(false)).then(markAllSecretsAsMissingCommand()))
 				.then(literal("getRelativePos").executes(DungeonManager::getRelativePos))
@@ -306,7 +306,7 @@ public class DungeonManager {
 				.then(literal("removeWaypointRelatively").then(removeCustomWaypointCommand(true)))
 		))));
 		if (Debug.debugEnabled()) {
-			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("secrets")
+			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("secrets")
 					.then(literal("matchAgainst").then(matchAgainstCommand()))
 					.then(literal("clearSubProcesses").executes(context -> {
 						if (currentRoom != null) {

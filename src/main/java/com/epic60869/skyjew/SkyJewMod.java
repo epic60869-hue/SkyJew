@@ -103,10 +103,10 @@ public final class SkyJewMod implements ClientModInitializer {
             return true;
         });
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            // /sb and /skyballs; /sj and /skyjew from before the rename still work.
+            // /sb and /skyballs.
             for (String root : com.epic60869.skyjew.custom.util.Compat.COMMAND_ROOTS) dispatcher.register(commandTree(root));
-            // /sbc (and the old /sjc): shortcut for /sb chat.
-            for (String chat : new String[]{"sbc", "sjc"}) {
+            // /sbc: shortcut for /sb chat.
+            for (String chat : new String[]{"sbc"}) {
                 dispatcher.register(ClientCommands.literal(chat)
                     .executes(context -> enterSkyJewChat())
                     .then(ClientCommands.argument("message", StringArgumentType.greedyString())

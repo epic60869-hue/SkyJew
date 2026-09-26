@@ -50,7 +50,7 @@ public class IceFill extends DungeonPuzzle {
 	@Init
 	public static void init() {
 		if (Debug.debugEnabled()) {
-			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
+			ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("puzzle").then(literal(INSTANCE.puzzleName)
 					.then(literal("printBoard1").executes(context -> {
 						context.getSource().sendFeedback(Constants.PREFIX.get().append(boardToString(INSTANCE.iceFillBoards[0])));
 						return Command.SINGLE_SUCCESS;

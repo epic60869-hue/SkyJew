@@ -36,7 +36,7 @@ public abstract class DungeonPuzzle implements Tickable, Renderable, Resettable 
 				shouldSolve = true;
 			}
 		});
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sj").then(literal("dungeons").then(literal("puzzle").then(literal(puzzleName).then(literal("solve").executes(context -> {
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(literal("sb").then(literal("dungeons").then(literal("puzzle").then(literal(puzzleName).then(literal("solve").executes(context -> {
 			Room currentRoom = DungeonManager.getCurrentRoom();
 			if (currentRoom != null) {
 				reset();
