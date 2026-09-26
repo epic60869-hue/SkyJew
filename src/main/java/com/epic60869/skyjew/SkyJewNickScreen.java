@@ -302,7 +302,7 @@ public final class SkyJewNickScreen extends Screen {
         FontButton(int x, int y, int w) {
             super(x, y, w, 20, Component.literal("Font"));
             setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
-                "Click for the next font, right-click for the previous one.\nLetter fonts (Script, Bubble, ...) are seen by every SkyJew user.")));
+                "Click ◀ for the previous font and ▶ for the next one.\nLetter fonts (Script, Bubble, ...) are seen by every SkyJew user.")));
         }
 
         @Override
@@ -318,7 +318,12 @@ public final class SkyJewNickScreen extends Screen {
 
         @Override
         public void onClick(MouseButtonEvent click, boolean doubled) {
-            nickFont = nickFont.next();
+            if (click.x() < getX() + width / 2.0) {
+                SkyJewNickFonts.NickFont[] all = SkyJewNickFonts.NickFont.values();
+                nickFont = all[(nickFont.ordinal() + all.length - 1) % all.length];
+            } else {
+                nickFont = nickFont.next();
+            }
         }
 
         @Override
@@ -329,7 +334,8 @@ public final class SkyJewNickScreen extends Screen {
         @Override
         public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
             if (!active || !visible || !isMouseOver(click.x(), click.y())) return false;
-            if (click.button() == 1) {
+            // The left half (the ◀ arrow) goes back, the right half (▶) forward; right-click also goes back.
+            if (click.button() == 1 || click.x() < getX() + width / 2.0) {
                 SkyJewNickFonts.NickFont[] all = SkyJewNickFonts.NickFont.values();
                 nickFont = all[(nickFont.ordinal() + all.length - 1) % all.length];
             } else {

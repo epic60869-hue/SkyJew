@@ -48,8 +48,10 @@ public final class SkyJewNickFonts {
     }
 
     private static final String SMALL_CAPS = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ";
-    private static final FontDescription ALT = new FontDescription.Resource(Identifier.withDefaultNamespace("alt"));
-    private static final FontDescription ILLAGER_ALT = new FontDescription.Resource(Identifier.withDefaultNamespace("illageralt"));
+    // Minecraft's rune fonts only have letters (and the illager one digits), so SkyJew's copies fall back to the
+    // normal font for everything else; otherwise a name like "2m3s" comes out with missing characters.
+    private static final FontDescription ALT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("skyjew", "enchanting"));
+    private static final FontDescription ILLAGER_ALT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("skyjew", "illager"));
     private static final FontDescription UNIFORM_FONT = new FontDescription.Resource(Identifier.withDefaultNamespace("uniform"));
 
     private SkyJewNickFonts() {}

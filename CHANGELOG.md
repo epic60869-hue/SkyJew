@@ -12,6 +12,8 @@ All notable changes to SkyJew are listed here, newest first.
 - Ranked players can use their own name as a nickname.
 
 ### Fixed
+- `/sj nick` Font button: the ◀ arrow went forward too; it now goes back.
+- The Enchanting Runes and Illager Runes nickname fonts showed broken characters for anything they don't have (numbers and symbols in the enchanting one); those now use the normal font.
 - Rune prices: the lowest BIN list only has runes someone is selling right now, so most rune levels had no price. The price tooltip and Portfolio now fall back to the 3 day average and then to the last price seen (with how long ago), and Portfolio knows the names of runes that are in the 3 day average too.
 - Nicknames (with their font) now show in tab lists drawn by other mods (SkyHanni, Skyblocker) too.
 - The `/sj nick` menu couldn't be closed: Esc and Done sent you back to the chat box, or did nothing when the name wasn't allowed. Esc now always closes (a name that isn't allowed just isn't saved) and Done closes once the name is allowed.
