@@ -18,6 +18,8 @@
     "SkyBallsContainerTooltipMixin",
     "SkyBallsChatComponentAccessor",
     "SkyBallsDropMixin",
+    "SkyBallsStorageOverlayMixin",
+    "SkyBallsStorageOverlayBackgroundMixin",
     "SkyBallsClientTextTooltipAccessor",
     "SkyBallsContainerScreenAccessor",
     "SkyBallsInventoryScreenInvoker",

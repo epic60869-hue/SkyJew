@@ -119,11 +119,11 @@ public final class SkyBallsDungeons {
         // SkyBalls's own door highlight replaces Skyblocker's blood-rush door box.
         sb.dungeons.doorHighlight.enableDoorHighlight = !d.secrets.doorHighlight;
 
-        boolean odinTerms = d.terminals.solverStyle != com.epic60869.skyballs.features.FeatureConfigs.TerminalStyle.SKYBLOCKER;
-        sb.dungeons.terminals.solveColor = d.terminals.color && !odinTerms;
-        sb.dungeons.terminals.solveOrder = d.terminals.order && !odinTerms;
-        sb.dungeons.terminals.solveStartsWith = d.terminals.startsWith && !odinTerms;
-        sb.dungeons.terminals.solveSameColor = d.terminals.sameColor && !odinTerms;
+        // Terminals are always solved by OdinTerminals (Odin or NoammAddons style); Skyblocker's highlights stay off.
+        sb.dungeons.terminals.solveColor = false;
+        sb.dungeons.terminals.solveOrder = false;
+        sb.dungeons.terminals.solveStartsWith = false;
+        sb.dungeons.terminals.solveSameColor = false;
         boolean odinDevices = d.terminals.odinDevices;
         sb.dungeons.devices.solveSimonSays = d.terminals.simonSays && !odinDevices;
         sb.dungeons.devices.solveLightsOn = d.terminals.lightsOn;

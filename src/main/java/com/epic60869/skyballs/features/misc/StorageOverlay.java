@@ -51,7 +51,7 @@ public final class StorageOverlay {
     }
 
     /** Whether the overlay replaces this menu: the Storage menu, or an Ender Chest page / backpack. */
-    private static boolean applies(AbstractContainerScreen<?> screen) {
+    public static boolean applies(AbstractContainerScreen<?> screen) {
         if (!enabled()) return false;
         String title = ChatFormatting.stripFormatting(screen.getTitle().getString()).trim();
         return title.equals("Storage") || SkyBallsStorageSearch.pageKey(title) != null;
@@ -153,7 +153,7 @@ public final class StorageOverlay {
         Layout layout = layout(screen);
         String openKey = SkyBallsStorageSearch.pageKey(ChatFormatting.stripFormatting(screen.getTitle().getString()).trim());
         g.nextStratum();
-        g.fill(0, 0, screen.width, screen.height, 0xF0101216);
+        g.fill(0, 0, screen.width, screen.height, 0xFF101216);
         g.centeredText(mc.font, Component.literal("Storage").withStyle(ChatFormatting.BOLD), screen.width / 2, 6, 0xFFFFFFFF);
 
         if (layout.headers().isEmpty()) {

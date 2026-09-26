@@ -74,7 +74,7 @@ public final class OdinTerminals {
 
     public static boolean enabled() {
         FeatureConfigs.Terminals config = config();
-        return config != null && config.solverStyle != FeatureConfigs.TerminalStyle.SKYBLOCKER;
+        return config != null;
     }
 
     /** The NoammAddons look: its own centred panel instead of drawing over the menu. */

@@ -493,7 +493,7 @@ public final class FeatureConfigs {
     }
 
     public enum TerminalStyle {
-        ODIN("Odin"), NOAMM("NoammAddons"), SKYBLOCKER("Skyblocker Highlights");
+        ODIN("Odin"), NOAMM("NoammAddons");
 
         private final String label;
 
@@ -523,7 +523,7 @@ public final class FeatureConfigs {
     }
 
     public static final class Terminals {
-        @Expose @ConfigOption(name = "Terminal Solver", desc = "Which terminal solver to use. Odin: covers the terminal and shows what to click. NoammAddons: its big centred panel with the terminal's name, slot styles and colours. Skyblocker Highlights: the highlights below.") @ConfigEditorDropdown public TerminalStyle solverStyle = TerminalStyle.ODIN;
+        @Expose @ConfigOption(name = "Terminal Solver", desc = "Which terminal solver to use. Odin: covers the terminal and shows what to click. NoammAddons: its big centred panel with the terminal's name, slot styles and colours.") @ConfigEditorDropdown public TerminalStyle solverStyle = TerminalStyle.ODIN;
         @Expose @ConfigOption(name = "NoammAddons: Scale", desc = "Size of the NoammAddons terminal panel.") @ConfigEditorSlider(minValue = 0.3f, maxValue = 2f, minStep = 0.05f) public float noammScale = 1f;
         @Expose @ConfigOption(name = "NoammAddons: Slot Style", desc = "How solution slots are drawn in the NoammAddons panel.") @ConfigEditorDropdown public NoammSlotStyle noammSlotStyle = NoammSlotStyle.RECT;
         @Expose @ConfigOption(name = "NoammAddons: Show Numbers", desc = "Show the number on each slot in Click in order!") @ConfigEditorBoolean public boolean noammShowNumbers = false;
@@ -559,10 +559,6 @@ public final class FeatureConfigs {
         @Expose @ConfigOption(name = "Select", desc = "") @ConfigEditorColour public String selectColor = "0:255:85:255:85";
         @Expose @ConfigOption(name = "Melody Column", desc = "") @ConfigEditorColour public String melodyColumnColor = "0:255:170:0:170";
         @Expose @ConfigOption(name = "Melody Pointer", desc = "") @ConfigEditorColour public String melodyPointerColor = "0:255:85:255:85";
-        @Expose @ConfigOption(name = "Color Terminal", desc = "Highlight the right panes.") @ConfigEditorBoolean public boolean color = true;
-        @Expose @ConfigOption(name = "Order Terminal", desc = "Highlight the order.") @ConfigEditorBoolean public boolean order = true;
-        @Expose @ConfigOption(name = "Starts With Terminal", desc = "Highlight the matching items.") @ConfigEditorBoolean public boolean startsWith = true;
-        @Expose @ConfigOption(name = "Same Color Terminal", desc = "Show how many clicks each pane needs.") @ConfigEditorBoolean public boolean sameColor = true;
         @Expose @ConfigOption(name = "Simon Says", desc = "Highlight the buttons to press.") @ConfigEditorBoolean public boolean simonSays = true;
         @Expose @ConfigOption(name = "Lights On", desc = "Highlight the levers to flip.") @ConfigEditorBoolean public boolean lightsOn = true;
         @Expose @ConfigOption(name = "Arrow Align", desc = "Show how many clicks each frame needs.") @ConfigEditorBoolean public boolean arrowAlign = true;
