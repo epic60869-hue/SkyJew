@@ -31,7 +31,8 @@ public final class SkyJewRngHud {
 
     private static final List<FarmingRngTracker.Drop> PREVIEW = List.of(
         new FarmingRngTracker.Drop(1, "Crystalized Moonlight", "RARE DROP", 500000, Long.MAX_VALUE),
-        new FarmingRngTracker.Drop(2, "Designer Coffee Beans", "RARE DROP", 500000, Long.MAX_VALUE)
+        new FarmingRngTracker.Drop(2, "Designer Coffee Beans", "RARE DROP", 500000, Long.MAX_VALUE),
+        new FarmingRngTracker.Drop(1, "Legendary Slug Pet", "LEGENDARY", 5000000, Long.MAX_VALUE)
     );
 
     private static List<FarmingRngTracker.Drop> shown() {
@@ -60,6 +61,15 @@ public final class SkyJewRngHud {
 
     private static int contentHeight(List<FarmingRngTracker.Drop> drops) {
         return PADDING + drops.size() * LINE_HEIGHT;
+    }
+
+    /** Slug pets in their rarity colour (Epic purple, Legendary gold); everything else white. */
+    private static int rarityColour(FarmingRngTracker.Drop drop) {
+        return switch (drop.rarity()) {
+            case "LEGENDARY" -> 0xFFFFAA00;
+            case "EPIC" -> 0xFFAA00AA;
+            default -> 0xFFFFFFFF;
+        };
     }
 
     private static String itemText(FarmingRngTracker.Drop drop) {
@@ -134,7 +144,7 @@ public final class SkyJewRngHud {
             String price = priceText(drop);
 
             // One complete drop per line: amount, item name, then total value.
-            drawShadowed(graphics, item, PADDING, yOffset, 0xFFFFFFFF, true);
+            drawShadowed(graphics, item, PADDING, yOffset, rarityColour(drop), true);
             drawShadowed(graphics, price, w - PADDING - Minecraft.getInstance().font.width(price), yOffset, 0xFFB8B8B8, false);
             yOffset += LINE_HEIGHT;
         }

@@ -57,10 +57,43 @@ public final class FarmingRngTracker {
         return new ArrayList<>(activeDrops.values());
     }
 
+    /** "PET DROP! Slug (+123% ✯ Magic Find)"; the pet's rarity is the colour of its name. */
+    private static final Pattern SLUG_DROP = Pattern.compile("(?i)^(?:PET DROP|RARE DROP|VERY RARE DROP|CRAZY RARE DROP|PRAY TO RNGESUS)!? .*\\bSlug\\b");
+    private static final long EPIC_SLUG_PRICE = 500_000L;
+    private static final long LEGENDARY_SLUG_PRICE = 5_000_000L;
+
+    /** Epic and Legendary slug pets from pests, with a set price for each rarity. */
+    private boolean handleSlug(Component message, String raw) {
+        if (!SLUG_DROP.matcher(raw).find()) return false;
+        boolean legendary = "LEGENDARY".equals(slugRarity(message));
+        String name = legendary ? "Legendary Slug Pet" : "Epic Slug Pet";
+        long price = legendary ? LEGENDARY_SLUG_PRICE : EPIC_SLUG_PRICE;
+        String key = name.toLowerCase(Locale.ROOT);
+        long shownUntil = System.currentTimeMillis() + SHOW_MILLIS;
+        activeDrops.merge(key, new Drop(1, name, legendary ? "LEGENDARY" : "EPIC", price, shownUntil),
+            (current, added) -> new Drop(current.amount() + 1, current.name(), current.rarity(), price, shownUntil));
+        return true;
+    }
+
+    /** "LEGENDARY" when "Slug" is gold, "EPIC" when purple (the default). */
+    private static String slugRarity(Component message) {
+        Matcher legacy = Pattern.compile("§([0-9a-f])(?:§[k-or])*Slug").matcher(message.getString());
+        if (legacy.find()) return legacy.group(1).equals("6") ? "LEGENDARY" : "EPIC";
+        String[] found = {null};
+        message.visit((style, text) -> {
+            if (found[0] == null && text.contains("Slug") && style.getColor() != null) {
+                found[0] = style.getColor().getValue() == 0xFFAA00 ? "LEGENDARY" : "EPIC";
+            }
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
+        return found[0] == null ? "EPIC" : found[0];
+    }
+
     private void handle(Component message) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         String raw = message.getString().replaceAll("§[0-9a-fk-or]", "").trim();
+        if (handleSlug(message, raw)) return;
         Parsed parsed = parse(raw);
         if (parsed == null) return;
 

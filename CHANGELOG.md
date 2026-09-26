@@ -23,6 +23,7 @@ All notable changes to SkyJew are listed here, newest first.
 - `/sb toggle <setting>` turns any setting on or off, `/sb togglenick <player>` hides or shows someone's nickname for you, `/sb who` lists who is online with the mod, and `/sb disableall` (or `/sbdisableall`) turns everything off after you click to confirm.
 - No Swing Animation (Misc > Held Item Model, off by default), like NoFrills.
 - SB Chat Ping (Chat > Custom Chat, off by default): a ping when someone sends a message in /sbc.
+- Farming RNG HUD: Epic and Legendary slug pets from pests, shown in their rarity colour ("1x Legendary Slug Pet") at a set price of 500k (Epic) and 5m (Legendary).
 
 ### Fixed
 - `/sb nick`: picking a preset colour also updates the colour picker and hex box.
