@@ -225,6 +225,36 @@ public final class SkyJewConfig extends Config {
         public boolean currentChatDisplay = true;
     }
 
+    public static final class SlotLocking {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Slot locking and slot binding. Locked slots can't be clicked, moved or dropped; bound slots swap with a shift-click (Odin's Slot Binds).")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "Lock Key", desc = "Press over a slot in your inventory to lock or unlock it.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_L)
+        public int lockKey = GLFW.GLFW_KEY_L;
+
+        @Expose
+        @ConfigOption(name = "Bind Key", desc = "In your inventory: press over a slot, then over another (one in the hotbar), to bind them. Press on a bound slot to unbind.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_B)
+        public int bindKey = GLFW.GLFW_KEY_B;
+
+        @Expose
+        @ConfigOption(name = "Bind Line Only With Shift", desc = "Only show the line between bound slots while holding Shift.")
+        @ConfigEditorBoolean
+        public boolean lineOnlyWithShift = false;
+
+        /** Locked player inventory slots (0-8 hotbar, 9-35 inventory). */
+        @Expose
+        public java.util.List<Integer> locked = new java.util.ArrayList<>();
+
+        /** Slot binds, by inventory screen slot (36-44 is the hotbar). */
+        @Expose
+        public java.util.Map<Integer, Integer> binds = new java.util.HashMap<>();
+    }
+
     public static final class CopyChat {
         @Expose
         @ConfigOption(name = "Enabled", desc = "Copy chat messages, like NoFrills' Chat Tweaks: with chat open, right-click a message to copy it, Shift+right-click to copy one line. SkyBalls rank prefixes aren't copied.")
@@ -487,6 +517,11 @@ public final class SkyJewConfig extends Config {
         @Accordion
         @ConfigOption(name = "Party Commands", desc = "Let party members use !warp, !allinvite and !pt when you are leader.")
         public com.epic60869.skyjew.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyjew.features.FeatureConfigs.PartyCommands();
+
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Slot Locking & Binding", desc = "Lock inventory slots (L) and bind hotbar slots to inventory slots (B).")
+        public SlotLocking slotLocking = new SlotLocking();
 
         @Expose
         @Accordion

@@ -37,6 +37,11 @@ public abstract class ContainerSolverScreenMixin {
 
 	@Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V", at = @At("HEAD"), cancellable = true)
 	private void skyjew$onSlotClicked(Slot slot, int slotId, int button, ContainerInput input, CallbackInfo ci) {
+		// SkyBalls: locked slots and slot binds.
+		if (com.epic60869.skyjew.features.misc.SlotLocking.onSlotClicked((AbstractContainerScreen<?>) (Object) this, slot, button, input)) {
+			ci.cancel();
+			return;
+		}
 		com.epic60869.skyjew.features.misc.PricePaid.onSlotClicked((AbstractContainerScreen<?>) (Object) this, slot);
 		// SkyJew: Odin's terminal solver takes every click in a terminal (misclick and first-click protection).
 		if (com.epic60869.skyjew.features.dungeons.OdinTerminals.active()) {
