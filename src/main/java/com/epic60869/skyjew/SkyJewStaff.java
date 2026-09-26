@@ -120,6 +120,13 @@ public final class SkyJewStaff {
         return Component.literal("[" + rank.label() + "] ").withStyle(Style.EMPTY.withColor(rank.colour()).withBold(rank.bold()));
     }
 
+    /** Every rank in use (built-in and from the website). */
+    public static java.util.Collection<Rank> allRanks() {
+        java.util.List<Rank> out = new ArrayList<>();
+        for (Entry entry : all().values()) if (!out.contains(entry.rank())) out.add(entry.rank());
+        return out;
+    }
+
     /** Ranked accounts' usernames (as the site or the built-in list names them) and their ranks. */
     public static Map<String, Rank> ranksByName() {
         Map<String, Rank> out = new HashMap<>();

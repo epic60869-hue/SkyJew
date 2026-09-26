@@ -16,6 +16,7 @@
     "SkyJewPlayerInfoAccessor",
     "SkyJewMultiLineEditBoxAccessor",
     "SkyJewContainerTooltipMixin",
+    "SkyJewChatComponentAccessor",
     "SkyJewClientTextTooltipAccessor",
     "SkyJewContainerScreenAccessor",
     "SkyJewInventoryScreenInvoker",

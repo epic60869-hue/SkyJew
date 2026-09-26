@@ -205,6 +205,11 @@ public final class SkyJewConfig extends Config {
         public CustomChat customChat = new CustomChat();
 
         @Expose
+        @Accordion
+        @ConfigOption(name = "Copy Chat", desc = "Right-click chat messages to copy them, like NoFrills' Chat Tweaks.")
+        public CopyChat copyChat = new CopyChat();
+
+        @Expose
         @ConfigOption(name = "Compact Chat", desc = "Compact repeated chat messages into one message with an occurrence counter.")
         @ConfigEditorBoolean
         public boolean compactChat = true;
@@ -218,6 +223,43 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Current Chat Display", desc = "Show which chat you are typing in (All, Party, Guild, Officer, Co-op, a private conversation or SkyBalls chat) just above the chat box while it is open.")
         @ConfigEditorBoolean
         public boolean currentChatDisplay = true;
+    }
+
+    public static final class CopyChat {
+        @Expose
+        @ConfigOption(name = "Enabled", desc = "Copy chat messages, like NoFrills' Chat Tweaks: with chat open, right-click a message to copy it, Shift+right-click to copy one line. SkyBalls rank prefixes aren't copied.")
+        @ConfigEditorBoolean
+        public boolean enabled = true;
+
+        @Expose
+        @ConfigOption(name = "Right-Click To Copy", desc = "Right-click a message to copy it (Shift+right-click for one line).")
+        @ConfigEditorBoolean
+        public boolean rightClick = true;
+
+        @Expose
+        @ConfigOption(name = "Copy Message Key", desc = "Key that copies the message under the mouse while chat is open.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
+        public int copyKey = GLFW.GLFW_KEY_UNKNOWN;
+
+        @Expose
+        @ConfigOption(name = "Copy Line Key", desc = "Key that copies just the line under the mouse while chat is open.")
+        @ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
+        public int copyLineKey = GLFW.GLFW_KEY_UNKNOWN;
+
+        @Expose
+        @ConfigOption(name = "Copy Preview", desc = "Show what was copied in chat.")
+        @ConfigEditorBoolean
+        public boolean preview = true;
+
+        @Expose
+        @ConfigOption(name = "Preview Length", desc = "How many characters of the copied text to show (0 just says it was copied).")
+        @ConfigEditorSlider(minValue = 0, maxValue = 200, minStep = 10)
+        public int previewLength = 50;
+
+        @Expose
+        @ConfigOption(name = "Trim On Copy", desc = "Remove spaces at the start and end of what's copied.")
+        @ConfigEditorBoolean
+        public boolean trim = false;
     }
 
     public static final class CustomChat {
