@@ -80,7 +80,7 @@ public final class SkyJewTabWidgetManager {
         widgets.clear();
 
         for (PlayerInfo entry : lines) {
-            Component display = entry.getTabListDisplayName();
+            Component display = com.epic60869.skyjew.custom.util.Compat.rawTabName(entry);
             if (display == null) {
                 String profileName = entry.getProfile() == null ? "" : entry.getProfile().name();
                 if (profileName.isBlank()) continue;
@@ -233,7 +233,7 @@ public final class SkyJewTabWidgetManager {
         boolean active = false;
 
         for (PlayerInfo entry : lines) {
-            Component display = entry.getTabListDisplayName();
+            Component display = com.epic60869.skyjew.custom.util.Compat.rawTabName(entry);
             if (display == null && entry.getProfile() != null) {
                 display = Component.literal(entry.getProfile().name());
             }

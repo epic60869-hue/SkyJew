@@ -41,7 +41,7 @@ public final class SelfClass {
     private static DungeonClass fromTab(Minecraft mc) {
         String name = mc.player.getGameProfile().name();
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            Component display = info.getTabListDisplayName();
+            Component display = com.epic60869.skyjew.custom.util.Compat.rawTabName(info);
             if (display == null) continue;
             String line = SkyJewLocation.strip(display.getString());
             if (!line.contains(" " + name + " ") && !line.startsWith(name + " ")) continue;

@@ -148,7 +148,7 @@ public final class ScoreCalculator {
         int done = 0;
         boolean inPuzzles = false;
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            Component name = info.getTabListDisplayName();
+            Component name = com.epic60869.skyjew.custom.util.Compat.rawTabName(info);
             if (name == null) continue;
             String line = SkyJewLocation.strip(name.getString());
             Matcher m;

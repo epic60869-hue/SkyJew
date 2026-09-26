@@ -83,8 +83,8 @@ public final class GardenFeatures {
     private static List<Component> pestLines() {
         // Prefer Hypixel's own cooldown from the tab list Pests widget when it is shown.
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            if (info.getTabListDisplayName() == null) continue;
-            Matcher m = TAB_COOLDOWN.matcher(SkyJewLocation.strip(info.getTabListDisplayName().getString()));
+            if (com.epic60869.skyjew.custom.util.Compat.rawTabName(info) == null) continue;
+            Matcher m = TAB_COOLDOWN.matcher(SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.rawTabName(info).getString()));
             if (m.find() && (m.group("time") != null || m.group("ready") != null || m.group("max") != null)) {
                 String value = m.group("ready") != null ? "READY" : m.group("max") != null ? "MAX PESTS" : m.group("time");
                 return List.of(Component.literal("Pest cooldown: ").withStyle(ChatFormatting.GRAY)

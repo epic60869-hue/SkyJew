@@ -26,7 +26,7 @@ public final class PlayerListManager {
 	public static @Nullable String strAt(int idx) {
 		List<PlayerInfo> list = SkyJewTabWidgetManager.players();
 		if (list.size() <= idx) return null;
-		Component txt = list.get(idx).getTabListDisplayName();
+		Component txt = com.epic60869.skyjew.custom.util.Compat.rawTabName(list.get(idx));
 		if (txt == null) return null;
 		String str = txt.getString().trim();
 		return str.isEmpty() ? null : str;

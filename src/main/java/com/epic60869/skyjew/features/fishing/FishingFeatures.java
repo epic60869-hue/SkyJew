@@ -94,8 +94,8 @@ public final class FishingFeatures {
     private static List<Component> statLines() {
         List<Component> lines = new ArrayList<>();
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            if (info.getTabListDisplayName() == null) continue;
-            String text = SkyJewLocation.strip(info.getTabListDisplayName().getString()).trim();
+            if (com.epic60869.skyjew.custom.util.Compat.rawTabName(info) == null) continue;
+            String text = SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.rawTabName(info).getString()).trim();
             for (String stat : STATS) {
                 if (text.startsWith(stat + ":")) {
                     lines.add(kv(stat + ": ", text.substring(stat.length() + 1).trim()));

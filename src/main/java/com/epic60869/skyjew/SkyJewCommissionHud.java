@@ -97,7 +97,7 @@ public final class SkyJewCommissionHud {
         boolean sawHeader = false;
 
         for (PlayerInfo entry : entries) {
-            Component display = entry.getTabListDisplayName();
+            Component display = com.epic60869.skyjew.custom.util.Compat.rawTabName(entry);
             if (display == null && entry.getProfile() != null) {
                 display = Component.literal(entry.getProfile().name());
             }

@@ -73,8 +73,8 @@ public final class SkillFeatures {
     private static void tick(Minecraft mc) {
         if (mc.player == null || !SkyJewLocation.onSkyblock()) return;
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            if (info.getTabListDisplayName() == null) continue;
-            String text = SkyJewLocation.strip(info.getTabListDisplayName().getString());
+            if (com.epic60869.skyjew.custom.util.Compat.rawTabName(info) == null) continue;
+            String text = SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.rawTabName(info).getString());
             Matcher m = SWEEP.matcher(text);
             if (m.find()) sweep = m.group("value");
         }

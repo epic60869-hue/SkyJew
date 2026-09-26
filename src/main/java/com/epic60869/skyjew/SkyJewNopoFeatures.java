@@ -275,7 +275,7 @@ public final class SkyJewNopoFeatures {
         boolean inPet = false;
 
         for (PlayerInfo entry : entries) {
-            Component component = entry.getTabListDisplayName();
+            Component component = com.epic60869.skyjew.custom.util.Compat.rawTabName(entry);
             if (component == null && entry.getProfile() != null) {
                 component = Component.literal(entry.getProfile().name());
             }

@@ -101,7 +101,7 @@ public final class SkyJewLocation {
 
         String newArea = "";
         for (PlayerInfo info : SkyJewTabWidgetManager.players()) {
-            Component name = info.getTabListDisplayName();
+            Component name = com.epic60869.skyjew.custom.util.Compat.rawTabName(info);
             if (name == null) continue;
             String text = strip(name.getString()).trim();
             if (text.startsWith("Area: ")) { newArea = text.substring(6).trim(); break; }

@@ -109,6 +109,11 @@ public final class Compat {
 		return Identifier.fromNamespaceAndPath(NAMESPACE, path);
 	}
 
+	/** The tab list name Hypixel sent, without SkyJew's nickname replacement; for reading the tab list. */
+	public static net.minecraft.network.chat.Component rawTabName(net.minecraft.client.multiplayer.PlayerInfo info) {
+		return ((com.epic60869.skyjew.mixin.SkyJewPlayerInfoAccessor) info).skyjew$rawTabListDisplayName();
+	}
+
 	public static boolean isOnSkyblock() {
 		return SkyJewCustom.isHypixel(Minecraft.getInstance());
 	}

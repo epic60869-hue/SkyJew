@@ -132,7 +132,7 @@ public final class SkyJewGlobalChat {
     private static int[] ownLevel() {
         String me = Minecraft.getInstance().getUser().getName();
         for (var info : SkyJewTabWidgetManager.players()) {
-            Component name = info.getTabListDisplayName();
+            Component name = com.epic60869.skyjew.custom.util.Compat.rawTabName(info);
             if (name == null) continue;
             String text = net.minecraft.ChatFormatting.stripFormatting(name.getString()).trim();
             java.util.regex.Matcher m = TAB_LEVEL.matcher(text);
