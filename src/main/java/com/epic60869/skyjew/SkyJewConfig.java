@@ -671,6 +671,10 @@ public final class SkyJewConfig extends Config {
 
         @Expose
         public String font = "Default";
+
+        /** Players whose nickname you turned off with /sb togglenick. */
+        @Expose
+        public java.util.List<String> hiddenNicks = new java.util.ArrayList<>();
     }
 
     public static final class Discord {

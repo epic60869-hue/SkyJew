@@ -152,7 +152,7 @@ public final class SkyJewNick {
         String nickHex = null;
         String nickFont = null;
 
-        if (remote != null && remote.enabled && !remote.name.isBlank()) {
+        if (remote != null && remote.shown() && !remote.name.isBlank()) {
             nickName = remote.name;
             nickMode = remote.mode;
             nickHex = remote.customHex;
@@ -178,7 +178,7 @@ public final class SkyJewNick {
             }
             if (config().misc.nickname.seeOtherNicks) {
                 for (RemoteNick r : REMOTE_NICKS.values()) {
-                    if (!r.enabled || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
+                    if (!r.shown() || r.name.isBlank() || r.username.isBlank() || isLocalUuid(r.uuid)) continue;
                     result = replaceExactName(result, r.username, styled(r.name, r.mode, r.customHex, r.font));
                 }
             }
@@ -209,7 +209,7 @@ public final class SkyJewNick {
         }
         if (!config().misc.nickname.seeOtherNicks) return original;
         RemoteNick remote = REMOTE_NICKS.get(uuid);
-        if (remote == null || !remote.enabled || remote.name.isBlank()) return original;
+        if (remote == null || !remote.shown() || remote.name.isBlank()) return original;
         return replaceExactName(original, actualName, styled(remote.name, remote.mode, remote.customHex, remote.font));
     }
 
@@ -231,7 +231,7 @@ public final class SkyJewNick {
         }
         if (config().misc.nickname.seeOtherNicks) {
             for (RemoteNick remote : REMOTE_NICKS.values()) {
-                if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank() || isLocalUuid(remote.uuid)) continue;
+                if (!remote.shown() || remote.name.isBlank() || remote.username.isBlank() || isLocalUuid(remote.uuid)) continue;
                 if (plain.contains(remote.username)) result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex, remote.font));
             }
         }
@@ -265,7 +265,7 @@ public final class SkyJewNick {
         // Hypixel /msg and guild messages: those are server/game messages and
         // the target player may not be present in the local tab list.
         for (RemoteNick remote : REMOTE_NICKS.values()) {
-            if (!remote.enabled || remote.name.isBlank() || remote.username.isBlank()) continue;
+            if (!remote.shown() || remote.name.isBlank() || remote.username.isBlank()) continue;
             if (isLocalUuid(remote.uuid)) continue;
             result = replaceExactName(result, remote.username, styled(remote.name, remote.mode, remote.customHex, remote.font));
         }
@@ -277,7 +277,7 @@ public final class SkyJewNick {
             UUID uuid = info.getProfile().id();
             String actualName = info.getProfile().name();
             RemoteNick remote = REMOTE_NICKS.get(uuid);
-            if (remote == null || !remote.enabled || remote.name.isBlank()
+            if (remote == null || !remote.shown() || remote.name.isBlank()
                 || actualName == null || actualName.isBlank() || isLocalUuid(uuid)) continue;
             if (!remote.username.equals(actualName)) {
                 REMOTE_NICKS.put(uuid, remote.withUsername(actualName));
@@ -412,7 +412,7 @@ public final class SkyJewNick {
     public static Component displayName(UUID uuid, String actualName) {
         if (uuid != null) {
             RemoteNick remote = REMOTE_NICKS.get(uuid);
-            if (remote != null && remote.enabled && !remote.name.isBlank()) {
+            if (remote != null && remote.shown() && !remote.name.isBlank()) {
                 return styled(remote.name, remote.mode, remote.customHex, remote.font);
             }
         }
@@ -552,5 +552,45 @@ public final class SkyJewNick {
         private RemoteNick withUsername(String value) {
             return new RemoteNick(uuid, value, name, mode, customHex, font, enabled);
         }
+
+        /** On, and not hidden with /sb togglenick. */
+        private boolean shown() {
+            return enabled && !isHidden(username);
+        }
+    }
+
+    // ---------------------------------------------------------------- /sb togglenick
+
+    /** Players whose nickname you turned off with /sb togglenick (their real name shows instead). */
+    private static boolean isHidden(String username) {
+        if (username == null || username.isBlank() || config() == null) return false;
+        for (String name : config().misc.nickname.hiddenNicks) if (name.equalsIgnoreCase(username)) return true;
+        return false;
+    }
+
+    /** /sb togglenick <player>: turns that player's nickname off or back on for you; your own name toggles your nickname. */
+    public static void toggleFor(String player) {
+        if (config() == null) return;
+        String self = Minecraft.getInstance().getUser().getName();
+        if (player.equalsIgnoreCase(self)) {
+            config().misc.nickname.enabled = !config().misc.nickname.enabled;
+            save();
+            SkyJewGlobalChat.sendNicknameUpdate();
+            message("Your nickname is now " + (config().misc.nickname.enabled ? "on." : "off."), 0x55FF55);
+            return;
+        }
+        java.util.List<String> hidden = config().misc.nickname.hiddenNicks;
+        boolean removed = hidden.removeIf(name -> name.equalsIgnoreCase(player));
+        if (!removed) hidden.add(player);
+        save();
+        message(removed ? "Showing " + player + "'s nickname again." : "Hiding " + player + "'s nickname; you'll see their real name.", 0x55FF55);
+    }
+
+    /** Usernames of other SkyBalls players with a nickname, for suggestions. */
+    public static java.util.List<String> nickedPlayers() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (RemoteNick r : REMOTE_NICKS.values()) if (!r.username.isBlank()) out.add(r.username);
+        if (config() != null) out.addAll(config().misc.nickname.hiddenNicks);
+        return out;
     }
 }
