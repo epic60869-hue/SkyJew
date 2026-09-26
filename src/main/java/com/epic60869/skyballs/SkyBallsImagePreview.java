@@ -38,7 +38,11 @@ public final class SkyBallsImagePreview {
     );
     /** Hosts whose links are usually images even without an extension. */
     private static final Pattern IMAGE_HOST = Pattern.compile(
-        "(?i)^https?://(?:(?:cdn|media)\\.discordapp\\.(?:com|net)|(?:i\\.)?imgur\\.com|i\\.gyazo\\.com|gyazo\\.com|i\\.ibb\\.co|prnt\\.sc|tenor\\.com|media\\.tenor\\.com)/\\S+$"
+        "(?i)^https?://(?:(?:cdn|media)\\.discordapp\\.(?:com|net)|(?:i\\.)?imgur\\.com|(?:i\\.)?gyazo\\.com|(?:i\\.)?ibb\\.co|prnt\\.sc|prntscr\\.com|(?:i\\.)?postimg\\.cc|(?:media\\.)?tenor\\.com)/\\S+$"
+    );
+    /** The picture a web page shares, e.g. ImgBB's page for a screenshot: <meta property="og:image" content="...">. */
+    private static final Pattern OG_IMAGE = Pattern.compile(
+        "(?is)<meta[^>]+(?:property|name)=[\"'](?:og:image|twitter:image)[\"'][^>]*content=[\"']([^\"']+)[\"']|<meta[^>]+content=[\"']([^\"']+)[\"'][^>]*(?:property|name)=[\"'](?:og:image|twitter:image)[\"']"
     );
     /** Links that were downloaded and turned out not to be images. */
     private static final Map<String, Boolean> NOT_IMAGE = new ConcurrentHashMap<>();
@@ -149,8 +153,27 @@ public final class SkyBallsImagePreview {
                 HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());
                 String type = response.headers().firstValue("Content-Type").orElse("");
+                if (type.startsWith("text/html")) {
+                    // An image host's page (ImgBB, Imgur, Gyazo, Lightshot, ...): fetch the picture it shares.
+                    String page = new String(response.body(), java.nio.charset.StandardCharsets.UTF_8);
+                    java.util.regex.Matcher og = OG_IMAGE.matcher(page);
+                    if (!og.find()) {
+                        NOT_IMAGE.put(url, Boolean.TRUE);
+                        return;
+                    }
+                    String imageUrl = (og.group(1) != null ? og.group(1) : og.group(2)).replace("&amp;", "&");
+                    if (imageUrl.startsWith("//")) imageUrl = "https:" + imageUrl;
+                    HttpRequest imageRequest = HttpRequest.newBuilder(URI.create(imageUrl))
+                        .timeout(Duration.ofSeconds(15))
+                        .header("User-Agent", "Mozilla/5.0 (SkyBalls)")
+                        .header("Accept", "image/png,image/jpeg,image/gif,image/*;q=0.8")
+                        .GET().build();
+                    response = CLIENT.send(imageRequest, HttpResponse.BodyHandlers.ofByteArray());
+                    if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());
+                    type = response.headers().firstValue("Content-Type").orElse("");
+                }
                 if (!type.isEmpty() && !type.startsWith("image/")) {
-                    NOT_IMAGE.put(url, Boolean.TRUE); // a web page, not an image: stop trying
+                    NOT_IMAGE.put(url, Boolean.TRUE); // not an image: stop trying
                     return;
                 }
                 // Minecraft can only read PNG, so JPG/GIF are converted (GIFs show their first frame).
@@ -176,10 +199,6 @@ public final class SkyBallsImagePreview {
             String cleaned = url.replaceAll("([?&])format=[^&]*&?", "$1").replaceAll("[?&]$", "");
             return cleaned + (cleaned.contains("?") ? "&" : "?") + "format=png";
         }
-        var imgur = java.util.regex.Pattern.compile("(?i)^https?://imgur\\.com/([A-Za-z0-9]+)$").matcher(url);
-        if (imgur.matches()) return "https://i.imgur.com/" + imgur.group(1) + ".png";
-        var gyazo = java.util.regex.Pattern.compile("(?i)^https?://gyazo\\.com/([A-Za-z0-9]+)$").matcher(url);
-        if (gyazo.matches()) return "https://i.gyazo.com/" + gyazo.group(1) + ".png";
         return url;
     }
 
