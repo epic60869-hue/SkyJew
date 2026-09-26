@@ -31,8 +31,8 @@ public class GuiEquipmentRenderer<S> extends PictureInPictureRenderer<GuiEquipme
 
 		matrices.pushPose();
 		matrices.translate(0, state.offset() / state.scale(), 0);
-		matrices.mulPose(Axis.XN.rotationDegrees(-5));
-		matrices.mulPose(Axis.YN.rotationDegrees(state.rotation()));
+		matrices.rotateDegrees(Axis.XN, -5);
+		matrices.rotateDegrees(Axis.YN, state.rotation());
 
 		client.gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
 		state.equipmentRenderer().renderLayers(

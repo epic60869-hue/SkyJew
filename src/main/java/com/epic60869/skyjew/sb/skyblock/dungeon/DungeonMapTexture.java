@@ -66,6 +66,9 @@ public class DungeonMapTexture {
 		if (Utils.isInDungeons() && !DungeonManager.isInBoss() && mapId.equals(DungeonMap.getMapIdComponent(null))) {
 			MapItemSavedData state = MapItem.getSavedData(mapId, Minecraft.getInstance().level);
 
+			// SkyJew: feed the NoammAddons-style map.
+			com.epic60869.skyjew.features.dungeons.NoammMap.onMapUpdate(state);
+
 			// Only update the map texture when it changes (Hypixel only updates the texture when absolutely needed)
 			if (updateMapTexture) {
 				updateMapImage(state);

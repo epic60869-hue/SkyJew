@@ -32,11 +32,13 @@ public final class SkyJewKeyMappings {
         SEARCH = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                 "key.skyjew.search",
-                InputConstants.Type.KEYSYM,
+                InputConstants.Type.KEYBOARD,
                 InputConstants.KEY_O,
                 CATEGORY
             )
         );
+
+        com.epic60869.skyjew.features.misc.ToggleSprint.registerKey();
 
         initialized = true;
     }

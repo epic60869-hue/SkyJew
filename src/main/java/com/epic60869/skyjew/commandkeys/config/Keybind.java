@@ -22,7 +22,6 @@ import com.google.gson.*;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.epic60869.skyjew.commandkeys.util.JsonUtil;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Type;
 import java.util.Objects;
@@ -103,13 +102,17 @@ public class Keybind {
         if (key.equals(InputConstants.UNKNOWN))
             return false;
         if (key.getType().equals(InputConstants.Type.MOUSE)) {
-            return GLFW.glfwGetMouseButton(
-                    Minecraft.getInstance().getWindow().handle(),
-                    key.getValue()
-            ) == 1;
+            // Minecraft 26.3 uses SDL: buttons are 1 left, 2 middle, 3 right, 4+ side buttons.
+            var mouse = Minecraft.getInstance().mouseHandler;
+            return switch (key.getValue()) {
+                case InputConstants.MOUSE_BUTTON_LEFT -> mouse.isLeftPressed();
+                case InputConstants.MOUSE_BUTTON_RIGHT -> mouse.isRightPressed();
+                case InputConstants.MOUSE_BUTTON_MIDDLE -> mouse.isMiddlePressed();
+                default -> (org.lwjgl.sdl.SDLMouse.SDL_GetMouseState((java.nio.FloatBuffer) null, (java.nio.FloatBuffer) null)
+                    & (1 << (key.getValue() - 1))) != 0;
+            };
         } else {
-            return GLFW.glfwGetKey(Minecraft.getInstance().getWindow().handle(), key.getValue())
-                    == 1;
+            return InputConstants.isKeyDown(key.getValue());
         }
     }
 

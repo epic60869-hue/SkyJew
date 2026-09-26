@@ -16,7 +16,6 @@
     "SkyJewPlayerTabOverlayMixin",
     "SkyJewPlayerTabOverlayAccessor",
     "SkyJewItemHighlightMixin",
-    "SkyJewRecipeOverlayMixin",
     "SkyJewModelManagerAccessor",
     "SkyJewCheckboxAccessor",
     "SkyJewEntityRenderDispatcherAccessor",
@@ -34,6 +33,10 @@
     "SkyJewTextDisplayNickMixin",
     "SkyJewHeldItemMixin",
     "SkyJewSwingSpeedMixin",
-    "SkyJewPlayerSizeMixin"
+    "SkyJewPlayerSizeMixin",
+    "SkyJewBossBarMixin",
+    "SkyJewLevelExtractorMixin",
+    "SkyJewTooltipMixin",
+    "SkyJewToggleSprintMixin"
   ]
 }

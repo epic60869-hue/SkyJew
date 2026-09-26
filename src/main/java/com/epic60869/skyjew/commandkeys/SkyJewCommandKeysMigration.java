@@ -10,7 +10,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.InputConstants;
-import org.lwjgl.glfw.GLFW;
 
 import com.epic60869.skyjew.commandkeys.config.Config;
 import com.epic60869.skyjew.commandkeys.config.Macro;
@@ -81,23 +80,24 @@ public final class SkyJewCommandKeysMigration {
             profile.setConflictStrategy(macro, Macro.ConflictStrategy.valueOf(string(old, "conflict", "ASSERT")));
         } catch (IllegalArgumentException ignored) {}
 
-        int keyCode = old.has("keyCode") ? old.get("keyCode").getAsInt() : GLFW.GLFW_KEY_UNKNOWN;
-        if (keyCode != GLFW.GLFW_KEY_UNKNOWN) {
+        // The old system stored GLFW key codes; Minecraft 26.3 uses SDL, so they are carried over by key name.
+        int keyCode = old.has("keyCode") ? old.get("keyCode").getAsInt() : -1;
+        if (keyCode != -1) {
             boolean mouse = old.has("mouseButton") && old.get("mouseButton").getAsBoolean();
-            InputConstants.Key key = (mouse ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM).getOrCreate(keyCode);
-            profile.setKey(macro, macro.getKeybind(), key);
+            InputConstants.Key key = mouse ? glfwMouseButton(keyCode) : glfwKey(keyCode);
+            if (key != null) profile.setKey(macro, macro.getKeybind(), key);
         }
 
         // The old system stored a GLFW modifier bitmask; CommandKeys uses a limit key instead.
-        int modifierKey = switch (old.has("modifier") ? old.get("modifier").getAsInt() : 0) {
-            case GLFW.GLFW_MOD_SHIFT -> GLFW.GLFW_KEY_LEFT_SHIFT;
-            case GLFW.GLFW_MOD_CONTROL -> GLFW.GLFW_KEY_LEFT_CONTROL;
-            case GLFW.GLFW_MOD_ALT -> GLFW.GLFW_KEY_LEFT_ALT;
-            case GLFW.GLFW_MOD_SUPER -> GLFW.GLFW_KEY_LEFT_SUPER;
-            default -> GLFW.GLFW_KEY_UNKNOWN;
+        InputConstants.Key modifierKey = switch (old.has("modifier") ? old.get("modifier").getAsInt() : 0) {
+            case 0x0001 -> InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_LSHIFT);
+            case 0x0002 -> InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_LCONTROL);
+            case 0x0004 -> InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_LALT);
+            case 0x0008 -> InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_LGUI);
+            default -> null;
         };
-        if (modifierKey != GLFW.GLFW_KEY_UNKNOWN) {
-            profile.setLimitKey(macro, macro.getKeybind(), InputConstants.Type.KEYSYM.getOrCreate(modifierKey));
+        if (modifierKey != null) {
+            profile.setLimitKey(macro, macro.getKeybind(), modifierKey);
         }
 
         while (!macro.getMessages().isEmpty()) macro.removeMessage(0);
@@ -116,5 +116,71 @@ public final class SkyJewCommandKeysMigration {
 
     private static String string(JsonObject object, String key, String fallback) {
         return object.has(key) && object.get(key).isJsonPrimitive() ? object.get(key).getAsString() : fallback;
+    }
+
+    /** A GLFW mouse button (0 left, 1 right, 2 middle, 3+ side) as a key, by name. */
+    private static InputConstants.Key glfwMouseButton(int button) {
+        String name = switch (button) {
+            case 0 -> "key.mouse.left";
+            case 1 -> "key.mouse.right";
+            case 2 -> "key.mouse.middle";
+            default -> "key.mouse." + (button + 1);
+        };
+        return keyByName(name);
+    }
+
+    /** A GLFW key code from the old SkyJew macro format, as a key, by name. */
+    private static InputConstants.Key glfwKey(int code) {
+        String name;
+        if (code >= 65 && code <= 90) name = "key.keyboard." + (char) ('a' + code - 65);
+        else if (code >= 48 && code <= 57) name = "key.keyboard." + (char) code;
+        else if (code >= 290 && code <= 314) name = "key.keyboard.f" + (code - 289);
+        else if (code >= 320 && code <= 329) name = "key.keyboard.keypad." + (code - 320);
+        else name = switch (code) {
+            case 32 -> "key.keyboard.space";
+            case 39 -> "key.keyboard.apostrophe";
+            case 44 -> "key.keyboard.comma";
+            case 45 -> "key.keyboard.minus";
+            case 46 -> "key.keyboard.period";
+            case 47 -> "key.keyboard.slash";
+            case 59 -> "key.keyboard.semicolon";
+            case 61 -> "key.keyboard.equal";
+            case 91 -> "key.keyboard.left.bracket";
+            case 92 -> "key.keyboard.backslash";
+            case 93 -> "key.keyboard.right.bracket";
+            case 96 -> "key.keyboard.grave.accent";
+            case 257 -> "key.keyboard.enter";
+            case 258 -> "key.keyboard.tab";
+            case 259 -> "key.keyboard.backspace";
+            case 260 -> "key.keyboard.insert";
+            case 261 -> "key.keyboard.delete";
+            case 262 -> "key.keyboard.right";
+            case 263 -> "key.keyboard.left";
+            case 264 -> "key.keyboard.down";
+            case 265 -> "key.keyboard.up";
+            case 266 -> "key.keyboard.page.up";
+            case 267 -> "key.keyboard.page.down";
+            case 268 -> "key.keyboard.home";
+            case 269 -> "key.keyboard.end";
+            case 280 -> "key.keyboard.caps.lock";
+            case 340 -> "key.keyboard.left.shift";
+            case 341 -> "key.keyboard.left.control";
+            case 342 -> "key.keyboard.left.alt";
+            case 343 -> "key.keyboard.left.win";
+            case 344 -> "key.keyboard.right.shift";
+            case 345 -> "key.keyboard.right.control";
+            case 346 -> "key.keyboard.right.alt";
+            case 347 -> "key.keyboard.right.win";
+            default -> null;
+        };
+        return name == null ? null : keyByName(name);
+    }
+
+    private static InputConstants.Key keyByName(String name) {
+        try {
+            return InputConstants.getKey(name);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

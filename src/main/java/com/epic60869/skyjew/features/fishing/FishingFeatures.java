@@ -130,14 +130,14 @@ public final class FishingFeatures {
             ItemStack stack = mc.player.getInventory().getItem(i);
             ItemLore lore = stack.get(DataComponents.LORE);
             if (lore == null) continue;
-            boolean isBaitItem = BAIT_NAME.matcher(SkyJewLocation.strip(stack.getHoverName().getString())).matches();
+            boolean isBaitItem = BAIT_NAME.matcher(SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(stack).getString())).matches();
             for (Component line : lore.lines()) {
                 String text = SkyJewLocation.strip(line.getString()).trim();
                 Matcher m = BAIT_REMAINING.matcher(text);
                 if (m.find()) amount = Long.parseLong(m.group("amount").replace(",", ""));
                 if (name == null && BAIT_NAME.matcher(text).matches()) name = text;
             }
-            if (amount >= 0 && name == null && isBaitItem) name = SkyJewLocation.strip(stack.getHoverName().getString());
+            if (amount >= 0 && name == null && isBaitItem) name = SkyJewLocation.strip(com.epic60869.skyjew.custom.util.Compat.realName(stack).getString());
             if (amount >= 0 && name != null) break;
         }
         if (name != null) {

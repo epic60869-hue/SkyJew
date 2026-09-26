@@ -1,7 +1,7 @@
 // Ported from Skyblocker (https://github.com/SkyblockerMod/Skyblocker, v6.10.4+26.2), licensed under LGPL-3.0.
 package com.epic60869.skyjew.custom.util;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix3x2f;
 import org.jspecify.annotations.Nullable;

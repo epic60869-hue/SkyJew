@@ -92,7 +92,7 @@ Several SkyJew dungeon features follow Odin's implementations:
 - https://github.com/odtheking/Odin (main branch, Minecraft 26.1.2)
 - Relevant source: `utils/skyblock/SplitsManager.kt`, `features/impl/skyblock/Splits.kt`, `utils/PersonalBest.kt`, `features/impl/dungeon/InvincibilityTimer.kt`, `LeapMenu.kt`, `BloodCamp.kt` (including its Watcher and blood mob head textures, mob skull data by DocilElm), `DoorHighlight.kt`, `PositionalMessages.kt`, the puzzle solvers in `puzzlesolvers/` (Ice Fill, Boulder, Creeper Beams, Three Weirdos, Quiz, Teleport Maze, Water Board and Blaze) with their data files `ice-fill-floors.json`, `boulder-solutions.json`, `creeper-beams-solutions.json`, `quiz-answers.json` and `water-solutions.json` (copied to `assets/skyjew/puzzles/`), and `render/PlayerSize.kt`
 
-Ported to Java in `features/dungeons/DungeonFeatures.java` (splits, split PBs, mask timers), `LeapMenu.java`, `BloodCamp.java`, `BloodCampSkulls.java`, `DoorHighlight.java`, `PositionalMessages.java`, `OdinPuzzleSolvers.java` and `mixin/SkyJewPlayerSizeMixin.java`. Each file names Odin in its class comment.
+Ported to Java in `features/dungeons/DungeonFeatures.java` (splits, split PBs, mask timers), `LeapMenu.java`, `BloodCamp.java`, `BloodCampSkulls.java`, `DoorHighlight.java`, `PositionalMessages.java`, `OdinPuzzleSolvers.java`, `OdinTerminals.java` (terminal solvers from `features/impl/boss/TerminalSolver.kt` and `utils/skyblock/dungeon/terminals/`), `OdinDevices.java` (`SimonSays.kt`, `ArrowAlign.kt`, `ArrowsDevice.kt`), `mixin/SkyJewPlayerSizeMixin.java` and `mixin/SkyJewToggleSprintMixin.java` (`AutoSprint.kt` / `LocalPlayerMixin.java`). Each file names Odin in its class comment.
 
 Odin is licensed under the BSD 3-Clause License:
 
@@ -126,3 +126,21 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+## NoammAddons
+
+SkyJew's dungeon map ("NoammAddons (Legit)" style) and dungeon score calculator are ported from NoammAddons:
+
+- https://github.com/Noamm9/NoammAddons (26.2 branch)
+- Relevant source: `features/impl/dungeon/map/MapRenderer.kt`, `MapConfig.kt`, `utils/dungeons/map/handlers/HotbarMapColorParser.kt`, `MapUpdater.kt`, `ScoreCalculation.kt`, `utils/dungeons/map/utils/MapUtils.kt`, `utils/dungeons/map/core/`, `features/impl/dungeon/ScoreCalculator.kt`, and the checkmark and marker textures in `textures/gui/dungeonmap/` (copied to `assets/skyjew/textures/gui/dungeonmap/`)
+
+Ported to Java in `features/dungeons/NoammMap.java` and `features/dungeons/ScoreCalculator.java`. NoammAddons is dedicated to the public domain under CC0 1.0 Universal.
+
+## Skysoft
+
+SkyJew's Farming Profit Tracker follows Skysoft's Profit Tracker "Farming" preset:
+
+- https://github.com/Akinsoft/Skysoft (main branch)
+- Relevant source: `features/profit/ProfitTracker.kt`, `ProfitTrackerItemTracking.kt`, `ProfitReplenishCosts.kt`, `ProfitDropMessages.kt`, `FarmingKernelProfit.kt`, `data/skyblock/SkyBlockSackChanges.kt`, `ParsedGardenPestKill.kt` and the farming item list in `profit_tracker_presets.json`
+
+Ported to Java in `features/garden/FarmingProfitTracker.java`. Skysoft is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0), the same terms as the Skyblocker code above.

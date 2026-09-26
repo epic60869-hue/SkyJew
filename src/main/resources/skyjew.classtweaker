@@ -1,3 +1,5 @@
 classTweaker v1 official
 # Needed by the CommandKeys port (commandkeys/gui/widget/field/MultiLineTextField).
 accessible method net/minecraft/client/gui/components/MultiLineEditBox <init> (Lnet/minecraft/client/gui/Font;IIIILnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/Component;IZIZZ)V
+# Slayer boss phase display reads Hypixel's text display nametags.
+accessible method net/minecraft/world/entity/Display$TextDisplay getText ()Lnet/minecraft/network/chat/Component;

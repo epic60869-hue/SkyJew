@@ -87,9 +87,9 @@ public final class HeldItemModel {
     public static void apply(PoseStack pose, Transform t, boolean leftHand) {
         float side = leftHand ? -1f : 1f;
         pose.translate(t.x * side, t.y, t.z);
-        if (t.rotationX != 0) pose.mulPose(Axis.XP.rotationDegrees(t.rotationX));
-        if (t.rotationY != 0) pose.mulPose(Axis.YP.rotationDegrees(t.rotationY * side));
-        if (t.rotationZ != 0) pose.mulPose(Axis.ZP.rotationDegrees(t.rotationZ * side));
+        if (t.rotationX != 0) pose.rotateDegrees(Axis.XP, t.rotationX);
+        if (t.rotationY != 0) pose.rotateDegrees(Axis.YP, t.rotationY * side);
+        if (t.rotationZ != 0) pose.rotateDegrees(Axis.ZP, t.rotationZ * side);
         if (t.scale != 1f) pose.scale(t.scale, t.scale, t.scale);
     }
 

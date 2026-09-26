@@ -54,6 +54,11 @@ public final class SkyJewAlerts {
         mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch));
     }
 
+    public static void play(SoundEvent sound, float pitch, float volume) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch, volume));
+    }
+
     /**
      * Plays the "big drop" animation: the text pops in the middle of the screen, bounces,
      * cycles colour and fades out over three seconds.

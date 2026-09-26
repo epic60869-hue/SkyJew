@@ -30,6 +30,9 @@ import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 
+import com.epic60869.skyjew.SkyJewConfig;
+import com.epic60869.skyjew.features.FeatureConfigs;
+import com.epic60869.skyjew.features.dungeons.NoammMap;
 import com.epic60869.skyjew.sb.SkyblockerMod;
 import com.epic60869.skyjew.sb.annotations.Init;
 import com.epic60869.skyjew.sb.config.SkyblockerConfigManager;
@@ -55,7 +58,8 @@ public class DungeonMap {
 	}
 
 	private static boolean shouldProcess() {
-		return Utils.isInDungeons() && DungeonScore.isDungeonStarted() && !DungeonManager.isInBoss();
+		// SkyJew: the NoammAddons-style map also shows before the run starts, like NoammAddons.
+		return Utils.isInDungeons() && (DungeonScore.isDungeonStarted() || NoammMap.enabled()) && !DungeonManager.isInBoss();
 	}
 
 	private static void extract(GuiGraphicsExtractor graphics) {
@@ -85,14 +89,21 @@ public class DungeonMap {
 		graphics.pose().translate(x, y);
 		graphics.pose().scale(scale, scale);
 
-		if (dungeonMap.backgroundBlur) GuiHelper.blurredRectangle(graphics, 0, 0, 128, 128, 5);
-		if (dungeonMap.showOutline) GuiHelper.border(graphics, 0, 0, 128, 128, CommonColors.LIGHT_GRAY);
+		boolean noamm = NoammMap.enabled();
+		if (noamm) {
+			// SkyJew: NoammAddons' legit map, redrawn from the vanilla map's colours.
+			NoammMap.render(graphics);
+		} else {
+			if (dungeonMap.backgroundBlur) GuiHelper.blurredRectangle(graphics, 0, 0, 128, 128, 5);
+			if (dungeonMap.showOutline) GuiHelper.border(graphics, 0, 0, 128, 128, CommonColors.LIGHT_GRAY);
 
-		DungeonMapTexture.blitMap(graphics);
-		DungeonMapLabels.extractRoomNames(graphics);
+			DungeonMapTexture.blitMap(graphics);
+			DungeonMapLabels.extractRoomNames(graphics);
+		}
 
 		UUID hoveredHead = null;
-		if (fancy) hoveredHead = extractPlayerHeads(graphics, client.level, state, mouseX / scale, mouseY / scale, enlarge);
+		if (fancy || noamm) hoveredHead = extractPlayerHeads(graphics, client.level, state, mouseX / scale, mouseY / scale, enlarge);
+		if (noamm) NoammMap.renderExtraInfo(graphics);
 		graphics.pose().popMatrix();
 		return hoveredHead;
 	}
@@ -152,12 +163,48 @@ public class DungeonMap {
 				graphics.pose().scale(2, 2);
 				hovered = player.uuid();
 			}
-			GuiHelper.playerHead(graphics, -4, -4, 8, player.uuid());
-			GuiHelper.border(graphics, -5, -5, 10, 10, dungeonPlayer.dungeonClass().color());
-			graphics.fill(-1, -7, 1, -5, dungeonPlayer.dungeonClass().color());
+			if (NoammMap.enabled()) {
+				// SkyJew: NoammAddons' heads, a 12px face in a 14px border, with optional names.
+				FeatureConfigs.DungeonMap noamm = SkyJewConfig.current().dungeons.map;
+				graphics.pose().scale(noamm.headScale, noamm.headScale);
+				int border = noamm.classHeadBorder ? dungeonPlayer.dungeonClass().color() : colour(noamm.headBorderColor, 0xFF000000);
+				graphics.fill(-7, -7, 7, 7, border);
+				GuiHelper.playerHead(graphics, -6, -6, 12, player.uuid());
+				if (showNames(noamm)) {
+					graphics.pose().rotate((float) -Math.toRadians(player.deg() + 180f));
+					graphics.pose().translate(0f, 8f);
+					graphics.pose().scale(noamm.nameScale, noamm.nameScale);
+					int nameColour = noamm.classNames && dungeonPlayer.dungeonClass() != DungeonClass.UNKNOWN ? dungeonPlayer.dungeonClass().color() : 0xFFFFFFFF;
+					Minecraft mc = Minecraft.getInstance();
+					graphics.text(mc.font, player.name(), -mc.font.width(player.name()) / 2, 0, nameColour, true);
+				}
+			} else {
+				GuiHelper.playerHead(graphics, -4, -4, 8, player.uuid());
+				GuiHelper.border(graphics, -5, -5, 10, 10, dungeonPlayer.dungeonClass().color());
+				graphics.fill(-1, -7, 1, -5, dungeonPlayer.dungeonClass().color());
+			}
 			graphics.pose().popMatrix();
 		}
 		return hovered;
+	}
+
+	private static int colour(String value, int fallback) {
+		try {
+			return io.github.notenoughupdates.moulconfig.ChromaColour.Companion.specialToChromaRGB(value);
+		} catch (Exception e) {
+			return fallback;
+		}
+	}
+
+	private static boolean showNames(FeatureConfigs.DungeonMap config) {
+		if (config.playerNames == FeatureConfigs.PlayerNames.ALWAYS) return true;
+		if (config.playerNames == FeatureConfigs.PlayerNames.OFF) return false;
+		Player self = Minecraft.getInstance().player;
+		if (self == null) return false;
+		String id = com.epic60869.skyjew.custom.util.Compat.neuName(self.getMainHandItem());
+		if (id.equals("SPIRIT_LEAP") || id.equals("INFINITE_SPIRIT_LEAP") || id.equals("HAUNT_ABILITY")) return true;
+		String held = com.epic60869.skyjew.custom.util.Compat.realName(self.getMainHandItem()).getString();
+		return held.contains("Spirit Leap") || held.contains("Infinileap") || held.contains("Haunt");
 	}
 
 	private static void dungeonPlayerError(String decorationId, String reason, int i, DungeonPlayerManager.DungeonPlayer[] dungeonPlayers, Map<String, MapDecoration> mapDecorations) {

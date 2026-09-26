@@ -1,6 +1,6 @@
 # SkyJew Mod
 
-An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are not case-sensitive.
+An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.3. Commands are not case-sensitive.
 
 - `/sj` opens the settings; `/sj gui` moves and resizes every HUD.
 - What changed in each version: [CHANGELOG.md](CHANGELOG.md).
@@ -17,10 +17,10 @@ An all-in-one Fabric mod for Hypixel SkyBlock on Minecraft 26.2. Commands are no
 
 ## Commands
 
-`/sj` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `chat [message]` · `route start|stop|next|back|clear|list|cancel` · `export` · `debug`
+`/sj` · `gui` · `search` · `notes` · `recipe <item> [amount]` · `calc <sum>` · `custom` · `keys` · `nick [name]` · `farmingprofit reset` · `chat [message]` · `route start|stop|next|back|clear|list|cancel|reload|folder` · `export` · `debug`
 
 `/sjc [message]` sends to SJ chat. `/chat sj` switches to SJ chat. `/skyjew` works the same as `/sj`.
 
 ## Credits
 
-Ports code from Skyblocker, CommandKeys, SkyOcean, SkyHanni, NopoMod and Stella. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built with Java 25 and Gradle 9.5+; GitHub Actions builds every push.
+Ports code from Skyblocker, CommandKeys, SkyOcean, SkyHanni, NopoMod, Stella, Odin, NoammAddons and Skysoft. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built with Java 25 and Gradle 9.5+; GitHub Actions builds every push.

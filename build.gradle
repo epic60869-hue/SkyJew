@@ -17,6 +17,8 @@ loom {
 repositories {
     mavenCentral()
     maven { url = uri('https://maven.notenoughupdates.org/releases/') }
+    // MoulConfig rebuilt for Minecraft 26.3 (no official build yet); see libs/moulconfig-26.3/README.md.
+    maven { url = uri('libs/maven') }
 }
 
 dependencies {
@@ -26,8 +28,8 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.13.2'
 
     // MoulConfig: the same config engine used by SkyHanni/NotEnoughUpdates.
-    implementation "org.notenoughupdates.moulconfig:modern-26.2:${project.moulconfig_version}"
-    include "org.notenoughupdates.moulconfig:modern-26.2:${project.moulconfig_version}"
+    implementation "org.notenoughupdates.moulconfig:modern-${project.minecraft_version}:${project.moulconfig_version}"
+    include "org.notenoughupdates.moulconfig:modern-${project.minecraft_version}:${project.moulconfig_version}"
     implementation "net.fabricmc:fabric-language-kotlin:${project.flk_version}"
     include "net.fabricmc:fabric-language-kotlin:${project.flk_version}"
 }

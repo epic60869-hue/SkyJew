@@ -2,10 +2,8 @@ package com.epic60869.skyjew;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.system.MemoryStack;
+import com.mojang.blaze3d.platform.InputConstants;
 
-import java.nio.DoubleBuffer;
 import java.util.Locale;
 
 /**
@@ -58,20 +56,18 @@ public final class SkyJewMouseReset {
             return;
         }
 
-        long window = mc.getWindow().handle();
-
         if (!storageGuiOpen) {
             // First selected storage GUI after coming from outside storage:
             // perform the actual Mouse Reset.
-            double x = mc.getWindow().getGuiScaledWidth() / 2.0;
-            double y = mc.getWindow().getGuiScaledHeight() / 2.0;
-            GLFW.glfwSetCursorPos(window, x, y);
+            double x = mc.getWindow().getScreenWidth() / 2.0;
+            double y = mc.getWindow().getScreenHeight() / 2.0;
+            InputConstants.releaseMouse(mc.getWindow(), x, y);
         } else if (screen != lastStorageScreen && haveCursorPosition) {
             // Hypixel opened another storage screen. Do NOT reset to the
             // centre and do NOT accept the position restored by the new
             // Screen. Put the cursor back where it was in the previous
             // storage GUI.
-            GLFW.glfwSetCursorPos(window, lastCursorX, lastCursorY);
+            InputConstants.releaseMouse(mc.getWindow(), lastCursorX, lastCursorY);
         }
 
         storageGuiOpen = true;
@@ -79,20 +75,13 @@ public final class SkyJewMouseReset {
 
         // Remember the position after handling the screen transition so the
         // next storage screen can restore exactly this position.
-        readCursor(window);
+        readCursor(mc);
     }
 
-    private static void readCursor(long window) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            DoubleBuffer x = stack.mallocDouble(1);
-            DoubleBuffer y = stack.mallocDouble(1);
-            GLFW.glfwGetCursorPos(window, x, y);
-            lastCursorX = x.get(0);
-            lastCursorY = y.get(0);
-            haveCursorPosition = true;
-        } catch (Throwable ignored) {
-            // If the cursor cannot be read, the normal storage GUI still works.
-        }
+    private static void readCursor(Minecraft mc) {
+        lastCursorX = mc.mouseHandler.xpos();
+        lastCursorY = mc.mouseHandler.ypos();
+        haveCursorPosition = true;
     }
 
     private static void resetState() {

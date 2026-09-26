@@ -188,9 +188,9 @@ public final class DungeonFeatures {
             List.of(maskPreview("Spirit Mask", "✔", ChatFormatting.GREEN, true), maskPreview("Bonzo's Mask", "2.45s", ChatFormatting.GOLD, false), maskPreview("Phoenix", "41.20s", ChatFormatting.RED, false)),
             200, 780);
         SkyJewHuds.register("dungeon_score", "Dungeon Score",
-            () -> config() != null && config().score.display && SkyJewLocation.inDungeon() && DungeonScore.isDungeonStarted() && !DungeonManager.isInBoss(),
+            () -> config() != null && config().score.display && SkyJewLocation.inDungeon() && ScoreCalculator.started(),
             DungeonFeatures::scoreLines,
-            List.of(kv("Score: ", "§a302"), kv("Secrets: ", "§b37§7/§e40%"), kv("Crypts: ", "§a5"), kv("Deaths: ", "§a0"), Component.literal("§aMimic §8| §cPrince")),
+            List.of(Component.literal("§eScore: §a300")),
             200, 820);
     }
 
@@ -384,7 +384,8 @@ public final class DungeonFeatures {
             lines.add(kv("Storm pillars: ", (20 - (serverTicks - stormStartTick) % 20) + " ticks"));
         }
         if (goldorStartTick >= 0) {
-            lines.add(kv("Goldor death tick: ", (60 - (serverTicks - goldorStartTick) % 60) + " ticks"));
+            int period = Math.max(1, config() == null ? 50 : config().timers.goldorTickPeriod);
+            lines.add(kv("Goldor death tick: ", (period - (serverTicks - goldorStartTick) % period) + " ticks"));
         }
         return lines;
     }
@@ -448,25 +449,32 @@ public final class DungeonFeatures {
 
     private static String helmetName() {
         var player = Minecraft.getInstance().player;
-        return player == null ? "" : player.getItemBySlot(EquipmentSlot.HEAD).getHoverName().getString();
+        if (player == null) return "";
+        ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
+        // The SkyBlock ID survives renames from /sj custom; the name is kept as a fallback.
+        String id = com.epic60869.skyjew.custom.util.Compat.neuName(helmet);
+        String name = com.epic60869.skyjew.custom.util.Compat.realName(helmet).getString();
+        if (id.contains("SPIRIT_MASK")) name += " Spirit Mask";
+        if (id.contains("BONZO_MASK")) name += " Bonzo's Mask";
+        return name;
     }
 
     // ----- Score display -----
 
     private static List<Component> scoreLines() {
         List<Component> lines = new ArrayList<>();
-        int score = DungeonScore.getScore();
-        String scoreColor = score >= 300 ? "§a" : score >= 270 ? "§e" : "§c";
-        lines.add(kv("Score: ", scoreColor + score));
-        lines.add(kv("Secrets: ", "§b" + fixed((float) DungeonScore.secretsPercentage()) + "%§7/§e" + (int) DungeonScore.secretsRequired() + "%"));
-        int crypts = DungeonScore.crypts();
-        lines.add(kv("Crypts: ", (crypts >= 5 ? "§a" : "§c") + crypts));
-        int deaths = DungeonScore.deaths();
-        lines.add(kv("Deaths: ", (deaths == 0 ? "§a" : "§c") + deaths));
-        if (DungeonScore.floorHasMimics()) {
-            lines.add(Component.literal((DungeonScore.wasMimicKilled() ? "§a" : "§c") + "Mimic §8| " + (DungeonScore.wasPrinceKilled() ? "§a" : "§c") + "Prince"));
-        } else {
-            lines.add(Component.literal((DungeonScore.wasPrinceKilled() ? "§a" : "§c") + "Prince"));
+        lines.add(Component.literal("§eScore: " + ScoreCalculator.colorizeScore(ScoreCalculator.score())));
+        FeatureConfigs.Dungeons config = config();
+        if (config != null && config.score.detailed) {
+            int crypts = ScoreCalculator.crypts();
+            int deaths = ScoreCalculator.deaths();
+            lines.add(Component.literal("§6Secrets: §b" + ScoreCalculator.foundSecrets() + " §7(" + fixed((float) ScoreCalculator.secretPercentage()) + "%)"));
+            lines.add(Component.literal(ScoreCalculator.colorByPercent(crypts, 5, false) + "Crypts: " + crypts));
+            lines.add(Component.literal("§cDeaths: " + ScoreCalculator.colorByPercent(deaths, 4, true) + deaths));
+            String prince = "§eP: " + (ScoreCalculator.princeKilled() ? "§a§l✔" : "§c§l✖");
+            lines.add(Component.literal(ScoreCalculator.floorNumber() > 5
+                ? "§cM: " + (ScoreCalculator.mimicKilled() ? "§a§l✔" : "§c§l✖") + " " + prince
+                : prince));
         }
         return lines;
     }
@@ -504,9 +512,8 @@ public final class DungeonFeatures {
     // ----- Debuffs -----
 
     private static void countDebuffUse(ItemStack stack) {
-        String name = stack.getHoverName().getString();
-        if (name.contains("Last Breath")) lastBreath++;
-        else if (name.contains("Ice Spray")) iceSpray++;
+        if (isLastBreath(stack)) lastBreath++;
+        else if (isItem(stack, "ICE_SPRAY_WAND", "Ice Spray")) iceSpray++;
         else return;
         checkDebuffs();
     }
@@ -519,6 +526,20 @@ public final class DungeonFeatures {
             SkyJewAlerts.title(Component.literal("MAX DEBUFF!").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD),
                 Component.literal("5x Last Breath, Ice Spray, 5x Lethality").withStyle(ChatFormatting.WHITE));
         }
+    }
+
+    /**
+     * Matches by SkyBlock item ID first, so items renamed with /sj custom (or any other client-side rename)
+     * are still recognised, then by name.
+     */
+    private static boolean isItem(ItemStack stack, String idPart, String namePart) {
+        String id = com.epic60869.skyjew.custom.util.Compat.neuName(stack);
+        if (!id.isEmpty()) return id.contains(idPart);
+        return com.epic60869.skyjew.custom.util.Compat.realName(stack).getString().contains(namePart);
+    }
+
+    private static boolean isLastBreath(ItemStack stack) {
+        return isItem(stack, "LAST_BREATH", "Last Breath");
     }
 
     private static void resetDebuffs() {
@@ -536,7 +557,7 @@ public final class DungeonFeatures {
         FeatureConfigs.Dungeons config = config();
         var player = Minecraft.getInstance().player;
         boolean charging = config != null && config.timers.lastBreathRelease && player != null && player.isUsingItem()
-            && player.getUseItem().getHoverName().getString().contains("Last Breath");
+            && isLastBreath(player.getUseItem());
         if (!charging) {
             lastBreathChargeStart = -1;
             lastBreathCued = false;
@@ -550,7 +571,14 @@ public final class DungeonFeatures {
                 mc.gui.hud.setTimes(0, 10, 5);
                 mc.gui.hud.setTitle(Component.literal("RELEASE").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
                 mc.gui.hud.setSubtitle(Component.empty());
-                SkyJewAlerts.play(SoundEvents.NOTE_BLOCK_PLING.value(), 2f);
+                float volume = config.timers.lastBreathVolume;
+                switch (config.timers.lastBreathSound) {
+                    case BELL -> SkyJewAlerts.play(SoundEvents.BELL_BLOCK, 1.2f, volume);
+                    case NOTE_BELL -> SkyJewAlerts.play(SoundEvents.NOTE_BLOCK_BELL.value(), 1.5f, volume);
+                    case DING -> SkyJewAlerts.play(SoundEvents.NOTE_BLOCK_PLING.value(), 2f, volume);
+                    case ORB -> SkyJewAlerts.play(SoundEvents.EXPERIENCE_ORB_PICKUP, 1f, volume);
+                    case NONE -> {}
+                }
             });
         }
     }

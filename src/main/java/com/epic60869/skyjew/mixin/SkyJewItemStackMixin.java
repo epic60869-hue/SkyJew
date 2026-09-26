@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class SkyJewItemStackMixin {
     @ModifyReturnValue(method = "getHoverName", at = @At("RETURN"))
     private Component skyjew$customItemNames(Component original) {
-        if (Compat.isOnSkyblock()) {
+        if (Compat.isOnSkyblock() && !Compat.bypassCustomNames) {
             return CustomConfigManager.get().general.customItemNames.getOrDefault(Compat.uuid((ItemStack) (Object) this), original);
         }
 

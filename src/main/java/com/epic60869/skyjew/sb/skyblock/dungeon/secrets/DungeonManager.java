@@ -939,6 +939,11 @@ public class DungeonManager {
 		return rooms.get(DungeonMapUtils.getPhysicalRoomPos(pos));
 	}
 
+	/** SkyJew: the room whose 32x32 segment has its northwest corner at (x, z), for the NoammAddons-style map. */
+	public static @Nullable Room getRoomAtCorner(int x, int z) {
+		return rooms.get(new org.joml.Vector2i(x, z));
+	}
+
 	/**
 	 * Get the state of the map in the user's 9th slot.
 	 */

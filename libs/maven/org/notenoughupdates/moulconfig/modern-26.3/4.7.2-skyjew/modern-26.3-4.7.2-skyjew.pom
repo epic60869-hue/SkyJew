@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.notenoughupdates.moulconfig</groupId>
+  <artifactId>modern-26.3</artifactId>
+  <version>4.7.2-skyjew</version>
+  <description>MoulConfig 4.7.2 (LGPL-3.0) with its platform layer rebuilt for Minecraft 26.3 by SkyJew. Source changes are in libs/moulconfig-26.3/.</description>
+</project>

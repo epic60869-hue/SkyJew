@@ -70,7 +70,7 @@ public final class SkyJewCommissionHud {
         if (config.mining.features.commissionsAreaOnly
             && !com.epic60869.skyjew.features.core.SkyJewLocation.inMiningIsland()) return;
         updateFromTab();
-        if (!commissions.isEmpty()) render(g, commissions, x(), y());
+        if (!commissions.isEmpty()) render(g, commissions, com.epic60869.skyjew.features.core.SkyJewHuds.mapX(x(), width()), com.epic60869.skyjew.features.core.SkyJewHuds.mapY(y(), height()));
     }
 
     private static void updateFromTab() {
@@ -253,8 +253,9 @@ public final class SkyJewCommissionHud {
 
         g.pose().pushMatrix();
         g.pose().translate((float) (x + PAD_L), (float) (y + 4));
-        if (book == null) book = new ItemStack(Items.BOOK);
-        g.item(book, 0, 0);
+        // Item components are only bound once a world has loaded (e.g. not when /sj gui is opened from the title screen).
+        if (book == null && Minecraft.getInstance().level != null) book = new ItemStack(Items.BOOK);
+        if (book != null) g.item(book, 0, 0);
         g.pose().popMatrix();
 
         int textX = x + PAD_L + ICON;

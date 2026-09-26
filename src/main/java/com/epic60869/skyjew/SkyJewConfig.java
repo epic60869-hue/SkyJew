@@ -158,6 +158,11 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Garden", desc = "Yaw/pitch, pest cooldown, blocks per second and special drop animations.")
         public com.epic60869.skyjew.features.FeatureConfigs.Garden garden = new com.epic60869.skyjew.features.FeatureConfigs.Garden();
 
+        @Expose
+        @Accordion
+        @ConfigOption(name = "Farming Profit Tracker", desc = "Skysoft's farming profit tracker.")
+        public com.epic60869.skyjew.features.FeatureConfigs.FarmingProfit profitTracker = new com.epic60869.skyjew.features.FeatureConfigs.FarmingProfit();
+
     }
 
     public static final class Mining {
@@ -395,6 +400,26 @@ public final class SkyJewConfig extends Config {
         @ConfigOption(name = "Calendar Time to Real Time", desc = "When enabled, hovering a SkyBlock calendar date adds the equivalent real-world date and time in your computer's local time zone.")
         @ConfigEditorBoolean
         public boolean calendarTimeToRealTime = true;
+
+        @Expose
+        @ConfigOption(name = "Scrollable Tooltips", desc = "Scroll the mouse wheel while a tooltip is showing to move it up and down (hold Shift to move it sideways), so long tooltips can be read.")
+        @ConfigEditorBoolean
+        public boolean scrollableTooltips = true;
+
+        @Expose
+        @ConfigOption(name = "Only Scroll Long Tooltips", desc = "Only take over the mouse wheel for tooltips that don't fit on the screen.")
+        @ConfigEditorBoolean
+        public boolean scrollOnlyLongTooltips = false;
+
+        @Expose
+        @ConfigOption(name = "Toggle Sprint", desc = "Always sprint, like Odin's Auto Sprint. Set a \"Toggle Sprint\" key in Controls to switch it on and off.")
+        @ConfigEditorBoolean
+        public boolean toggleSprint = false;
+
+        @Expose
+        @ConfigOption(name = "Toggle Sprint HUD", desc = "Show [Sprinting (Toggled)] while toggle sprint is on. Move it in /sj gui.")
+        @ConfigEditorBoolean
+        public boolean toggleSprintHud = true;
     }
 
     public static final class PlayerSize {

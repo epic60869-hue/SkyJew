@@ -74,7 +74,7 @@ public final class PortfolioScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Export CSV"), b -> {
             try {
                 Path out = Portfolio.exportCsv();
-                Util.getPlatform().openPath(out);
+                com.mojang.blaze3d.Blaze3D.openPath(out);
                 status = "Exported to " + out;
             } catch (Exception e) {
                 status = "Export failed: " + e.getMessage();

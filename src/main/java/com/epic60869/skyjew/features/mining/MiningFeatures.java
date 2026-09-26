@@ -114,7 +114,7 @@ public final class MiningFeatures {
         for (String tool : DIVAN_TOOLS) {
             for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
                 ItemStack stack = mc.player.getInventory().getItem(i);
-                if (!stack.isEmpty() && stack.getHoverName().getString().contains(tool)) {
+                if (!stack.isEmpty() && com.epic60869.skyjew.custom.util.Compat.realName(stack).getString().contains(tool)) {
                     found++;
                     break;
                 }

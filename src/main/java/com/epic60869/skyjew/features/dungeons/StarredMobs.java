@@ -1,36 +1,75 @@
 package com.epic60869.skyjew.features.dungeons;
 
 import com.epic60869.skyjew.SkyJewConfig;
+import com.epic60869.skyjew.features.FeatureConfigs;
 import com.epic60869.skyjew.features.core.SkyJewLocation;
 import com.epic60869.skyjew.features.core.SkyJewWorldRender;
+import io.github.notenoughupdates.moulconfig.ChromaColour;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Boxes starred dungeon mobs. Hypixel marks them with a "✯" in the nametag armor stand above
- * the mob, so the mob is the closest living entity just below a starred stand.
+ * the mob, so the mob is the closest living entity just below a starred stand. The mobs are
+ * found once per tick; the boxes are drawn every frame at the mob's interpolated position.
  */
 public final class StarredMobs {
-    private static final float[] COLOUR = {1f, 0.85f, 0.2f};
+    private static List<LivingEntity> visible = List.of();
 
     private StarredMobs() {}
 
+    private static FeatureConfigs.DungeonMobs config() {
+        SkyJewConfig config = SkyJewConfig.current();
+        return config == null ? null : config.dungeons.mobs;
+    }
+
     public static void init() {
-        SkyJewWorldRender.register(collector -> {
-            SkyJewConfig config = SkyJewConfig.current();
-            Minecraft mc = Minecraft.getInstance();
-            if (config == null || !config.dungeons.mobs.starredMobs || !SkyJewLocation.inDungeon() || mc.level == null || mc.player == null) return;
+        ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            FeatureConfigs.DungeonMobs config = config();
+            if (config == null || !config.starredMobs || !SkyJewLocation.inDungeon() || mc.level == null || mc.player == null) {
+                visible = List.of();
+                return;
+            }
+            List<LivingEntity> found = new ArrayList<>();
             for (Entity entity : mc.level.entitiesForRendering()) {
                 if (!(entity instanceof ArmorStand stand) || !stand.hasCustomName()
                     || !stand.getCustomName().getString().contains("✯")) continue;
                 LivingEntity mob = mobBelow(mc, stand);
                 // Depth-tested and only for mobs you can see, so nothing shows through walls.
-                if (mob != null && mc.player.hasLineOfSight(mob)) collector.submitOutlinedBox(mob.getBoundingBox(), COLOUR, 2f, false);
+                if (mob != null && mc.player.hasLineOfSight(mob)) found.add(mob);
+            }
+            visible = found;
+        });
+        SkyJewWorldRender.register(collector -> {
+            FeatureConfigs.DungeonMobs config = config();
+            if (config == null || !config.starredMobs || visible.isEmpty()) return;
+            float[] colour = colour(config.starredColor);
+            float partial = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+            for (LivingEntity mob : visible) {
+                if (!mob.isAlive()) continue;
+                Vec3 offset = mob.getPosition(partial).subtract(mob.position());
+                AABB box = mob.getBoundingBox().move(offset);
+                if (config.starredFill > 0f) collector.submitFilledBox(box, colour, config.starredFill * colour[3], false);
+                collector.submitOutlinedBox(box, colour, colour[3], config.starredLineWidth, false);
             }
         });
+    }
+
+    private static float[] colour(String value) {
+        try {
+            int argb = ChromaColour.Companion.specialToChromaRGB(value);
+            return new float[]{((argb >> 16) & 0xFF) / 255f, ((argb >> 8) & 0xFF) / 255f, (argb & 0xFF) / 255f, ((argb >>> 24) & 0xFF) / 255f};
+        } catch (Exception e) {
+            return new float[]{1f, 0.85f, 0.2f, 1f};
+        }
     }
 
     private static LivingEntity mobBelow(Minecraft mc, ArmorStand stand) {

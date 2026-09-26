@@ -51,7 +51,12 @@ public final class SkyJewDungeons {
         DungeonManager.init();
         DungeonPlayerManager.init();
         DungeonScore.init();
+        ScoreCalculator.init();
+        SelfClass.init();
+        OdinTerminals.init();
+        OdinDevices.init();
         DungeonMap.init();
+        NoammMap.init();
         DungeonMapLabels.init();
         DungeonMapTexture.init();
         Boulder.init();
@@ -88,15 +93,20 @@ public final class SkyJewDungeons {
         sb.dungeons.dungeonMap.fancyMap = d.map.fancy;
         sb.dungeons.dungeonMap.showRoomLabels = d.map.roomLabels;
         sb.dungeons.dungeonMap.backgroundBlur = d.map.background;
-        sb.dungeons.dungeonMap.mapX = d.map.x;
-        sb.dungeons.dungeonMap.mapY = d.map.y;
+        int mapSize = Math.round(128 * d.map.scale);
+        sb.dungeons.dungeonMap.mapX = com.epic60869.skyjew.features.core.SkyJewHuds.mapX(d.map.x, mapSize);
+        sb.dungeons.dungeonMap.mapY = com.epic60869.skyjew.features.core.SkyJewHuds.mapY(d.map.y, mapSize);
         sb.dungeons.dungeonMap.mapScaling = d.map.scale;
 
         sb.dungeons.puzzleSolvers.solveTicTacToe = d.puzzles.ticTacToe;
         sb.dungeons.puzzleSolvers.solveThreeWeirdos = false; // Odin solver in OdinPuzzleSolvers
         sb.dungeons.puzzleSolvers.creeperSolver = false; // Odin solver in OdinPuzzleSolvers
         sb.dungeons.puzzleSolvers.solveWaterboard = false; // Odin solver in OdinPuzzleSolvers
-        sb.dungeons.puzzleSolvers.previewWaterPath = false; // Odin solver in OdinPuzzleSolvers
+        // Only Odin's Water Board solver draws the lever line; Skyblocker's one-flow solver drew a second one.
+        sb.dungeons.puzzleSolvers.waterboardOneFlow = false;
+        // Skyblocker's previews still run next to Odin's solver.
+        sb.dungeons.puzzleSolvers.previewWaterPath = d.puzzles.waterPreviewPath;
+        sb.dungeons.puzzleSolvers.previewLeverEffects = d.puzzles.waterPreviewLevers;
         sb.dungeons.puzzleSolvers.blazeSolver = false; // Odin solver in OdinPuzzleSolvers
         sb.dungeons.puzzleSolvers.solveBoulder = false; // Odin solver in OdinPuzzleSolvers
         sb.dungeons.puzzleSolvers.solveIceFill = false; // Odin solver in OdinPuzzleSolvers
@@ -108,14 +118,16 @@ public final class SkyJewDungeons {
         // SkyJew's own door highlight replaces Skyblocker's blood-rush door box.
         sb.dungeons.doorHighlight.enableDoorHighlight = !d.secrets.doorHighlight;
 
-        sb.dungeons.terminals.solveColor = d.terminals.color;
-        sb.dungeons.terminals.solveOrder = d.terminals.order;
-        sb.dungeons.terminals.solveStartsWith = d.terminals.startsWith;
-        sb.dungeons.terminals.solveSameColor = d.terminals.sameColor;
-        sb.dungeons.devices.solveSimonSays = d.terminals.simonSays;
+        boolean odinTerms = d.terminals.odinSolver;
+        sb.dungeons.terminals.solveColor = d.terminals.color && !odinTerms;
+        sb.dungeons.terminals.solveOrder = d.terminals.order && !odinTerms;
+        sb.dungeons.terminals.solveStartsWith = d.terminals.startsWith && !odinTerms;
+        sb.dungeons.terminals.solveSameColor = d.terminals.sameColor && !odinTerms;
+        boolean odinDevices = d.terminals.odinDevices;
+        sb.dungeons.devices.solveSimonSays = d.terminals.simonSays && !odinDevices;
         sb.dungeons.devices.solveLightsOn = d.terminals.lightsOn;
-        sb.dungeons.devices.solveArrowAlign = d.terminals.arrowAlign;
-        sb.dungeons.devices.solveTargetPractice = d.terminals.targetPractice;
+        sb.dungeons.devices.solveArrowAlign = d.terminals.arrowAlign && !odinDevices;
+        sb.dungeons.devices.solveTargetPractice = d.terminals.targetPractice && !odinDevices;
 
         sb.helpers.experiments.enableChronomatronSolver = skyjew.misc.experimentalTable.chronomatron;
         sb.helpers.experiments.enableSuperpairsSolver = skyjew.misc.experimentalTable.superpairs;
@@ -127,15 +139,13 @@ public final class SkyJewDungeons {
         sb.dungeons.mimicMessage.sendMimicMessage = false;
         sb.dungeons.princeMessage.sendPrinceMessage = false;
         sb.dungeons.batMessage.sendBatMessage = false;
-        FeatureConfigs.Score score = d.score;
-        sb.dungeons.dungeonScore.enableDungeonScore270Title = score.alert270;
-        sb.dungeons.dungeonScore.enableDungeonScore270Sound = score.alert270;
-        sb.dungeons.dungeonScore.enableDungeonScore270Message = score.party270;
-        sb.dungeons.dungeonScore.enableDungeonScore300Title = score.alert300;
-        sb.dungeons.dungeonScore.enableDungeonScore300Sound = score.alert300;
-        sb.dungeons.dungeonScore.enableDungeonScore300Message = score.party300;
-        sb.dungeons.dungeonScore.dungeonScore270Message = score.message270.isBlank() ? "270 Score Reached!" : score.message270;
-        sb.dungeons.dungeonScore.dungeonScore300Message = score.message300.isBlank() ? "300 Score Reached!" : score.message300;
+        // Score alerts come from SkyJew's ScoreCalculator (NoammAddons' calculation) instead.
+        sb.dungeons.dungeonScore.enableDungeonScore270Title = false;
+        sb.dungeons.dungeonScore.enableDungeonScore270Sound = false;
+        sb.dungeons.dungeonScore.enableDungeonScore270Message = false;
+        sb.dungeons.dungeonScore.enableDungeonScore300Title = false;
+        sb.dungeons.dungeonScore.enableDungeonScore300Sound = false;
+        sb.dungeons.dungeonScore.enableDungeonScore300Message = false;
         sb.dungeons.dungeonScore.enableDungeonCryptsMessage = false;
     }
 }

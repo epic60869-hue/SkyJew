@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.AABB;
@@ -111,7 +112,9 @@ public final class SlayerFeatures {
 
         boolean inQuest = false;
         double current = -1, max = -1;
-        for (String line : SkyJewLocation.scoreboard()) {
+        for (String raw : SkyJewLocation.scoreboard()) {
+            // Hypixel pads sidebar lines with invisible emoji between the team prefix and suffix.
+            String line = clean(raw);
             if (line.equals("Slayer Quest")) inQuest = true;
             Matcher m = BOSS.matcher(line);
             if (m.find()) {
@@ -132,18 +135,33 @@ public final class SlayerFeatures {
         updateBossLines(mc);
     }
 
-    /** Nametag lines of your own boss: the armor stands stacked above the "Spawned by: you" line. */
+    /** Keeps plain text only: drops Hypixel's padding emoji and other invisible characters. */
+    private static String clean(String line) {
+        return line.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", " ").trim();
+    }
+
+    /** A nametag's text, from an armor stand's custom name or (as Hypixel now uses) a text display. */
+    private static Component nametag(Entity entity) {
+        if (entity instanceof ArmorStand stand && stand.hasCustomName()) return stand.getCustomName();
+        if (entity instanceof Display.TextDisplay display) return display.getText();
+        return null;
+    }
+
+    /**
+     * Nametag lines of your own boss: the nametags stacked above the "Spawned by: you" line. Hypixel draws them
+     * with armor stands or text displays, and a text display can hold several lines.
+     */
     private static void updateBossLines(Minecraft mc) {
         if (!questActive || mc.level == null) {
             bossLines = List.of();
             return;
         }
         String name = mc.player.getGameProfile().name();
-        ArmorStand owner = null;
+        Entity owner = null;
         for (Entity entity : mc.level.entitiesForRendering()) {
-            if (entity instanceof ArmorStand stand && stand.hasCustomName()
-                && stand.getCustomName().getString().contains("Spawned by: " + name)) {
-                owner = stand;
+            Component tag = nametag(entity);
+            if (tag != null && SkyJewLocation.strip(tag.getString()).contains("Spawned by: " + name)) {
+                owner = entity;
                 break;
             }
         }
@@ -152,20 +170,27 @@ public final class SlayerFeatures {
             return;
         }
         AABB area = owner.getBoundingBox().inflate(1.5, 3, 1.5);
-        List<ArmorStand> stands = mc.level.getEntitiesOfClass(ArmorStand.class, area, s -> s != null && s.hasCustomName());
-        stands.sort(Comparator.comparingDouble((ArmorStand stand) -> stand.getY()).reversed());
+        List<Entity> tags = mc.level.getEntities((Entity) null, area, e -> nametag(e) != null);
+        tags.sort(Comparator.comparingDouble((Entity e) -> e.getY()).reversed());
         List<Component> lines = new ArrayList<>();
-        for (ArmorStand stand : stands) {
-            String text = stand.getCustomName().getString();
-            if (text.contains("Spawned by:") || text.isBlank()) continue;
-            lines.add(stand.getCustomName());
+        for (Entity tagEntity : tags) {
+            Component tag = nametag(tagEntity);
+            String text = tag.getString();
+            if (text.isBlank()) continue;
+            if (!text.contains("\n")) {
+                if (!text.contains("Spawned by:")) lines.add(tag);
+                continue;
+            }
+            for (String part : text.split("\n")) {
+                if (!part.isBlank() && !part.contains("Spawned by:")) lines.add(Component.literal(part));
+            }
         }
         bossLines = lines;
     }
 
     private static void onChat(SkyJewChat.Message message) {
         String text = message.text();
-        if (text.trim().equals("SLAYER QUEST COMPLETE!")) {
+        if (clean(text).equals("SLAYER QUEST COMPLETE!")) {
             sessionBosses++;
             sessionXp += xpPerBoss();
             return;

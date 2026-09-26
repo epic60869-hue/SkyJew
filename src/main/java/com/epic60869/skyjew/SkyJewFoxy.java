@@ -20,6 +20,8 @@ public final class SkyJewFoxy {
         tickCounter = 0;
 
         if (mc.gui.screen() instanceof SkyJewFoxyScreen) return;
+        // Never in dungeons, where a surprise screen would ruin a run.
+        if (com.epic60869.skyjew.features.core.SkyJewLocation.inDungeon()) return;
 
         if (RANDOM.nextInt(10_000) == 0) {
             mc.getSoundManager().play(

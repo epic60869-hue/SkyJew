@@ -35,7 +35,7 @@ public abstract class SkyJewHideExplosionsMixin {
     @Inject(method = "handleParticleEvent", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V", shift = At.Shift.AFTER), cancellable = true)
     private void skyjew$explosionParticlePacket(ClientboundLevelParticlesPacket packet, CallbackInfo ci) {
         if (!skyjew$hide()) return;
-        var type = packet.getParticle().getType();
+        var type = packet.particle().getType();
         if (type == ParticleTypes.EXPLOSION || type == ParticleTypes.EXPLOSION_EMITTER) ci.cancel();
     }
 }

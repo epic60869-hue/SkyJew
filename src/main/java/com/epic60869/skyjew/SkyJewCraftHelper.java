@@ -8,10 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.item.ItemStack;
 
@@ -38,8 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SkyJewCraftHelper {
     private static final int MAX_DEPTH = 10;
-    private static final int LINE_HEIGHT = 10;
-    private static final int PADDING = 5;
     private static final long REFRESH_MS = 500;
 
     // ----- Recipes from the NEU repo -----
@@ -76,7 +71,6 @@ public final class SkyJewCraftHelper {
     private static long lastRefresh;
     private static Map<String, Integer> storageCounts = Map.of();
     private static long lastStorageRefresh;
-    private static int scroll;
     private static Path file;
 
     private SkyJewCraftHelper() {}
@@ -131,7 +125,6 @@ public final class SkyJewCraftHelper {
         selectedAmount = Math.max(1, amount);
         tree = null;
         rows = List.of();
-        scroll = 0;
         building = true;
         save();
         CompletableFuture.supplyAsync(() -> buildTree(id, selectedAmount)).thenAccept(built -> Minecraft.getInstance().execute(() -> {
@@ -158,20 +151,6 @@ public final class SkyJewCraftHelper {
 
     private static int perCraft() {
         return tree == null || tree.recipe == null ? 1 : Math.max(1, tree.recipe.outputCount());
-    }
-
-    /** Changes the amount by whole crafts: 1, or 10 with Shift, or 64 with Ctrl (SkyOcean's -/+ buttons). */
-    private static void stepAmount(int direction) {
-        if (selectedId == null) return;
-        var window = Minecraft.getInstance().getWindow();
-        boolean ctrl = org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS
-            || org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-        boolean shift = org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS
-            || org.lwjgl.glfw.GLFW.glfwGetKey(window.handle(), org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-        int step = ctrl ? 64 : shift ? 10 : 1;
-        int per = perCraft();
-        int crafts = Math.max(1, selectedAmount / per + direction * step);
-        select(selectedId, crafts * per, false);
     }
 
     /** HUD lines: title and the merged base ingredients, like SkyOcean's raw formatter. */
@@ -453,134 +432,5 @@ public final class SkyJewCraftHelper {
         out.set(rowIndex, new Row(prefix, node.id, amount + node.carriedOver, stateRequired, done, childrenDone,
             taken[0], taken[1], throughParents, node.carriedOver, type, node.children.isEmpty()));
         return new State(amount, stateRequired, node.carriedOver, throughParents, done, childrenDone);
-    }
-
-    // ----------------------------------------------------------------- overlay
-
-    private static Component rowText(Row row) {
-        MutableComponent text = Component.literal(row.prefix()).withStyle(ChatFormatting.DARK_GRAY);
-        if (row.done()) text.append(Component.literal("✔ ").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
-        else if (row.childrenDone()) text.append(Component.literal("⚠ ").withStyle(ChatFormatting.YELLOW));
-        else text.append(Component.literal("✖ ").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-        float progress = row.needed() <= 0 ? 1f : Math.min(1f, row.available() / (float) row.needed());
-        int colour = ARGB.srgbLerp(progress, 0xFF5555, 0x55FF55);
-        text.append(Component.literal(String.format(Locale.US, "%,d", row.available())).withColor(colour))
-            .append(Component.literal("/").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(String.format(Locale.US, "%,d", row.needed())).withColor(colour))
-            .append(Component.literal(" " + SkyJewRecipeCommand.displayName(row.id())).withStyle(ChatFormatting.WHITE));
-        return text;
-    }
-
-    private static int[] bounds(AbstractContainerScreen<?> screen) {
-        var accessor = (com.epic60869.skyjew.mixin.SkyJewContainerScreenAccessor) screen;
-        int left = accessor.skyjew$getLeftPos();
-        int width = Math.max(120, Math.min(260, left - 12));
-        int x = left - width - 6;
-        if (x < 4) x = 4; // narrow window: overlap rather than go off screen
-        int y = Math.max(6, accessor.skyjew$getTopPos());
-        int height = Math.min(screen.height - y - 6, 36 + rows.size() * LINE_HEIGHT);
-        return new int[]{x, y, width, Math.max(40, height)};
-    }
-
-    public static void render(GuiGraphicsExtractor g, AbstractContainerScreen<?> screen, int mouseX, int mouseY) {
-        if (selectedId == null) return;
-        refresh();
-        var font = Minecraft.getInstance().font;
-        int[] b = bounds(screen);
-        int x = b[0], y = b[1], w = b[2], h = b[3];
-
-        g.fill(x, y, x + w, y + h, 0xE0101420);
-        g.fill(x, y, x + w, y + 1, 0xFF9A6CFF);
-        g.item(RepoItems.itemStack(selectedId), x + PADDING, y + PADDING);
-        String title = SkyJewRecipeCommand.displayName(selectedId);
-        g.text(font, font.plainSubstrByWidth(title, w - 44), x + PADDING + 20, y + PADDING - 1, 0xFFFFD34D, true);
-        int ax = x + PADDING + 20, ay = y + PADDING + 9;
-        String amountText = " " + selectedAmount + " ";
-        g.text(font, "-", ax, ay, 0xFFFF5555, true);
-        g.text(font, amountText, ax + 6, ay, 0xFFAAAAAA, true);
-        g.text(font, "+", ax + 6 + font.width(amountText), ay, 0xFF55FF55, true);
-        boolean overMinus = mouseX >= ax - 2 && mouseX < ax + 6 && mouseY >= ay - 1 && mouseY < ay + 9;
-        boolean overPlus = mouseX >= ax + 4 + font.width(amountText) && mouseX < ax + 12 + font.width(amountText) && mouseY >= ay - 1 && mouseY < ay + 9;
-        if (overMinus || overPlus) {
-            String verb = overMinus ? "decrease" : "increase";
-            g.setTooltipForNextFrame(font, List.of(
-                Component.literal("Click to " + verb + " by 1").withStyle(ChatFormatting.GRAY),
-                Component.literal("Shift + Click to " + verb + " by 10").withStyle(ChatFormatting.GRAY),
-                Component.literal("Ctrl + Click to " + verb + " by 64").withStyle(ChatFormatting.GRAY)), java.util.Optional.empty(), mouseX, mouseY);
-        }
-        g.fill(x + w - 16, y + 4, x + w - 4, y + 16, 0xFF8B1E2D);
-        g.text(font, "×", x + w - 12, y + 6, 0xFFFFFFFF, true);
-
-        int listTop = y + 28;
-        int visible = Math.max(1, (y + h - listTop - 4) / LINE_HEIGHT);
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, rows.size() - visible)));
-        if (building) {
-            g.text(font, "Loading recipes...", x + PADDING, listTop, 0xFFAAAAAA, false);
-            return;
-        }
-        Row hovered = null;
-        for (int i = 0; i < visible && i + scroll < rows.size(); i++) {
-            Row row = rows.get(i + scroll);
-            int rowY = listTop + i * LINE_HEIGHT;
-            g.pose().pushMatrix();
-            g.enableScissor(x + PADDING, rowY, x + w - PADDING, rowY + LINE_HEIGHT);
-            g.text(font, rowText(row), x + PADDING, rowY, 0xFFFFFFFF, false);
-            g.disableScissor();
-            g.pose().popMatrix();
-            if (mouseX >= x && mouseX < x + w && mouseY >= rowY && mouseY < rowY + LINE_HEIGHT) hovered = row;
-        }
-        if (rows.size() > visible) {
-            g.text(font, (scroll + 1) + "-" + Math.min(rows.size(), scroll + visible) + " / " + rows.size() + " (scroll)", x + PADDING, y + h - 10, 0xFF8794A8, false);
-        }
-        if (hovered != null) g.setTooltipForNextFrame(font, tooltip(hovered), java.util.Optional.empty(), mouseX, mouseY);
-    }
-
-    private static List<Component> tooltip(Row row) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(SkyJewRecipeCommand.displayName(row.id())).withStyle(ChatFormatting.WHITE));
-        if (row.throughParents() > 0) lines.add(Component.literal("Covered by crafted parents: " + row.throughParents()).withStyle(ChatFormatting.GRAY));
-        if (row.carryOver() > 0) lines.add(Component.literal("Leftover from another craft: " + row.carryOver()).withStyle(ChatFormatting.GRAY));
-        if (row.fromInventory() > 0) lines.add(Component.literal("Inventory: " + row.fromInventory()).withStyle(ChatFormatting.GRAY));
-        if (row.fromStorage() > 0) lines.add(Component.literal("Storage: " + row.fromStorage()).withStyle(ChatFormatting.GRAY));
-        if (!row.recipeType().equals("none")) lines.add(Component.literal("Click to open recipe!").withStyle(ChatFormatting.YELLOW));
-        return lines;
-    }
-
-    public static boolean mouseClicked(AbstractContainerScreen<?> screen, double mouseX, double mouseY, int button) {
-        if (selectedId == null || button != 0) return false;
-        int[] b = bounds(screen);
-        int x = b[0], y = b[1], w = b[2], h = b[3];
-        if (mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + h) return false;
-        if (mouseX >= x + w - 16 && mouseY < y + 18) {
-            clear();
-            return true;
-        }
-        var font = Minecraft.getInstance().font;
-        int ax = x + PADDING + 20, ay = y + PADDING + 9;
-        int amountWidth = font.width(" " + selectedAmount + " ");
-        if (mouseY >= ay - 1 && mouseY < ay + 9) {
-            if (mouseX >= ax - 2 && mouseX < ax + 6) {
-                stepAmount(-1);
-                return true;
-            }
-            if (mouseX >= ax + 4 + amountWidth && mouseX < ax + 12 + amountWidth) {
-                stepAmount(1);
-                return true;
-            }
-        }
-        int index = (int) ((mouseY - (y + 28)) / LINE_HEIGHT) + scroll;
-        if (mouseY >= y + 28 && index >= 0 && index < rows.size() && !rows.get(index).recipeType().equals("none")) {
-            var connection = Minecraft.getInstance().getConnection();
-            if (connection != null) connection.sendCommand("viewrecipe " + rows.get(index).id());
-        }
-        return true;
-    }
-
-    public static boolean mouseScrolled(AbstractContainerScreen<?> screen, double mouseX, double mouseY, double amount) {
-        if (selectedId == null) return false;
-        int[] b = bounds(screen);
-        if (mouseX < b[0] || mouseX >= b[0] + b[2] || mouseY < b[1] || mouseY >= b[1] + b[3]) return false;
-        scroll -= (int) Math.signum(amount) * 3;
-        return true;
     }
 }

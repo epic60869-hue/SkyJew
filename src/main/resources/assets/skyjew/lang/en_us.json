@@ -1,6 +1,7 @@
 {
   "key.category.skyjew.main": "SkyJew",
   "key.skyjew.search": "Open Item Search",
+  "key.skyjew.toggle_sprint": "Toggle Sprint",
   "skyjew.customAnimatedDyes.added": "Set a custom animated dye for your currently held item!",
   "skyjew.customAnimatedDyes.neverHad": "This item doesn't have a custom animated dye set, but why not add one? ;)",
   "skyjew.customAnimatedDyes.noItemUuid": "§cYou must be holding an item that has a uuid to set a custom animated dye.",
