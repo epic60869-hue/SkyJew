@@ -2,6 +2,8 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
+## 1.2.4
+
 ## 1.2.3 — 2026-09-26
 
 ### Changed
