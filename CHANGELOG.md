@@ -5,6 +5,7 @@ All notable changes to SkyJew are listed here, newest first.
 ## 1.2.5
 
 ### Changed
+- The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing the cooldown from chat, so it's always right. Turn that widget on in Hypixel's tab list settings.
 - The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
 
 ## 1.2.4 — 2026-09-26
