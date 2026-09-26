@@ -753,6 +753,26 @@ public final class FeatureConfigs {
         public boolean enabled = true;
 
         @Expose
+        @ConfigOption(name = "Top Left Key", desc = "Leap to the teammate in the top left box.")
+        @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind(defaultKey = org.lwjgl.glfw.GLFW.GLFW_KEY_1)
+        public int keyTopLeft = org.lwjgl.glfw.GLFW.GLFW_KEY_1;
+
+        @Expose
+        @ConfigOption(name = "Top Right Key", desc = "Leap to the teammate in the top right box.")
+        @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind(defaultKey = org.lwjgl.glfw.GLFW.GLFW_KEY_2)
+        public int keyTopRight = org.lwjgl.glfw.GLFW.GLFW_KEY_2;
+
+        @Expose
+        @ConfigOption(name = "Bottom Left Key", desc = "Leap to the teammate in the bottom left box.")
+        @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind(defaultKey = org.lwjgl.glfw.GLFW.GLFW_KEY_3)
+        public int keyBottomLeft = org.lwjgl.glfw.GLFW.GLFW_KEY_3;
+
+        @Expose
+        @ConfigOption(name = "Bottom Right Key", desc = "Leap to the teammate in the bottom right box.")
+        @io.github.notenoughupdates.moulconfig.annotations.ConfigEditorKeybind(defaultKey = org.lwjgl.glfw.GLFW.GLFW_KEY_4)
+        public int keyBottomRight = org.lwjgl.glfw.GLFW.GLFW_KEY_4;
+
+        @Expose
         @ConfigOption(name = "Colored Boxes", desc = "Fill each box with the class colour. Off: dark boxes with class-coloured names.")
         @ConfigEditorBoolean
         public boolean coloredBoxes = false;

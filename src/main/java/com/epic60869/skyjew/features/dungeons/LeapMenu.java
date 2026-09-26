@@ -40,6 +40,17 @@ public final class LeapMenu {
     private LeapMenu() {}
 
     public static void init() {
+        // Keybinds: press a box's key to leap to that teammate.
+        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (!(screen instanceof AbstractContainerScreen<?> container)) return;
+            net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents.allowKeyPress(screen).register((s, event) -> {
+                if (!isActive(container)) return true;
+                int quadrant = quadrantFor(event.key());
+                if (quadrant < 0) return true;
+                leapTo(container, quadrant);
+                return false;
+            });
+        });
         SkyJewChat.onChat(message -> {
             FeatureConfigs.LeapMenu config = config();
             if (config == null || !config.announce || !SkyJewLocation.inDungeon()) return;
@@ -162,14 +173,49 @@ public final class LeapMenu {
             graphics.pose().popMatrix();
             graphics.text(mc.font, t.alive() ? t.dungeonClass().displayName() : "DEAD",
                 x + 15 + face, y + (int) (BOX_HEIGHT / 1.55), t.alive() ? 0xFFFFFFFF : 0xFFFF5555, true);
+            // The key that leaps here, in the corner of the box.
+            String key = keyName(i);
+            if (!key.isEmpty()) {
+                String label = "[" + key + "]";
+                graphics.text(mc.font, label, x + BOX_WIDTH - 6 - mc.font.width(label), y + 6, config.coloredBoxes ? 0xFF1A1A1A : 0xFFAAAAAA, !config.coloredBoxes);
+            }
             graphics.pose().popMatrix();
         }
         graphics.centeredText(mc.font, Component.literal("Spirit Leap").withStyle(ChatFormatting.GRAY), halfW, 6, 0xFFFFFFFF);
     }
 
+    /** Which box a key leaps to (0 top left, 1 top right, 2 bottom left, 3 bottom right), or -1. */
+    private static int quadrantFor(int key) {
+        FeatureConfigs.LeapMenu config = config();
+        if (config == null || key == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN) return -1;
+        if (key == config.keyTopLeft) return 0;
+        if (key == config.keyTopRight) return 1;
+        if (key == config.keyBottomLeft) return 2;
+        if (key == config.keyBottomRight) return 3;
+        return -1;
+    }
+
+    private static String keyName(int quadrant) {
+        FeatureConfigs.LeapMenu config = config();
+        if (config == null) return "";
+        int key = switch (quadrant) {
+            case 0 -> config.keyTopLeft;
+            case 1 -> config.keyTopRight;
+            case 2 -> config.keyBottomLeft;
+            default -> config.keyBottomRight;
+        };
+        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN) return "";
+        String name = org.lwjgl.glfw.GLFW.glfwGetKeyName(key, 0);
+        return name == null ? "" : name.toUpperCase(java.util.Locale.ROOT);
+    }
+
     /** Leaps to the teammate in the clicked quadrant. */
     public static void click(AbstractContainerScreen<?> screen, double mouseX, double mouseY) {
         int quadrant = (mouseY >= screen.height / 2.0 ? 2 : 0) + (mouseX >= screen.width / 2.0 ? 1 : 0);
+        leapTo(screen, quadrant);
+    }
+
+    private static void leapTo(AbstractContainerScreen<?> screen, int quadrant) {
         Teammate t = layout()[quadrant];
         if (t == null) return;
         if (!t.alive()) {
