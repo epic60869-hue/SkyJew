@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandRenderer.class)
 public abstract class SkyBallsHeldItemMixin {
     /** Misc > Held Item Model > No Swing Animation: the first-person hand and item never swing. */
-    @com.llamalad7.mixinextras.injector.ModifyExpressionValue(method = "renderHandsWithItems", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getAttackAnim(F)F"))
+    @com.llamalad7.mixinextras.injector.ModifyExpressionValue(method = "submitHandsWithItems", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getAttackAnim(F)F"))
     private float skyballs$noSwing(float attack) {
         return HeldItemModel.noSwing() ? 0f : attack;
     }
