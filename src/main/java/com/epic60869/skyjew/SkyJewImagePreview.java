@@ -27,11 +27,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-/** Shows a preview of an image when hovering an image link in chat. */
+/**
+ * Shows a preview of an image when hovering an image link in chat (including SkyBalls chat). Links ending in an
+ * image extension preview straight away; Discord, Imgur and Gyazo links (and any other link that turns out to be an
+ * image) are tried too. While it downloads a "Loading image..." box shows, so you can tell it's working.
+ */
 public final class SkyJewImagePreview {
     private static final Pattern IMAGE_URL = Pattern.compile(
-        "(?i)^https?://[^\\s]+\\.(?:png|jpe?g|gif|webp)(?:\\?[^\\s]*)?$"
+        "(?i)^https?://[^\\s]+\\.(?:png|jpe?g|gif|webp|bmp)(?:\\?[^\\s]*)?$"
     );
+    /** Hosts whose links are usually images even without an extension. */
+    private static final Pattern IMAGE_HOST = Pattern.compile(
+        "(?i)^https?://(?:(?:cdn|media)\\.discordapp\\.(?:com|net)|(?:i\\.)?imgur\\.com|i\\.gyazo\\.com|gyazo\\.com|i\\.ibb\\.co|prnt\\.sc|tenor\\.com|media\\.tenor\\.com)/\\S+$"
+    );
+    /** Links that were downloaded and turned out not to be images. */
+    private static final Map<String, Boolean> NOT_IMAGE = new ConcurrentHashMap<>();
+    private static final Map<String, Long> LOADING = new ConcurrentHashMap<>();
     private static final int MAX_WIDTH = 320;
     private static final int MAX_HEIGHT = 180;
     private static final HttpClient CLIENT = HttpClient.newBuilder()
@@ -53,7 +64,20 @@ public final class SkyJewImagePreview {
         if (url == null) return;
 
         Loaded texture = texture(url);
-        if (texture == null) return;
+        // Draw above the link's own hover text.
+        graphics.nextStratum();
+        if (texture == null) {
+            if (LOADING.containsKey(url)) {
+                var font = Minecraft.getInstance().font;
+                String text = "Loading image...";
+                int x = Math.max(6, Math.min(mouseX + 14, graphics.guiWidth() - font.width(text) - 14));
+                int y = Math.max(6, mouseY - 24);
+                graphics.fill(x - 4, y - 4, x + font.width(text) + 4, y + 12, 0xF0101116);
+                graphics.fill(x - 4, y - 4, x + font.width(text) + 4, y - 2, 0xFF55FFFF);
+                graphics.text(font, text, x, y, 0xFFAAAAAA, false);
+            }
+            return;
+        }
 
         float scale = Math.min((float) MAX_WIDTH / texture.width(), (float) MAX_HEIGHT / texture.height());
         int width = Math.max(1, Math.round(texture.width() * scale));
@@ -74,7 +98,8 @@ public final class SkyJewImagePreview {
         } else if (style.getHoverEvent() instanceof HoverEvent.ShowText showText) {
             url = showText.value().getString().trim();
         }
-        return url != null && IMAGE_URL.matcher(url).matches() ? url : null;
+        if (url == null || NOT_IMAGE.containsKey(url)) return null;
+        return IMAGE_URL.matcher(url).matches() || IMAGE_HOST.matcher(url).matches() ? url : null;
     }
 
     private static Loaded texture(String url) {
@@ -96,7 +121,14 @@ public final class SkyJewImagePreview {
         }
 
         if (REQUESTED.putIfAbsent(url, Boolean.TRUE) == null) {
-            CompletableFuture.runAsync(() -> download(url));
+            LOADING.put(url, System.currentTimeMillis());
+            CompletableFuture.runAsync(() -> {
+                try {
+                    download(url);
+                } finally {
+                    LOADING.remove(url);
+                }
+            });
         }
         return null;
     }
@@ -109,15 +141,24 @@ public final class SkyJewImagePreview {
             Path file = cacheDir.resolve(sha256(url) + ".png");
 
             if (!Files.exists(file)) {
-                HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                HttpRequest request = HttpRequest.newBuilder(URI.create(fetchUrl(url)))
                     .timeout(Duration.ofSeconds(15))
-                    .header("User-Agent", "SkyBalls/1.0")
+                    .header("User-Agent", "Mozilla/5.0 (SkyBalls)")
+                    .header("Accept", "image/png,image/jpeg,image/gif,image/*;q=0.8")
                     .GET().build();
                 HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode());
+                String type = response.headers().firstValue("Content-Type").orElse("");
+                if (!type.isEmpty() && !type.startsWith("image/")) {
+                    NOT_IMAGE.put(url, Boolean.TRUE); // a web page, not an image: stop trying
+                    return;
+                }
                 // Minecraft can only read PNG, so JPG/GIF are converted (GIFs show their first frame).
                 BufferedImage image = ImageIO.read(new ByteArrayInputStream(response.body()));
-                if (image == null) throw new IllegalStateException("Unsupported image format");
+                if (image == null) {
+                    NOT_IMAGE.put(url, Boolean.TRUE); // e.g. WebP, which Java can't read
+                    return;
+                }
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ImageIO.write(image, "png", out);
                 Files.write(file, out.toByteArray());
@@ -127,6 +168,19 @@ public final class SkyJewImagePreview {
             // Allow a retry the next time the link is hovered.
             REQUESTED.remove(url);
         }
+    }
+
+    /** Asks image hosts for a format Java can read: Discord media as PNG, Imgur page links as the image itself. */
+    private static String fetchUrl(String url) {
+        if (url.matches("(?i)^https?://media\\.discordapp\\.net/.*")) {
+            String cleaned = url.replaceAll("([?&])format=[^&]*&?", "$1").replaceAll("[?&]$", "");
+            return cleaned + (cleaned.contains("?") ? "&" : "?") + "format=png";
+        }
+        var imgur = java.util.regex.Pattern.compile("(?i)^https?://imgur\\.com/([A-Za-z0-9]+)$").matcher(url);
+        if (imgur.matches()) return "https://i.imgur.com/" + imgur.group(1) + ".png";
+        var gyazo = java.util.regex.Pattern.compile("(?i)^https?://gyazo\\.com/([A-Za-z0-9]+)$").matcher(url);
+        if (gyazo.matches()) return "https://i.gyazo.com/" + gyazo.group(1) + ".png";
+        return url;
     }
 
     private static String sha256(String value) throws Exception {
