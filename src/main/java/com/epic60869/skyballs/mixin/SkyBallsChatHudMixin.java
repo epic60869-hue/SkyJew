@@ -36,7 +36,7 @@ public abstract class SkyBallsChatHudMixin {
         ordinal = 0
     )
     private Component skyballs$replaceSimpleChat(Component message) {
-        return SkyBallsNopoFeatures.replaceChatEmojis(SkyBallsNick.replaceOtherNamesInChat(SkyBallsNick.replaceOwnNameInChat(message)));
+        return SkyBallsNopoFeatures.replaceChatEmojis(SkyBallsNick.replaceOtherNamesInChat(SkyBallsNick.replaceOwnNameInChat(com.epic60869.skyballs.features.misc.ScreenshotShare.decorate(message))));
     }
 
     @ModifyVariable(
@@ -46,7 +46,7 @@ public abstract class SkyBallsChatHudMixin {
         ordinal = 0
     )
     private Component skyballs$replaceFullChat(Component message) {
-        return SkyBallsNopoFeatures.replaceChatEmojis(SkyBallsNick.replaceOtherNamesInChat(SkyBallsNick.replaceOwnNameInChat(message)));
+        return SkyBallsNopoFeatures.replaceChatEmojis(SkyBallsNick.replaceOtherNamesInChat(SkyBallsNick.replaceOwnNameInChat(com.epic60869.skyballs.features.misc.ScreenshotShare.decorate(message))));
     }
 
     @Inject(

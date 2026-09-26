@@ -519,6 +519,16 @@ public final class SkyBallsConfig extends Config {
         public com.epic60869.skyballs.features.FeatureConfigs.PartyCommands partyCommands = new com.epic60869.skyballs.features.FeatureConfigs.PartyCommands();
 
         @Expose
+        @ConfigOption(name = "Screenshot Sharing", desc = "After F2, the screenshot message gets an [Upload] button that gives you a link to post in /sbc, like Skysoft. Uploads are public to anyone with the link.")
+        @ConfigEditorBoolean
+        public boolean screenshotSharing = true;
+
+        @Expose
+        @ConfigOption(name = "Screenshot Upload Host", desc = "Where screenshots are uploaded. Litterbox deletes them after the chosen time; Catbox keeps them.")
+        @ConfigEditorDropdown
+        public com.epic60869.skyballs.features.misc.ScreenshotShare.Host screenshotHost = com.epic60869.skyballs.features.misc.ScreenshotShare.Host.LITTERBOX_72H;
+
+        @Expose
         @ConfigOption(name = "Storage Overlay", desc = "Show every Ender Chest page and backpack at once in /storage and in any page, like Firmament. Click a page's name to open it; the open page and your inventory can be clicked as normal.")
         @ConfigEditorBoolean
         public boolean storageOverlay = true;

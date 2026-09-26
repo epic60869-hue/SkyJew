@@ -4,10 +4,14 @@ All notable changes to SkyBalls are listed here, newest first.
 
 ## 1.2.6
 
+### Added
+- Screenshot Sharing (Misc): after F2, the "Saved screenshot as ..." message has an [Upload] button. It uploads the picture to Litterbox (or Catbox) and gives you the link with [Send in /sbc] and [Copy Link]; the link previews when hovered.
+
 ### Changed
 - Terminals and Devices: the Odin Terminal Solver switch is now a Terminal Solver dropdown, like SkyHanni's: Odin, NoammAddons or Skyblocker Highlights. NoammAddons shows its big centred panel with the terminal's name, a Scale setting, three slot styles (Rect, Bordered Rect, Button) and its colours; you click on the panel, and rubix picks the right mouse button for you.
 
 ### Fixed
+- Storage Overlay: opening /ec showed the real Ender Chest page underneath the overlay; now only the overlay shows.
 - Messages from the SkyBalls chat bot showed as "[SkyJew]: [SJ] ..."; they show as SkyBalls and [SB].
 - Hovering an ImgBB link in chat (like Skysoft's "Screenshot uploaded: https://ibb.co/...") showed no preview. Links to image pages on ImgBB, Imgur, Gyazo, Lightshot and Postimages now preview the picture on the page.
 - Update notifications check the renamed SkyBalls GitHub page (they stopped arriving after the rename).
