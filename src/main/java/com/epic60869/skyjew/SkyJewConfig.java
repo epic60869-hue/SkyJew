@@ -227,6 +227,11 @@ public final class SkyJewConfig extends Config {
         public boolean showSjChat = true;
 
         @Expose
+        @ConfigOption(name = "Ranks In All Chat", desc = "Show SkyJew ranks ([OWNER], [TESTER], ...) in front of those players' names in every chat, not only /sjc.")
+        @ConfigEditorBoolean
+        public boolean ranksInAllChat = true;
+
+        @Expose
         @ConfigOption(name = "Hide Other Players' Commands", desc = "Hide SkyJew command result messages when they belong to another player. Your own command results remain visible.")
         @ConfigEditorBoolean
         public boolean hideOtherCommands = true;

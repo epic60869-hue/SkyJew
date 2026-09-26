@@ -36,7 +36,7 @@ public abstract class SkyJewChatHudMixin {
         ordinal = 0
     )
     private Component skyjew$replaceSimpleChat(Component message) {
-        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOtherNamesInChat(SkyJewNick.replaceOwnNameInChat(message)));
+        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOtherNamesInChat(SkyJewNick.replaceOwnNameInChat(SkyJewNick.addRankPrefixes(message))));
     }
 
     @ModifyVariable(
@@ -46,7 +46,7 @@ public abstract class SkyJewChatHudMixin {
         ordinal = 0
     )
     private Component skyjew$replaceFullChat(Component message) {
-        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOtherNamesInChat(SkyJewNick.replaceOwnNameInChat(message)));
+        return SkyJewNopoFeatures.replaceChatEmojis(SkyJewNick.replaceOtherNamesInChat(SkyJewNick.replaceOwnNameInChat(SkyJewNick.addRankPrefixes(message))));
     }
 
     @Inject(

@@ -287,6 +287,63 @@ public final class SkyJewNick {
         return result;
     }
 
+    /**
+     * Puts SkyJew rank prefixes ("[OWNER] ") in front of ranked players' names in any chat line. Runs before the
+     * nickname replacement, while the real username is still in the text. SkyJew chat lines already have them.
+     */
+    public static Component addRankPrefixes(Component message) {
+        if (message == null || config() == null || !config().chat.customChat.ranksInAllChat) return message;
+        String plain = message.getString();
+        if (plain.startsWith("[SJ]") || plain.startsWith("[Discord]")) return message;
+        Component result = message;
+        for (Map.Entry<String, SkyJewStaff.Rank> e : SkyJewStaff.ranksByName().entrySet()) {
+            String name = e.getKey();
+            if (!plain.toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT))) continue;
+            SkyJewStaff.Rank rank = e.getValue();
+            Component prefix = Component.literal("[" + rank.label() + "] ")
+                .withStyle(Style.EMPTY.withColor(rank.colour()).withBold(rank.bold()));
+            result = insertBeforeName(result, name, prefix, "[" + rank.label() + "] ");
+        }
+        return result;
+    }
+
+    /** Inserts {@code prefix} before each whole-word {@code name} (any case) unless it is already there. */
+    private static Component insertBeforeName(Component message, String name, Component prefix, String prefixText) {
+        List<StyledRun> runs = new java.util.ArrayList<>();
+        StringBuilder plainBuilder = new StringBuilder();
+        message.visit((style, value) -> {
+            if (value != null && !value.isEmpty()) {
+                runs.add(new StyledRun(value, style));
+                plainBuilder.append(value);
+            }
+            return java.util.Optional.empty();
+        }, Style.EMPTY);
+        String text = plainBuilder.toString();
+        String lower = text.toLowerCase(Locale.ROOT);
+        String target = name.toLowerCase(Locale.ROOT);
+        MutableComponent result = Component.empty();
+        int cursor = 0;
+        boolean changed = false;
+        int from = 0;
+        while (true) {
+            int at = lower.indexOf(target, from);
+            if (at < 0) break;
+            int end = at + target.length();
+            from = at + 1;
+            boolean leftOk = at == 0 || !isNameChar(text.charAt(at - 1));
+            boolean rightOk = end >= text.length() || !isNameChar(text.charAt(end));
+            boolean already = at >= prefixText.length() && text.startsWith(prefixText, at - prefixText.length());
+            if (!leftOk || !rightOk || already) continue;
+            appendStyledRange(result, runs, cursor, at);
+            result.append(prefix.copy());
+            cursor = at;
+            changed = true;
+        }
+        if (!changed) return message;
+        appendStyledRange(result, runs, cursor, text.length());
+        return result;
+    }
+
     private static Component replaceExactName(Component message, String actualName, Component replacement) {
         if (message == null || actualName == null || actualName.isBlank()) return message;
 

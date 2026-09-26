@@ -115,6 +115,15 @@ public final class SkyJewStaff {
         return Component.literal("[" + rank.label() + "] ").withStyle(Style.EMPTY.withColor(rank.colour()).withBold(rank.bold()));
     }
 
+    /** Ranked accounts' usernames (as the site or the built-in list names them) and their ranks. */
+    public static Map<String, Rank> ranksByName() {
+        Map<String, Rank> out = new HashMap<>();
+        for (Entry entry : all().values()) {
+            if (entry.name() != null && entry.name().matches("\\w{1,16}")) out.put(entry.name(), entry.rank());
+        }
+        return out;
+    }
+
     /** Names of ranked accounts, which nobody else can use as a nickname. */
     static List<String> names(UUID except) {
         List<String> names = new ArrayList<>();
