@@ -2,12 +2,6 @@
 
 All notable changes to SkyJew are listed here, newest first.
 
-## Unreleased
-
-### Changed
-- `/sj log` opens a changelog window instead of printing in chat: arrows (or the left and right keys) switch versions, and the list scrolls.
-- Launchers show the mod as "SkyJew by 2m3s", with 2m3s's head as its icon.
-
 ## 1.2.3 — 2026-09-26
 
 ### Changed
@@ -25,6 +19,8 @@ All notable changes to SkyJew are listed here, newest first.
 - Compact chat stacks repeats onto the newest message at the bottom instead of the old one higher up.
 - Price tooltips: items sold on the bazaar show the bazaar insta-buy and insta-sell price where the lowest BIN and 3 day average would be (for the whole sack in the Sacks menu).
 - The settings title shows the installed version (e.g. SkyJew Mod v1.2.3).
+- `/sj log` opens a changelog window instead of printing in chat: arrows (or the left and right keys) switch versions, and the list scrolls.
+- Launchers show the mod as "SkyJew by 2m3s", with 2m3s's head as its icon.
 
 ### Added
 - Dungeon routes folder: put any route file in `config/skyjew/dungeon route/` (Stella / SkyJew, SecretRoutes or Dungeon Rooms Mod style). Rooms without a route there use Stella's routes. Changes load automatically; `/sj route reload` and `/sj route folder` too.
