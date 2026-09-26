@@ -2,7 +2,7 @@
 
 All notable changes to SkyBalls are listed here, newest first.
 
-## 1.2.6
+## 1.2.6 — 2026-09-26
 
 ### Added
 - Join commands (Misc > Join Commands): `/f0` (Entrance) to `/f7` and `/m1` to `/m7` join that Catacombs floor, and `/t1` to `/t5` join Kuudra (Basic, Hot, Burning, Fiery, Infernal).
