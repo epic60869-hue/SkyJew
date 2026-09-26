@@ -506,6 +506,12 @@ public final class SkyBallsGlobalChat {
                 String name = packet.has("username") ? packet.get("username").getAsString() : "Unknown";
                 String displayName = packet.has("nickname") ? packet.get("nickname").getAsString() : name;
                 String message = packet.has("message") ? packet.get("message").getAsString() : "";
+                // The chat server's bot still calls itself SkyJew and writes [SJ]; show the new name.
+                if (name.equalsIgnoreCase("SkyJew") || displayName.equalsIgnoreCase("SkyJew")) {
+                    name = "SkyBalls";
+                    displayName = "SkyBalls";
+                    message = message.replace("[SJ]", "[SB]").replace("SkyJew", "SkyBalls");
+                }
                 if (message.isBlank()) return;
 
                 UUID messageUuid = null;

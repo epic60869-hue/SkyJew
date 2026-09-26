@@ -5,6 +5,7 @@ All notable changes to SkyBalls are listed here, newest first.
 ## 1.2.6
 
 ### Fixed
+- Messages from the SkyBalls chat bot showed as "[SkyJew]: [SJ] ..."; they show as SkyBalls and [SB].
 - Hovering an ImgBB link in chat (like Skysoft's "Screenshot uploaded: https://ibb.co/...") showed no preview. Links to image pages on ImgBB, Imgur, Gyazo, Lightshot and Postimages now preview the picture on the page.
 - Update notifications check the renamed SkyBalls GitHub page (they stopped arriving after the rename).
 
