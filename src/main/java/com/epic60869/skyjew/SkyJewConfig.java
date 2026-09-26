@@ -507,6 +507,11 @@ public final class SkyJewConfig extends Config {
         public boolean pricePaid = true;
 
         @Expose
+        @ConfigOption(name = "Update Notifications", desc = "Tell you in chat when a newer SkyJew version is out (\"New SkyJew Mod Version 1.2.3 --> 1.2.5\"), with a download link.")
+        @ConfigEditorBoolean
+        public boolean updateNotifications = true;
+
+        @Expose
         @ConfigOption(name = "Collection Tracker", desc = "While you mine, farm, forage or fish, show the collection you're gathering, what you've gained this session and per hour, like SkyHanni's farming display. Move it in /sj gui.")
         @ConfigEditorBoolean
         public boolean collectionTracker = true;
