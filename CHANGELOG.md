@@ -6,22 +6,28 @@ All notable changes to SkyJew are listed here, newest first.
 
 ### Changed
 - SkyJew is now **SkyBalls**: `/sb` and `/skyballs` (the old `/sj` and `/skyjew` still work), `/sbc` for SkyBalls chat (`/sjc` still works), and [SB] in chat. The [SB] in SkyBalls chat is dark green, like Hypixel's "Guild >". Your settings carry over.
-- Ranks ([OWNER], [TESTER], ...) only show in SkyBalls chat again, and Chat > Custom Chat > Show Ranks turns them off completely.
-- Rank changes made on the website show up right away when the server announces them.
-
-### Fixed
-- `/sb nick`: picking a preset colour now also updates the colour picker and hex box.
+- Ranks ([OWNER], [TESTER], ...) only show in SkyBalls chat, and Chat > Custom Chat > Show Ranks turns them off completely. Rank changes made on the website show up right away when the server announces them.
+- The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
+- The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing from chat. Turn that widget on in Hypixel's tab list settings.
+- The Enchanting Runes nickname font is made of letters now (the Unicode enchanting table alphabet), so it shows in every tab list, including other mods'.
+- Leap menu: press 1-4 (changeable) to leap to the teammate in that box; each box shows its key.
+- Chat image previews work with Discord, Imgur and Gyazo links, show "Loading image..." while downloading, and sit above the link's tooltip.
 
 ### Added
-- Dungeon Case Opening (Dungeons > Case Opening, off by default): opening an Obsidian or Bedrock chest spins a CS2-style case (SkyOcean's Dungeon Gambling) that stops on the best item. A Legendary or better item plays the gold sound.
-- `/sb bugreport`, `/sb suggest` and `/sb feedback`: a window with a title and a description to send a bug report, suggestion or feedback to the SkyBalls team.
-- SB Chat Ping (Chat > Custom Chat): a little ping when someone sends a message in /sbc. Off by default.
-- Item Notification (Misc > Item Notification): SkyOcean's Sack Notification as a HUD. Put item names on a list and when you get one, in your sacks or your inventory, it shows like the farming RNG HUD: "5x Enchanted Diamond 8.5k", with the price for all of them. More of the same item adds up while it's showing. The list is edited in its own window (the EDIT button, or `/sj itemnotify`), like /sj notes: one item per line, with item name suggestions as you type (Tab to use one). `/sj itemnotify add|remove <item name>` and `/sj itemnotify list` work too.
+- `/sb bugreport`, `/sb suggest` and `/sb feedback`: send a bug report, suggestion or feedback (a title and a description) to the SkyBalls team.
+- Dungeon Case Opening (Dungeons > Case Opening, off by default): Obsidian and Bedrock chests open like a CS2 case (SkyOcean's Dungeon Gambling) and stop on the best item. Legendary or better plays "GOLD GOLD GOLD".
+- Item Notification (Misc > Item Notification): SkyOcean's Sack Notification as a HUD. When an item on your list goes into your sacks or inventory it shows like the farming RNG HUD ("5x Enchanted Diamond 8.5k"). The list is edited in its own window with item name suggestions (EDIT, or `/sb itemnotify`).
+- Storage Overlay (Misc, on by default): every Ender Chest page and backpack at once in /storage and in any page, like Firmament. Click a page's name to open it; the open page and your inventory work as normal.
+- Slot Locking & Binding (Misc): press L over a slot to lock it (it can't be clicked, moved or dropped), and B to bind a hotbar slot to an inventory slot so a shift-click swaps them (Odin's Slot Binds).
+- Copy Chat (Chat > Copy Chat): right-click a chat message to copy it, Shift+right-click for one line, with a preview (NoFrills' Chat Tweaks). Rank prefixes aren't copied.
+- `/sb toggle <setting>` turns any setting on or off, `/sb togglenick <player>` hides or shows someone's nickname for you, `/sb who` lists who is online with the mod, and `/sb disableall` (or `/sbdisableall`) turns everything off after you click to confirm.
+- No Swing Animation (Misc > Held Item Model, off by default), like NoFrills.
+- SB Chat Ping (Chat > Custom Chat, off by default): a ping when someone sends a message in /sbc.
 
-### Changed
-- The Enchanting Runes nickname font is now made of letters (the Unicode enchanting table alphabet, ᔑʖᓵ↸ᒷ...) instead of a Minecraft font, so it shows in tab lists drawn by other mods (SkyHanni, SkyblockAddons, ...) and to every SkyJew player. Illager Runes and Uniform still need SkyJew to draw the text, so those mods' tab lists show them as normal letters.
-- The Pickaxe Ability HUD reads Hypixel's Pickaxe Ability tab list widget, like SkyHanni, instead of guessing the cooldown from chat, so it's always right. Turn that widget on in Hypixel's tab list settings.
-- The Collection Tracker is just two lines now: "Collection: 12,345,678" (with the item's icon), and the next player above you on the Elite leaderboard with how far ahead of you they are.
+### Fixed
+- `/sb nick`: picking a preset colour also updates the colour picker and hex box.
+- Calendar dates are also added from the menu's own tooltip, so another mod's tooltip code can't stop them showing.
+- Mouse Reset puts the cursor in the middle of the screen (it went near the top-left at GUI scales above 1).
 
 ## 1.2.4 — 2026-09-26
 
