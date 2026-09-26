@@ -93,6 +93,12 @@ public final class HeldItemModel {
         if (t.scale != 1f) pose.scale(t.scale, t.scale, t.scale);
     }
 
+    /** Misc > Held Item Model > No Swing Animation. */
+    public static boolean noSwing() {
+        SkyJewConfig.HeldItemModel config = config();
+        return config != null && config.noSwing;
+    }
+
     /** Swing duration in ticks for your own hand. */
     public static int swingDuration(int vanilla) {
         SkyJewConfig.HeldItemModel config = config();

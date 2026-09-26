@@ -641,6 +641,7 @@ public final class SkyJewConfig extends Config {
         @Expose @ConfigOption(name = "Rotation Y", desc = "Yaw in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationY = 0f;
         @Expose @ConfigOption(name = "Rotation Z", desc = "Roll in degrees.") @ConfigEditorSlider(minValue = -180, maxValue = 180, minStep = 1) public float rotationZ = 0f;
         @Expose @ConfigOption(name = "Swing Speed", desc = "Arm swing speed (1 = vanilla, 2 = twice as fast, 0.5 = half speed).") @ConfigEditorSlider(minValue = 0.1f, maxValue = 3f, minStep = 0.05f) public float swingSpeed = 1f;
+        @Expose @ConfigOption(name = "No Swing Animation", desc = "Your hand and held item don't swing when you click, like NoFrills. Works even with Held Item Model off. Off by default.") @ConfigEditorBoolean public boolean noSwing = false;
 
         @Expose
         @ConfigOption(name = "Ignore Mining Effects", desc = "Swing at the normal speed even with Haste or Mining Fatigue.")

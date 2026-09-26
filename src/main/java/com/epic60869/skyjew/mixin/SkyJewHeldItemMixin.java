@@ -15,6 +15,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Misc > Held Item Model: transforms the first-person item. The collector copies the pose, so popping at the end is safe. */
 @Mixin(ItemInHandRenderer.class)
 public abstract class SkyJewHeldItemMixin {
+    /** Misc > Held Item Model > No Swing Animation: the first-person hand and item never swing. */
+    @com.llamalad7.mixinextras.injector.ModifyExpressionValue(method = "renderHandsWithItems", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getAttackAnim(F)F"))
+    private float skyjew$noSwing(float attack) {
+        return HeldItemModel.noSwing() ? 0f : attack;
+    }
+
     private boolean skyjew$pushed;
 
     @Inject(method = "renderItem", at = @At("HEAD"))
